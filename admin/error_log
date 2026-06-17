@@ -1,0 +1,1440 @@
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA andromeda_leadform: SELECT *, 'andromeda_leadform' as tabla_origen FROM `andromeda_leadform` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA andromeda_lead_form___jan_6: SELECT *, 'andromeda_lead_form___jan_6' as tabla_origen FROM `andromeda_lead_form___jan_6` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA efege_form_10_marzo: SELECT *, 'efege_form_10_marzo' as tabla_origen FROM `efege_form_10_marzo` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=181, Nombre=Luz Godoy, Fecha=2026-05-26T20:20:13-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=180, Nombre=Theresa Marquez, Fecha=2026-05-26T19:31:53-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=179, Nombre=Alyssa Griffin, Fecha=2026-05-26T13:26:40-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=178, Nombre=Lisa A Carter, Fecha=2026-05-19T05:04:34-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=177, Nombre=Judy Higgins, Fecha=2026-05-19T03:34:23-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=176, Nombre=Bernadette Kuuipo Ness, Fecha=2026-05-18T17:05:52-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=175, Nombre=Andrienne Cloud, Fecha=2026-05-18T15:47:22-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=174, Nombre=Emma Benitez, Fecha=2026-05-18T13:17:12-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=173, Nombre=Roselyn A. Lagda, Fecha=2026-05-18T03:00:32-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=172, Nombre=Kayla Ann, Fecha=2026-05-17T13:59:03-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=171, Nombre=Tracey Carter, Fecha=2026-05-17T12:49:10-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=170, Nombre=Lakia Broadnax, Fecha=2026-05-17T11:31:16-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=169, Nombre=April Stammerman, Fecha=2026-05-17T08:23:28-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=168, Nombre=Ashlynn thompson, Fecha=2026-05-17T00:18:27-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=167, Nombre=Angel N Rashad Moreno-Rhyne, Fecha=2026-05-16T21:11:26-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=166, Nombre=Shanti C Williams, Fecha=2026-05-15T21:52:34-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=165, Nombre=Nesmith David, Fecha=2026-05-15T18:58:01-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=164, Nombre=Joss, Fecha=2026-05-15T06:12:11-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=163, Nombre=Donna Beverly, Fecha=2026-05-14T13:03:53-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=162, Nombre=Monie Brown, Fecha=2026-05-13T20:10:34-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=161, Nombre=Hope Adams, Fecha=2026-05-13T18:50:28-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=160, Nombre=Anna Couch, Fecha=2026-05-13T15:10:35-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=159, Nombre=Joy Debroux, Fecha=2026-05-13T14:53:46-05:00
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA forms3: SELECT *, 'forms3' as tabla_origen FROM `forms3` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=391, Nombre=Jules Troliani, Fecha=2026-05-25T19:32:33-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=390, Nombre=Stephani navarrete, Fecha=2026-05-18T15:26:22-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=389, Nombre=Yesenia, Fecha=2026-05-18T10:14:50-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=388, Nombre=Clau Estefany, Fecha=2026-05-16T22:02:44-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=387, Nombre=Pame Arostegui, Fecha=2026-05-16T14:25:36-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=386, Nombre=Kaleigh Shuffett, Fecha=2026-05-16T14:19:34-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=385, Nombre=rubib5920@gmail.com, Fecha=2026-05-14T06:52:40-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de forms3: ID=384, Nombre=angela Sandridge, Fecha=2026-05-13T15:23:58-05:00
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA formusa1: SELECT *, 'formusa1' as tabla_origen FROM `formusa1` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA formusa2: SELECT *, 'formusa2' as tabla_origen FROM `formusa2` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA form_website: SELECT *, 'form_website' as tabla_origen FROM `form_website` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=153, Nombre=prueba sistemas, Fecha=2026-05-26T14:23:15-06:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=152, Nombre=Emily Reinke and Carter Hawthorne, Fecha=2026-05-25T18:15:22-04:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=151, Nombre=Angely Montilla, Fecha=2026-05-24T01:32:13-04:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=150, Nombre=Ashley & Kenji, Fecha=2026-05-21T23:05:05-04:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=149, Nombre=Rajvi and Aashay, Fecha=2026-05-21T19:22:15-07:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=148, Nombre=Jacqueline & Carlos, Fecha=2026-05-21T17:26:51-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=147, Nombre=Aman Sangha, Fecha=2026-05-20T20:34:49+01:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=146, Nombre=Paula de la Vega y Federico Kawage, Fecha=2026-05-18T23:08:35-04:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=145, Nombre=Michelle Chahda & Ross Brown, Fecha=2026-05-17T21:36:20-05:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=144, Nombre=Patricia Duran y Isaak Ortega, Fecha=2026-05-14T14:10:13-07:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=143, Nombre=Ana paula Solana, Fecha=2026-05-14T13:02:00-06:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de form_website: ID=142, Nombre=Michael & Natasha, Fecha=2026-05-13T17:14:26-05:00
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA organic_leads: SELECT *, 'organic_leads' as tabla_origen FROM `organic_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=520, Nombre=Samantha Calderon, Fecha=2026-05-27 08:55:39
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=519, Nombre=Catalina Paz Meza, Fecha=2026-05-27 07:57:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=518, Nombre=Shari Sanchez, Fecha=2026-05-27 07:49:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=517, Nombre=Moon Dlr, Fecha=2026-05-25 21:07:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=516, Nombre=Romina Ramirez y Juan Antonio Borrego, Fecha=2026-05-25 15:32:22
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=515, Nombre=Avanni Gudimetla, Fecha=2026-05-22 11:17:28
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=514, Nombre=Sofia Gutierrez, Fecha=2026-05-21 15:34:19
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=513, Nombre=Project, Fecha=2026-05-21 12:42:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=512, Nombre=Quia labore sed quis, Fecha=2026-05-21 12:24:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=511, Nombre=Project, Fecha=2026-05-21 12:08:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=510, Nombre=Paulo, Fecha=2026-05-21 11:29:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=497, Nombre=Kennia Astorga, Fecha=2026-05-21 00:45:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=496, Nombre=Brenda Cano, Fecha=2026-05-21 00:40:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=498, Nombre=prueba sistemas, Fecha=2026-05-21 00:29:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=494, Nombre=Adri Ortiz, Fecha=2026-05-19 19:31:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=493, Nombre=Stefany Bosques, Fecha=2026-05-19 14:36:39
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=492, Nombre=prueba sistemas 44, Fecha=2026-05-19 14:11:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=491, Nombre=Clau Aguirre, Fecha=2026-05-19 09:28:44
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=490, Nombre=Gabriela Moreno, Fecha=2026-05-19 09:18:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=489, Nombre=Carito V Vallejos, Fecha=2026-05-19 09:14:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=488, Nombre=Ara & Diego, Fecha=2026-05-18 18:30:52
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=487, Nombre=Clau Aguirre, Fecha=2026-05-18 13:08:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=486, Nombre=Milanna Wynne, Fecha=2026-05-18 10:17:02
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=485, Nombre=Magdalena Azocar, Fecha=2026-05-18 09:23:09
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=484, Nombre=Angie Rangel, Fecha=2026-05-18 09:21:29
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=483, Nombre=Selene Aguilar, Fecha=2026-05-18 09:18:40
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=482, Nombre=Karen Parente, Fecha=2026-05-17 14:04:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=481, Nombre=Alejandro Gonzalez, Fecha=2026-05-17 11:30:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=480, Nombre=Camila Vio, Fecha=2026-05-17 11:20:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=479, Nombre=Magdalena Azocar, Fecha=2026-05-17 11:19:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=478, Nombre=Monica Ramirez, Fecha=2026-05-13 12:47:56
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=477, Nombre=Mariana Rodarte, Fecha=2026-05-13 09:27:34
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de organic_leads: ID=476, Nombre=Isabela & Gerardo Marquez, Fecha=2026-05-13 09:23:16
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA wp_citas_leads: SELECT *, 'wp_citas_leads' as tabla_origen FROM `wp_citas_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=5, Nombre=TEST, Fecha=2026-05-26 14:47:39
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=4, Nombre=whatsapp, Fecha=2026-05-26 14:42:14
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=3, Nombre=whatsapp, Fecha=2026-05-26 13:28:11
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=2, Nombre=prueba registro WD, Fecha=2026-05-26 13:17:00
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=1, Nombre=sistemas, Fecha=2026-05-20 12:52:46
+[27-May-2026 13:28:16 America/Mexico_City] CONSULTA TABLA wp_eventos_afianzados: SELECT *, 'wp_eventos_afianzados' as tabla_origen FROM `wp_eventos_afianzados` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=16, Nombre=Daniela Martinez, Fecha=2026-05-22 18:10:56
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=15, Nombre=Gael Garcia, Fecha=2026-05-18 18:28:19
+[27-May-2026 13:28:16 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=14, Nombre=Salma Cota, Fecha=2026-05-18 14:04:45
+[27-May-2026 13:28:16 America/Mexico_City] Total leads obtenidos de BD (allLeads): 84
+[27-May-2026 13:28:16 America/Mexico_City] Total leads después de filtro plataforma (filteredLeads): 84
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1169 tabla=organic_leads origId=477 dateField=2026-05-13 09:27:34 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1172 tabla=form_website origId=142 dateField=2026-05-13T17:14:26-05:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1173 tabla=form_website origId=143 dateField=2026-05-14T13:02:00-06:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1174 tabla=form_website origId=144 dateField=2026-05-14T14:10:13-07:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1176 tabla=form_website origId=145 dateField=2026-05-17T21:36:20-05:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1177 tabla=organic_leads origId=486 dateField=2026-05-18 10:17:02 estatus=3 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1178 tabla=wp_eventos_afianzados origId=14 dateField=2026-05-18 14:04:45 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1179 tabla=wp_eventos_afianzados origId=15 dateField=2026-05-18 18:28:19 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1180 tabla=organic_leads origId=488 dateField=2026-05-18 18:30:52 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1181 tabla=form_website origId=146 dateField=2026-05-18T23:08:35-04:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1182 tabla=organic_leads origId=491 dateField=2026-05-19 09:28:44 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1191 tabla=organic_leads origId=492 dateField=2026-05-19 14:11:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1192 tabla=organic_leads origId=490 dateField=2026-05-19 09:18:00 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1194 tabla=form_website origId=147 dateField=2026-05-20T20:34:49+01:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1195 tabla=organic_leads origId=494 dateField=2026-05-19 19:31:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1196 tabla=organic_leads origId=496 dateField=2026-05-21 00:40:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1197 tabla=organic_leads origId=497 dateField=2026-05-21 00:45:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1198 tabla=organic_leads origId=498 dateField=2026-05-21 00:29:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1204 tabla=organic_leads origId=507 dateField=2026-05-21 11:00:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1205 tabla=organic_leads origId=509 dateField=2026-05-21 11:18:57 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1206 tabla=organic_leads origId=510 dateField=2026-05-21 11:29:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1208 tabla=organic_leads origId=511 dateField=2026-05-21 12:08:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1209 tabla=organic_leads origId=512 dateField=2026-05-21 12:24:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1213 tabla=organic_leads origId=513 dateField=2026-05-21 12:42:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1215 tabla=form_website origId=148 dateField=2026-05-21T17:26:51-05:00 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1216 tabla=form_website origId=149 dateField=2026-05-21T19:22:15-07:00 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1217 tabla=form_website origId=150 dateField=2026-05-21T23:05:05-04:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1219 tabla=wp_eventos_afianzados origId=16 dateField=2026-05-22 18:10:56 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1220 tabla=form_website origId=151 dateField=2026-05-24T01:32:13-04:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1224 tabla=organic_leads origId=516 dateField=2026-05-25 15:32:22 estatus=1 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1225 tabla=form_website origId=152 dateField=2026-05-25T18:15:22-04:00 estatus=2 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1232 tabla=form_website origId=153 dateField=2026-05-26T14:23:15-06:00 estatus=0 cliente=0
+[27-May-2026 13:28:16 America/Mexico_City] [AGENDADOS-DEBUG] TOTAL leadsAgendadosTotal=32 startDate=2026-05-13 endDate=2026-05-27 filterPlataforma=
+[27-May-2026 14:22:17 America/Mexico_City] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 4
+[27-May-2026 14:22:17 America/Mexico_City] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 13
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA andromeda_leadform: SELECT *, 'andromeda_leadform' as tabla_origen FROM `andromeda_leadform` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA andromeda_lead_form___jan_6: SELECT *, 'andromeda_lead_form___jan_6' as tabla_origen FROM `andromeda_lead_form___jan_6` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA efege_form_10_marzo: SELECT *, 'efege_form_10_marzo' as tabla_origen FROM `efege_form_10_marzo` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=181, Nombre=Luz Godoy, Fecha=2026-05-26T20:20:13-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=180, Nombre=Theresa Marquez, Fecha=2026-05-26T19:31:53-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=179, Nombre=Alyssa Griffin, Fecha=2026-05-26T13:26:40-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=178, Nombre=Lisa A Carter, Fecha=2026-05-19T05:04:34-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=177, Nombre=Judy Higgins, Fecha=2026-05-19T03:34:23-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=176, Nombre=Bernadette Kuuipo Ness, Fecha=2026-05-18T17:05:52-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=175, Nombre=Andrienne Cloud, Fecha=2026-05-18T15:47:22-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=174, Nombre=Emma Benitez, Fecha=2026-05-18T13:17:12-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=173, Nombre=Roselyn A. Lagda, Fecha=2026-05-18T03:00:32-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=172, Nombre=Kayla Ann, Fecha=2026-05-17T13:59:03-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=171, Nombre=Tracey Carter, Fecha=2026-05-17T12:49:10-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=170, Nombre=Lakia Broadnax, Fecha=2026-05-17T11:31:16-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=169, Nombre=April Stammerman, Fecha=2026-05-17T08:23:28-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=168, Nombre=Ashlynn thompson, Fecha=2026-05-17T00:18:27-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=167, Nombre=Angel N Rashad Moreno-Rhyne, Fecha=2026-05-16T21:11:26-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=166, Nombre=Shanti C Williams, Fecha=2026-05-15T21:52:34-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=165, Nombre=Nesmith David, Fecha=2026-05-15T18:58:01-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=164, Nombre=Joss, Fecha=2026-05-15T06:12:11-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=163, Nombre=Donna Beverly, Fecha=2026-05-14T13:03:53-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=162, Nombre=Monie Brown, Fecha=2026-05-13T20:10:34-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=161, Nombre=Hope Adams, Fecha=2026-05-13T18:50:28-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=160, Nombre=Anna Couch, Fecha=2026-05-13T15:10:35-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=159, Nombre=Joy Debroux, Fecha=2026-05-13T14:53:46-05:00
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA forms3: SELECT *, 'forms3' as tabla_origen FROM `forms3` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=391, Nombre=Jules Troliani, Fecha=2026-05-25T19:32:33-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=390, Nombre=Stephani navarrete, Fecha=2026-05-18T15:26:22-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=389, Nombre=Yesenia, Fecha=2026-05-18T10:14:50-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=388, Nombre=Clau Estefany, Fecha=2026-05-16T22:02:44-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=387, Nombre=Pame Arostegui, Fecha=2026-05-16T14:25:36-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=386, Nombre=Kaleigh Shuffett, Fecha=2026-05-16T14:19:34-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=385, Nombre=rubib5920@gmail.com, Fecha=2026-05-14T06:52:40-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de forms3: ID=384, Nombre=angela Sandridge, Fecha=2026-05-13T15:23:58-05:00
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA formusa1: SELECT *, 'formusa1' as tabla_origen FROM `formusa1` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA formusa2: SELECT *, 'formusa2' as tabla_origen FROM `formusa2` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA form_website: SELECT *, 'form_website' as tabla_origen FROM `form_website` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=153, Nombre=prueba sistemas, Fecha=2026-05-26T14:23:15-06:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=152, Nombre=Emily Reinke and Carter Hawthorne, Fecha=2026-05-25T18:15:22-04:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=151, Nombre=Angely Montilla, Fecha=2026-05-24T01:32:13-04:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=150, Nombre=Ashley & Kenji, Fecha=2026-05-21T23:05:05-04:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=149, Nombre=Rajvi and Aashay, Fecha=2026-05-21T19:22:15-07:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=148, Nombre=Jacqueline & Carlos, Fecha=2026-05-21T17:26:51-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=147, Nombre=Aman Sangha, Fecha=2026-05-20T20:34:49+01:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=146, Nombre=Paula de la Vega y Federico Kawage, Fecha=2026-05-18T23:08:35-04:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=145, Nombre=Michelle Chahda & Ross Brown, Fecha=2026-05-17T21:36:20-05:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=144, Nombre=Patricia Duran y Isaak Ortega, Fecha=2026-05-14T14:10:13-07:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=143, Nombre=Ana paula Solana, Fecha=2026-05-14T13:02:00-06:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de form_website: ID=142, Nombre=Michael & Natasha, Fecha=2026-05-13T17:14:26-05:00
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA organic_leads: SELECT *, 'organic_leads' as tabla_origen FROM `organic_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=520, Nombre=Samantha Calderon, Fecha=2026-05-27 08:55:39
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=519, Nombre=Catalina Paz Meza, Fecha=2026-05-27 07:57:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=518, Nombre=Shari Sanchez, Fecha=2026-05-27 07:49:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=517, Nombre=Moon Dlr, Fecha=2026-05-25 21:07:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=516, Nombre=Romina Ramirez y Juan Antonio Borrego, Fecha=2026-05-25 15:32:22
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=515, Nombre=Avanni Gudimetla, Fecha=2026-05-22 11:17:28
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=514, Nombre=Sofia Gutierrez, Fecha=2026-05-21 15:34:19
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=513, Nombre=Project, Fecha=2026-05-21 12:42:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=512, Nombre=Quia labore sed quis, Fecha=2026-05-21 12:24:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=511, Nombre=Project, Fecha=2026-05-21 12:08:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=510, Nombre=Paulo, Fecha=2026-05-21 11:29:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=497, Nombre=Kennia Astorga, Fecha=2026-05-21 00:45:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=496, Nombre=Brenda Cano, Fecha=2026-05-21 00:40:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=498, Nombre=prueba sistemas, Fecha=2026-05-21 00:29:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=494, Nombre=Adri Ortiz, Fecha=2026-05-19 19:31:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=493, Nombre=Stefany Bosques, Fecha=2026-05-19 14:36:39
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=492, Nombre=prueba sistemas 44, Fecha=2026-05-19 14:11:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=491, Nombre=Clau Aguirre, Fecha=2026-05-19 09:28:44
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=490, Nombre=Gabriela Moreno, Fecha=2026-05-19 09:18:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=489, Nombre=Carito V Vallejos, Fecha=2026-05-19 09:14:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=488, Nombre=Ara & Diego, Fecha=2026-05-18 18:30:52
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=487, Nombre=Clau Aguirre, Fecha=2026-05-18 13:08:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=486, Nombre=Milanna Wynne, Fecha=2026-05-18 10:17:02
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=485, Nombre=Magdalena Azocar, Fecha=2026-05-18 09:23:09
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=484, Nombre=Angie Rangel, Fecha=2026-05-18 09:21:29
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=483, Nombre=Selene Aguilar, Fecha=2026-05-18 09:18:40
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=482, Nombre=Karen Parente, Fecha=2026-05-17 14:04:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=481, Nombre=Alejandro Gonzalez, Fecha=2026-05-17 11:30:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=480, Nombre=Camila Vio, Fecha=2026-05-17 11:20:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=479, Nombre=Magdalena Azocar, Fecha=2026-05-17 11:19:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=478, Nombre=Monica Ramirez, Fecha=2026-05-13 12:47:56
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=477, Nombre=Mariana Rodarte, Fecha=2026-05-13 09:27:34
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de organic_leads: ID=476, Nombre=Isabela & Gerardo Marquez, Fecha=2026-05-13 09:23:16
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA wp_citas_leads: SELECT *, 'wp_citas_leads' as tabla_origen FROM `wp_citas_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=5, Nombre=TEST, Fecha=2026-05-26 14:47:39
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=4, Nombre=whatsapp, Fecha=2026-05-26 14:42:14
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=3, Nombre=whatsapp, Fecha=2026-05-26 13:28:11
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=2, Nombre=prueba registro WD, Fecha=2026-05-26 13:17:00
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=1, Nombre=sistemas, Fecha=2026-05-20 12:52:46
+[27-May-2026 14:23:51 America/Mexico_City] CONSULTA TABLA wp_eventos_afianzados: SELECT *, 'wp_eventos_afianzados' as tabla_origen FROM `wp_eventos_afianzados` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=16, Nombre=Daniela Martinez, Fecha=2026-05-22 18:10:56
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=15, Nombre=Gael Garcia, Fecha=2026-05-18 18:28:19
+[27-May-2026 14:23:51 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=14, Nombre=Salma Cota, Fecha=2026-05-18 14:04:45
+[27-May-2026 14:23:51 America/Mexico_City] Total leads obtenidos de BD (allLeads): 84
+[27-May-2026 14:23:51 America/Mexico_City] Total leads después de filtro plataforma (filteredLeads): 84
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1169 tabla=organic_leads origId=477 dateField=2026-05-13 09:27:34 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1172 tabla=form_website origId=142 dateField=2026-05-13T17:14:26-05:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1173 tabla=form_website origId=143 dateField=2026-05-14T13:02:00-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1174 tabla=form_website origId=144 dateField=2026-05-14T14:10:13-07:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1176 tabla=form_website origId=145 dateField=2026-05-17T21:36:20-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1177 tabla=organic_leads origId=486 dateField=2026-05-18 10:17:02 estatus=3 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1178 tabla=wp_eventos_afianzados origId=14 dateField=2026-05-18 14:04:45 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1179 tabla=wp_eventos_afianzados origId=15 dateField=2026-05-18 18:28:19 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1180 tabla=organic_leads origId=488 dateField=2026-05-18 18:30:52 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1181 tabla=form_website origId=146 dateField=2026-05-18T23:08:35-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1182 tabla=organic_leads origId=491 dateField=2026-05-19 09:28:44 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1191 tabla=organic_leads origId=492 dateField=2026-05-19 14:11:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1192 tabla=organic_leads origId=490 dateField=2026-05-19 09:18:00 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1194 tabla=form_website origId=147 dateField=2026-05-20T20:34:49+01:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1195 tabla=organic_leads origId=494 dateField=2026-05-19 19:31:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1196 tabla=organic_leads origId=496 dateField=2026-05-21 00:40:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1197 tabla=organic_leads origId=497 dateField=2026-05-21 00:45:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1198 tabla=organic_leads origId=498 dateField=2026-05-21 00:29:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1204 tabla=organic_leads origId=507 dateField=2026-05-21 11:00:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1205 tabla=organic_leads origId=509 dateField=2026-05-21 11:18:57 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1206 tabla=organic_leads origId=510 dateField=2026-05-21 11:29:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1208 tabla=organic_leads origId=511 dateField=2026-05-21 12:08:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1209 tabla=organic_leads origId=512 dateField=2026-05-21 12:24:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1213 tabla=organic_leads origId=513 dateField=2026-05-21 12:42:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1215 tabla=form_website origId=148 dateField=2026-05-21T17:26:51-05:00 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1216 tabla=form_website origId=149 dateField=2026-05-21T19:22:15-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1217 tabla=form_website origId=150 dateField=2026-05-21T23:05:05-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1219 tabla=wp_eventos_afianzados origId=16 dateField=2026-05-22 18:10:56 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1220 tabla=form_website origId=151 dateField=2026-05-24T01:32:13-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1224 tabla=organic_leads origId=516 dateField=2026-05-25 15:32:22 estatus=1 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1225 tabla=form_website origId=152 dateField=2026-05-25T18:15:22-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1232 tabla=form_website origId=153 dateField=2026-05-26T14:23:15-06:00 estatus=0 cliente=0
+[27-May-2026 14:23:52 America/Mexico_City] [AGENDADOS-DEBUG] TOTAL leadsAgendadosTotal=32 startDate=2026-05-13 endDate=2026-05-27 filterPlataforma=
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=148 tabla= origId=0 dateField=2025-02-18 14:01:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=147 tabla= origId=0 dateField=2025-02-18 12:56:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=152 tabla= origId=0 dateField=2025-02-19 10:14:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=153 tabla= origId=0 dateField=2025-02-19 10:26:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=154 tabla= origId=0 dateField=2025-02-19 11:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=155 tabla= origId=0 dateField=2025-02-19 11:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=156 tabla= origId=0 dateField=2025-02-19 19:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=161 tabla= origId=0 dateField=2025-02-20 10:39:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=164 tabla= origId=0 dateField=2025-02-20 18:19:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=165 tabla= origId=0 dateField=2025-02-21 20:51:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=166 tabla= origId=0 dateField=2025-02-24 16:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=167 tabla= origId=0 dateField=2025-02-25 10:40:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=916 tabla= origId=0 dateField=2026-01-23 18:00:23 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=917 tabla=organic_leads origId=127 dateField=2026-01-16 16:06:32 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=170 tabla= origId=0 dateField=2025-02-26 22:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=173 tabla= origId=0 dateField=2025-03-02 15:23:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=174 tabla= origId=0 dateField=2025-03-03 00:40:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=175 tabla= origId=0 dateField=2025-03-03 13:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=176 tabla= origId=0 dateField=2025-03-04 12:43:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=177 tabla= origId=0 dateField=2025-03-04 17:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=178 tabla= origId=0 dateField=2025-03-05 13:49:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=179 tabla= origId=0 dateField=2025-03-05 17:31:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=180 tabla= origId=0 dateField=2025-03-05 20:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=181 tabla= origId=0 dateField=2025-03-07 13:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=182 tabla= origId=0 dateField=2025-03-07 14:23:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=183 tabla= origId=0 dateField=2025-03-09 12:15:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=184 tabla= origId=0 dateField=2025-03-10 11:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=185 tabla= origId=0 dateField=2025-03-10 13:57:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=186 tabla= origId=0 dateField=2025-03-11 13:46:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=187 tabla= origId=0 dateField=2025-03-12 09:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=188 tabla= origId=0 dateField=2025-03-14 12:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=189 tabla= origId=0 dateField=2025-03-14 12:33:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=190 tabla= origId=0 dateField=2025-03-14 14:37:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=191 tabla= origId=0 dateField=2025-03-14 16:58:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=192 tabla= origId=0 dateField=2025-03-16 12:26:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=193 tabla= origId=0 dateField=2025-03-17 12:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=194 tabla= origId=0 dateField=2025-03-17 14:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=195 tabla= origId=0 dateField=2025-03-18 10:42:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=196 tabla= origId=0 dateField=2025-03-19 19:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=198 tabla= origId=0 dateField=2025-03-20 06:26:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=199 tabla= origId=0 dateField=2025-03-20 11:44:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=200 tabla= origId=0 dateField=2025-03-20 12:40:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=201 tabla= origId=0 dateField=2025-03-21 11:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=202 tabla= origId=0 dateField=2025-03-23 10:50:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=203 tabla= origId=0 dateField=2025-03-26 13:48:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=205 tabla= origId=0 dateField=2025-03-28 22:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=207 tabla= origId=0 dateField=2025-03-30 11:53:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=208 tabla= origId=0 dateField=2025-03-31 09:33:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=209 tabla= origId=0 dateField=2025-03-31 14:40:00 estatus=3 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=210 tabla= origId=0 dateField=2025-03-31 15:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=211 tabla= origId=0 dateField=2025-03-31 16:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=213 tabla= origId=0 dateField=2025-03-31 19:01:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=214 tabla= origId=0 dateField=2025-04-02 17:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=215 tabla= origId=0 dateField=2025-04-03 15:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=216 tabla= origId=0 dateField=2025-04-04 11:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=217 tabla= origId=0 dateField=2025-04-04 12:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=218 tabla= origId=0 dateField=2025-04-07 00:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=219 tabla= origId=0 dateField=2025-04-08 16:47:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=222 tabla= origId=0 dateField=2025-04-09 21:10:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=226 tabla= origId=0 dateField=2025-04-10 13:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=228 tabla= origId=0 dateField=2025-04-10 23:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=229 tabla= origId=0 dateField=2025-04-11 08:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=230 tabla= origId=0 dateField=2025-04-11 16:11:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=231 tabla= origId=0 dateField=2025-04-12 20:29:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=232 tabla= origId=0 dateField=2025-04-13 16:23:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=233 tabla= origId=0 dateField=2025-04-13 22:59:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=270 tabla= origId=0 dateField=2025-04-14 15:06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=315 tabla= origId=0 dateField=2025-04-16 10:05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=316 tabla= origId=0 dateField=2025-04-16 12:31:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=317 tabla= origId=0 dateField=2025-04-17 10:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=318 tabla= origId=0 dateField=2025-04-20 17:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=319 tabla= origId=0 dateField=2025-04-21 09:32:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=320 tabla= origId=0 dateField=2025-04-22 15:03:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=321 tabla= origId=0 dateField=2025-04-22 19:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=322 tabla= origId=0 dateField=2025-04-23 13:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=324 tabla= origId=0 dateField=2025-04-23 22:12:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=325 tabla= origId=0 dateField=2025-04-24 11:49:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=326 tabla= origId=0 dateField=2025-04-25 10:19:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=327 tabla= origId=0 dateField=2025-04-25 13:50:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=329 tabla= origId=0 dateField=2025-04-26 10:07:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=330 tabla= origId=0 dateField=2025-04-26 15:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=331 tabla= origId=0 dateField=2025-04-27 21:03:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=333 tabla= origId=0 dateField=2025-04-28 11:19:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=335 tabla= origId=0 dateField=2025-04-28 12:12:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=338 tabla= origId=0 dateField=2025-04-28 15:53:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=339 tabla= origId=0 dateField=2025-04-28 16:45:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=340 tabla= origId=0 dateField=2025-04-29 00:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=341 tabla= origId=0 dateField=2025-04-29 09:48:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=344 tabla= origId=0 dateField=2025-04-30 06:10:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=345 tabla= origId=0 dateField=2025-04-30 08:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=346 tabla= origId=0 dateField=2025-04-30 08:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=347 tabla= origId=0 dateField=2025-04-30 21:31:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=348 tabla= origId=0 dateField=2025-05-01 09:15:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=349 tabla= origId=0 dateField=2025-05-01 12:40:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=350 tabla= origId=0 dateField=2025-05-03 10:12:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=352 tabla= origId=0 dateField=2025-05-04 07:58:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=353 tabla= origId=0 dateField=2025-05-04 15:23:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=354 tabla= origId=0 dateField=2025-05-05 08:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=356 tabla= origId=0 dateField=2025-05-05 11:45:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=357 tabla= origId=0 dateField=2025-05-05 11:46:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=358 tabla= origId=0 dateField=2025-05-05 15:45:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=362 tabla= origId=0 dateField=2025-05-07 11:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=919 tabla=organic_leads origId=143 dateField=2026-01-23 09:49:35 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=369 tabla= origId=0 dateField=2025-05-08 18:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=370 tabla= origId=0 dateField=2025-05-11 12:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=371 tabla= origId=0 dateField=2025-05-13 01:27:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=373 tabla= origId=0 dateField=2025-05-14 15:25:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=374 tabla= origId=0 dateField=2025-05-14 21:09:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=376 tabla= origId=0 dateField=2025-05-15 12:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=377 tabla= origId=0 dateField=2025-05-16 05:50:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=378 tabla= origId=0 dateField=2025-05-16 12:50:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=379 tabla= origId=0 dateField=2025-05-17 12:03:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=380 tabla= origId=0 dateField=2025-05-18 12:53:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=381 tabla= origId=0 dateField=2025-05-19 16:31:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=382 tabla= origId=0 dateField=2025-05-20 10:59:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=918 tabla=organic_leads origId=134 dateField=2026-01-18 17:02:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=385 tabla= origId=0 dateField=2025-05-20 21:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=386 tabla= origId=0 dateField=2025-05-21 11:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=397 tabla= origId=0 dateField=2025-05-22 12:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=403 tabla= origId=0 dateField=2025-05-23 12:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=416 tabla= origId=0 dateField=2025-05-24 12:33:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=417 tabla= origId=0 dateField=2025-05-25 18:59:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=418 tabla= origId=0 dateField=2025-05-26 02:38:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=430 tabla= origId=0 dateField=2025-05-26 16:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=440 tabla= origId=0 dateField=2025-05-27 09:00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=448 tabla= origId=0 dateField=2025-05-27 13:35:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=449 tabla= origId=0 dateField=2025-05-27 19:15:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=450 tabla= origId=0 dateField=2025-05-28 22:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=451 tabla= origId=0 dateField=2025-05-29 02:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=452 tabla= origId=0 dateField=2025-05-29 10:47:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=453 tabla= origId=0 dateField=2025-05-29 12:04:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=454 tabla= origId=0 dateField=2025-05-29 16:34:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=456 tabla= origId=0 dateField=2025-05-30 18:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=457 tabla= origId=0 dateField=2025-05-31 10:01:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=458 tabla= origId=0 dateField=2025-05-31 22:52:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=459 tabla= origId=0 dateField=2025-06-01 15:35:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=460 tabla= origId=0 dateField=2025-06-02 10:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=461 tabla= origId=0 dateField=2025-06-02 13:58:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=463 tabla= origId=0 dateField=2025-06-02 14:43:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=464 tabla= origId=0 dateField=2025-06-02 18:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=465 tabla= origId=0 dateField=2025-06-02 19:49:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=466 tabla= origId=0 dateField=2025-06-02 21:08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=467 tabla= origId=0 dateField=2025-06-03 12:47:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=468 tabla= origId=0 dateField=2025-06-03 13:24:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=469 tabla= origId=0 dateField=2025-06-04 10:01:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=470 tabla= origId=0 dateField=2025-06-04 12:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=471 tabla= origId=0 dateField=2025-06-05 10:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=472 tabla= origId=0 dateField=2025-06-06 01:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=473 tabla= origId=0 dateField=2025-06-06 13:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=474 tabla= origId=0 dateField=2025-06-08 16:31:00 estatus=3 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=475 tabla= origId=0 dateField=2025-06-09 17:36:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=476 tabla= origId=0 dateField=2025-06-12 09:43:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=477 tabla= origId=0 dateField=2025-06-12 11:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=478 tabla= origId=0 dateField=2025-06-12 17:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=479 tabla= origId=0 dateField=2025-06-13 13:08:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=480 tabla= origId=0 dateField=2025-06-13 15:27:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=482 tabla= origId=0 dateField=2025-06-16 14:01:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=483 tabla= origId=0 dateField=2025-06-16 14:59:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=484 tabla= origId=0 dateField=2025-06-18 10:10:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=485 tabla= origId=0 dateField=2025-06-18 13:22:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=486 tabla= origId=0 dateField=2025-06-20 14:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=487 tabla= origId=0 dateField=2025-06-23 16:45:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=488 tabla= origId=0 dateField=2025-06-23 17:36:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=489 tabla= origId=0 dateField=2025-06-23 20:47:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=490 tabla= origId=0 dateField=2025-06-23 21:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=491 tabla= origId=0 dateField=2025-06-24 11:34:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=492 tabla= origId=0 dateField=2025-06-24 12:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=493 tabla= origId=0 dateField=2025-06-24 16:07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=496 tabla= origId=0 dateField=2025-06-25 19:41:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=497 tabla= origId=0 dateField=2025-06-25 22:26:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=498 tabla= origId=0 dateField=2025-06-26 14:34:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=499 tabla= origId=0 dateField=2025-06-26 21:12:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=501 tabla= origId=0 dateField=2025-06-27 16:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=504 tabla= origId=0 dateField=2025-07-01 11:27:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=507 tabla= origId=0 dateField=2025-07-04 10:31:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=509 tabla= origId=0 dateField=2025-07-06 13:40:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=510 tabla= origId=0 dateField=2025-07-06 18:14:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=511 tabla= origId=0 dateField=2025-07-07 18:14:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=512 tabla= origId=0 dateField=2025-07-08 20:19:00 estatus=3 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=513 tabla= origId=0 dateField=2025-07-08 22:49:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=514 tabla= origId=0 dateField=2025-07-09 10:32:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=515 tabla= origId=0 dateField=2025-07-09 14:06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=517 tabla= origId=0 dateField=2025-07-09 15:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=518 tabla= origId=0 dateField=2025-07-09 17:32:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=519 tabla= origId=0 dateField=2025-07-10 12:28:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=520 tabla= origId=0 dateField=2025-07-11 10:25:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=521 tabla= origId=0 dateField=2025-07-11 11:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=522 tabla= origId=0 dateField=2025-07-11 23:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=523 tabla= origId=0 dateField=2025-07-13 10:45:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=524 tabla= origId=0 dateField=2025-07-15 13:58:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=526 tabla= origId=0 dateField=2025-07-16 15:46:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=527 tabla= origId=0 dateField=2025-07-19 13:43:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=528 tabla= origId=0 dateField=2025-07-19 17:00:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=529 tabla= origId=0 dateField=2025-07-19 21:39:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=530 tabla= origId=0 dateField=2025-07-20 10:07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=531 tabla= origId=0 dateField=2025-07-21 13:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=532 tabla= origId=0 dateField=2025-07-22 14:13:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=533 tabla= origId=0 dateField=2025-07-25 13:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=534 tabla= origId=0 dateField=2025-07-25 13:34:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=535 tabla= origId=0 dateField=2025-07-25 16:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=536 tabla= origId=0 dateField=2025-07-27 21:04:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=537 tabla= origId=0 dateField=2025-07-27 21:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=538 tabla= origId=0 dateField=2025-07-28 12:04:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=544 tabla= origId=0 dateField=2025-07-30 09:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=545 tabla= origId=0 dateField=2025-07-30 13:06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=546 tabla= origId=0 dateField=2025-07-31 20:33:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=547 tabla= origId=0 dateField=2025-08-03 09:13:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=548 tabla= origId=0 dateField=2025-08-03 19:01:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=549 tabla= origId=0 dateField=2025-08-04 13:20:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=553 tabla= origId=0 dateField=2025-08-05 20:17:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=554 tabla= origId=0 dateField=2025-08-06 12:18:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=555 tabla= origId=0 dateField=2025-08-06 16:05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=556 tabla= origId=0 dateField=2025-08-07 14:30:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=557 tabla= origId=0 dateField=2025-08-07 19:11:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=558 tabla= origId=0 dateField=2025-08-09 19:39:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=559 tabla= origId=0 dateField=2025-08-09 21:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=560 tabla= origId=0 dateField=2025-08-10 18:26:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=561 tabla= origId=0 dateField=2025-08-11 11:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=562 tabla= origId=0 dateField=2025-08-11 14:59:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=563 tabla= origId=0 dateField=2025-08-13 03:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=564 tabla= origId=0 dateField=2025-08-14 13:50:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=565 tabla= origId=0 dateField=2025-08-14 22:39:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=566 tabla= origId=0 dateField=2025-08-18 12:02:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=567 tabla= origId=0 dateField=2025-08-18 14:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=568 tabla= origId=0 dateField=2025-08-18 16:29:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=569 tabla= origId=0 dateField=2025-08-21 09:09:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=570 tabla= origId=0 dateField=2025-08-21 13:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=571 tabla= origId=0 dateField=2025-08-21 13:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=572 tabla= origId=0 dateField=2025-08-21 14:31:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=573 tabla= origId=0 dateField=2025-08-27 00:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=574 tabla= origId=0 dateField=2025-08-27 14:12:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=575 tabla= origId=0 dateField=2025-09-01 09:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=576 tabla= origId=0 dateField=2025-09-01 11:46:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=577 tabla= origId=0 dateField=2025-09-02 17:00:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=578 tabla= origId=0 dateField=2025-09-04 14:56:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=579 tabla= origId=0 dateField=2025-09-05 10:50:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=580 tabla= origId=0 dateField=2025-09-06 00:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=581 tabla= origId=0 dateField=2025-09-06 09:40:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=582 tabla= origId=0 dateField=2025-09-06 10:07:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=583 tabla= origId=0 dateField=2025-09-06 22:13:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=584 tabla= origId=0 dateField=2025-09-07 17:54:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=585 tabla= origId=0 dateField=2025-09-07 23:14:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=586 tabla= origId=0 dateField=2025-09-08 06:53:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=588 tabla= origId=0 dateField=2025-09-08 10:02:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=589 tabla= origId=0 dateField=2025-09-09 00:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=590 tabla= origId=0 dateField=2025-09-09 12:18:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=591 tabla= origId=0 dateField=2025-09-09 15:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=592 tabla= origId=0 dateField=2025-09-09 15:33:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=593 tabla= origId=0 dateField=2025-09-09 16:23:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=594 tabla= origId=0 dateField=2025-09-09 18:26:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=595 tabla= origId=0 dateField=2025-09-09 19:14:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=596 tabla= origId=0 dateField=2025-09-09 19:23:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=597 tabla= origId=0 dateField=2025-09-09 20:35:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=598 tabla= origId=0 dateField=2025-09-09 21:03:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=599 tabla= origId=0 dateField=2025-09-10 13:48:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=600 tabla= origId=0 dateField=2025-09-10 15:07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=601 tabla= origId=0 dateField=2025-09-11 00:56:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=602 tabla= origId=0 dateField=2025-09-11 21:50:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=606 tabla= origId=0 dateField=2025-09-15 14:08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=607 tabla= origId=0 dateField=2025-09-16 18:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=608 tabla= origId=0 dateField=2025-09-17 13:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=609 tabla= origId=0 dateField=2025-09-17 18:29:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=610 tabla= origId=0 dateField=2025-09-17 20:38:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=611 tabla= origId=0 dateField=2025-09-18 19:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=612 tabla= origId=0 dateField=2025-09-19 17:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=613 tabla= origId=0 dateField=2025-09-21 16:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=614 tabla= origId=0 dateField=2025-09-22 17:53:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=615 tabla= origId=0 dateField=2025-09-22 19:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=616 tabla= origId=0 dateField=2025-09-23 09:15:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=617 tabla= origId=0 dateField=2025-09-24 15:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=618 tabla= origId=0 dateField=2025-09-25 16:27:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=619 tabla= origId=0 dateField=2025-09-26 12:09:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=620 tabla= origId=0 dateField=2025-09-26 16:06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=621 tabla= origId=0 dateField=2025-09-26 20:37:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=622 tabla= origId=0 dateField=2025-09-29 04:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=623 tabla= origId=0 dateField=2025-09-29 10:00:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=624 tabla= origId=0 dateField=2025-09-29 12:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=625 tabla= origId=0 dateField=2025-09-29 13:43:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=626 tabla= origId=0 dateField=2025-09-29 14:51:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=627 tabla= origId=0 dateField=2025-09-29 16:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=628 tabla= origId=0 dateField=2025-09-30 11:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=629 tabla= origId=0 dateField=2025-09-30 13:37:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=630 tabla= origId=0 dateField=2025-10-01 11:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=631 tabla= origId=0 dateField=2025-10-01 16:00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=632 tabla= origId=0 dateField=2025-10-01 21:27:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=633 tabla= origId=0 dateField=2025-10-04 00:24:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=634 tabla= origId=0 dateField=2025-10-05 16:46:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=635 tabla= origId=0 dateField=2025-10-06 14:19:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=636 tabla= origId=0 dateField=2025-10-06 15:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=637 tabla= origId=0 dateField=2025-10-07 11:12:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=638 tabla= origId=0 dateField=2025-10-09 18:05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=639 tabla= origId=0 dateField=2025-10-09 22:22:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=640 tabla= origId=0 dateField=2025-10-10 02:07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=641 tabla= origId=0 dateField=2025-10-10 16:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=642 tabla= origId=0 dateField=2025-10-10 18:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=643 tabla= origId=0 dateField=2025-10-11 13:00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=644 tabla= origId=0 dateField=2025-10-12 13:01:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=645 tabla= origId=0 dateField=2025-10-12 17:57:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=646 tabla= origId=0 dateField=2025-10-13 10:21:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=647 tabla= origId=0 dateField=2025-10-13 16:13:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=648 tabla= origId=0 dateField=2025-10-14 23:46:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=649 tabla= origId=0 dateField=2025-10-15 10:19:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=650 tabla= origId=0 dateField=2025-10-16 09:06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=651 tabla= origId=0 dateField=2025-10-19 17:54:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=652 tabla= origId=0 dateField=2025-10-20 12:35:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=653 tabla= origId=0 dateField=2025-10-20 12:42:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=654 tabla= origId=0 dateField=2025-10-21 14:13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=655 tabla= origId=0 dateField=2025-10-21 19:17:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=656 tabla= origId=0 dateField=2025-10-21 19:35:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=657 tabla= origId=0 dateField=2025-10-22 16:45:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=658 tabla= origId=0 dateField=2025-10-23 13:03:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=659 tabla= origId=0 dateField=2025-10-23 14:07:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=660 tabla= origId=0 dateField=2025-10-26 08:08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=661 tabla= origId=0 dateField=2025-10-26 10:30:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=662 tabla= origId=0 dateField=2025-10-27 10:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=663 tabla= origId=0 dateField=2025-10-27 23:37:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=664 tabla= origId=0 dateField=2025-10-29 10:37:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=665 tabla= origId=0 dateField=2025-10-29 12:39:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=666 tabla= origId=0 dateField=2025-10-29 14:29:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=667 tabla= origId=0 dateField=2025-10-31 13:09:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=668 tabla= origId=0 dateField=2025-11-01 14:19:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=669 tabla= origId=0 dateField=2025-11-01 16:56:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=670 tabla= origId=0 dateField=2025-11-03 05:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=671 tabla= origId=0 dateField=2025-11-03 10:37:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=672 tabla= origId=0 dateField=2025-11-03 11:34:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=673 tabla= origId=0 dateField=2025-11-03 12:59:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=674 tabla= origId=0 dateField=2025-11-03 13:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=675 tabla= origId=0 dateField=2025-11-03 23:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=676 tabla= origId=0 dateField=2025-11-04 00:42:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=678 tabla= origId=0 dateField=2025-11-04 10:32:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=679 tabla= origId=0 dateField=2025-11-04 17:16:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=680 tabla= origId=0 dateField=2025-11-05 00:36:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=681 tabla= origId=0 dateField=2025-11-05 09:10:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=682 tabla= origId=0 dateField=2025-11-06 11:36:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=683 tabla= origId=0 dateField=2025-11-08 19:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=689 tabla= origId=0 dateField=2025-11-12 16:38:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=690 tabla= origId=0 dateField=2025-11-12 21:10:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=691 tabla= origId=0 dateField=2025-11-13 14:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=692 tabla= origId=0 dateField=2025-11-16 21:09:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=693 tabla= origId=0 dateField=2025-11-17 00:43:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=694 tabla=forms3 origId=17 dateField=2025-11-15T15:23:12-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=695 tabla= origId=0 dateField=2025-11-19 07:26:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=697 tabla= origId=0 dateField=2025-11-20 12:47:52 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=698 tabla= origId=0 dateField=2025-11-21 12:11:14 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=699 tabla= origId=0 dateField=2025-11-21 14:42:57 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=700 tabla= origId=0 dateField=2025-11-21 18:10:32 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=701 tabla= origId=0 dateField=2025-11-22 11:39:59 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=702 tabla=forms3 origId=37 dateField=2025-11-22T10:05:45-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=703 tabla= origId=0 dateField=2025-11-24 17:15:19 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=704 tabla= origId=0 dateField=2025-11-25 10:51:01 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=706 tabla= origId=0 dateField=2025-11-25 13:22:28 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=707 tabla= origId=0 dateField=2025-11-25 13:28:17 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=708 tabla= origId=0 dateField=2025-11-25 16:12:12 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=709 tabla= origId=0 dateField=2025-11-25 16:23:53 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=711 tabla= origId=0 dateField=2025-11-25 23:15:50 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=712 tabla= origId=0 dateField=2025-11-26 11:20:06 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=714 tabla= origId=0 dateField=2025-11-27 11:35:38 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=715 tabla= origId=0 dateField=2025-11-28 17:59:08 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=717 tabla= origId=0 dateField=2025-12-01 22:27:56 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=718 tabla=formusa1 origId=216 dateField=2025-12-02T00:25:29-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=719 tabla= origId=0 dateField=2025-12-04 05:59:42 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=723 tabla=organic_leads origId=5 dateField=2025-12-04 11:43:10 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=724 tabla= origId=0 dateField=2025-12-05 14:07:51 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=725 tabla= origId=0 dateField=2025-12-05 16:39:34 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=726 tabla=formusa1 origId=159 dateField=2025-11-15T20:03:07-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=727 tabla= origId=0 dateField=2025-12-07 17:47:07 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=729 tabla=formusa1 origId=233 dateField=2025-12-07T23:06:16-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=730 tabla=forms3 origId=81 dateField=2025-12-07T15:55:13-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=731 tabla= origId=0 dateField=2025-12-08 15:27:34 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=732 tabla= origId=0 dateField=2025-12-09 10:04:11 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=733 tabla=formusa1 origId=241 dateField=2025-12-08T18:34:45-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=734 tabla=formusa1 origId=239 dateField=2025-12-08T15:56:19-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=735 tabla=organic_leads origId=10 dateField=2025-12-05 10:52:15 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=747 tabla=formusa1 origId=249 dateField=2025-12-10T11:01:51-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=748 tabla= origId=0 dateField=2025-12-10 19:10:22 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=749 tabla=organic_leads origId=22 dateField=2025-12-11 13:00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=750 tabla= origId=0 dateField=2025-12-11 13:23:51 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=751 tabla=organic_leads origId=19 dateField=2025-12-11 10:25:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=755 tabla= origId=0 dateField=2025-12-13 10:36:27 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=756 tabla=forms3 origId=93 dateField=2025-12-10T13:27:49-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=757 tabla=forms3 origId=90 dateField=2025-12-09T15:21:21-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=769 tabla= origId=0 dateField=2025-12-15 12:18:11 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=771 tabla=organic_leads origId=24 dateField=2025-12-14 11:56:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=772 tabla= origId=0 dateField=2025-12-16 08:39:23 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=823 tabla=organic_leads origId=39 dateField=2025-12-18 16:09:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=826 tabla= origId=0 dateField=2025-12-18 18:58:56 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=827 tabla=organic_leads origId=37 dateField=2025-12-18 12:11:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=828 tabla= origId=0 dateField=2025-12-19 23:36:24 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=829 tabla=organic_leads origId=36 dateField=2025-12-17 19:04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=830 tabla= origId=0 dateField=2025-12-20 08:46:41 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=831 tabla= origId=0 dateField=2025-12-20 14:11:56 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=832 tabla= origId=0 dateField=2025-12-20 16:29:45 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=833 tabla= origId=0 dateField=2025-12-22 13:13:07 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=835 tabla= origId=0 dateField=2025-12-22 17:16:43 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=844 tabla= origId=0 dateField=2025-12-23 11:11:41 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=845 tabla=organic_leads origId=48 dateField=2025-12-23 11:51:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=846 tabla= origId=0 dateField=2025-12-24 15:08:59 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=847 tabla= origId=0 dateField=2025-12-25 21:08:08 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=858 tabla=organic_leads origId=49 dateField=2025-12-23 17:00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=859 tabla=formusa1 origId=273 dateField=2025-12-15T14:46:43-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=861 tabla=organic_leads origId=50 dateField=2025-12-24 10:54:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=862 tabla=organic_leads origId=60 dateField=2025-12-29 16:38:09 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=864 tabla=organic_leads origId=62 dateField=2025-12-30 10:44:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=867 tabla=andromeda_leadform origId=193 dateField=2026-01-01T11:21:14-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=868 tabla= origId=0 dateField=2026-01-03 15:43:32 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=869 tabla= origId=0 dateField=2026-01-05 00:11:09 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=870 tabla=forms3 origId=152 dateField=2026-01-04T02:49:48-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=871 tabla= origId=0 dateField=2026-01-05 14:37:16 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=872 tabla=organic_leads origId=12 dateField=2025-12-05 12:07:30 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=875 tabla= origId=0 dateField=2026-01-06 14:53:46 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=876 tabla=forms3 origId=168 dateField=2026-01-07T09:33:30-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=877 tabla= origId=0 dateField=2026-01-07 10:49:09 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=878 tabla=organic_leads origId=81 dateField=2026-01-06 17:31:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=879 tabla=organic_leads origId=91 dateField=2026-01-08 10:01:18 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=880 tabla=organic_leads origId=105 dateField=2026-01-12 12:26:11 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=881 tabla=forms3 origId=155 dateField=2026-01-04T16:05:22-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=883 tabla= origId=0 dateField=2026-01-13 10:48:44 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=884 tabla=formusa1 origId=353 dateField=2026-01-13T09:57:42-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=885 tabla= origId=19 dateField=2026-01-14 09:31:51 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=888 tabla=organic_leads origId=118 dateField=2026-01-14 16:55:11 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=889 tabla= origId=0 dateField=2026-01-14 17:48:23 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=890 tabla= origId=0 dateField=2026-01-14 21:15:28 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=891 tabla=organic_leads origId=115 dateField=2026-01-14 10:01:09 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=892 tabla=organic_leads origId=108 dateField=2026-01-13 10:10:14 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=895 tabla= origId=0 dateField=2026-01-16 13:27:39 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=897 tabla=organic_leads origId=125 dateField=2026-01-16 12:05:29 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=893 tabla=forms3 origId=184 dateField=2026-01-15T22:15:32-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=912 tabla=organic_leads origId=136 dateField=2026-01-20 18:13:20 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=896 tabla= origId=0 dateField=2026-01-16 15:36:44 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=898 tabla= origId=0 dateField=2026-01-18 21:37:43 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=899 tabla= origId=0 dateField=2026-01-19 12:23:04 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=900 tabla=organic_leads origId=106 dateField=2026-01-12 18:00:39 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=901 tabla=forms3 origId=191 dateField=2026-01-18T15:11:25-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=902 tabla= origId=0 dateField=2026-01-20 00:18:42 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=903 tabla= origId=0 dateField=2026-01-20 12:10:25 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=904 tabla= origId=0 dateField=2026-01-20 18:06:49 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=905 tabla= origId=0 dateField=2026-01-20 23:02:35 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=906 tabla=organic_leads origId=129 dateField=2026-01-18 10:02:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=907 tabla= origId=0 dateField=2026-01-22 08:16:53 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=908 tabla=organic_leads origId=88 dateField=2026-01-07 14:52:06 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=909 tabla= origId=0 dateField=2026-01-23 10:39:33 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=910 tabla=forms3 origId=114 dateField=2026-01-23 14:01:57 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=914 tabla=forms3 origId=203 dateField=2026-01-23T10:27:15-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=915 tabla=forms3 origId=208 dateField=2026-01-23T10:27:15-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=920 tabla=formusa1 origId=365 dateField=2026-01-15T23:31:43-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=921 tabla=andromeda_lead_form___jan_6 origId=63 dateField=2026-01-24T20:08:35-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=923 tabla= origId=0 dateField=2026-01-26 09:59:04 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=925 tabla=form_website origId=1 dateField=2026-01-26T22:43:52-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=926 tabla=form_website origId=2 dateField=2026-01-27T12:46:29-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=927 tabla=form_website origId=3 dateField=2026-01-27T11:34:38-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=928 tabla=organic_leads origId=106 dateField=2026-01-12 18:00:39 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=929 tabla=form_website origId=4 dateField=2026-01-27T16:57:46-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=930 tabla=form_website origId=5 dateField=2026-01-27T19:07:19-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=931 tabla=form_website origId=6 dateField=2026-01-28T08:54:32-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=932 tabla=organic_leads origId=160 dateField=2026-01-28 11:34:59 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=933 tabla=form_website origId=7 dateField=2026-01-28T13:18:40-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=935 tabla=organic_leads origId=125 dateField=2026-01-16 12:05:29 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=936 tabla=form_website origId=8 dateField=2026-01-28T18:10:33-06:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=937 tabla=form_website origId=9 dateField=2026-01-29T10:43:41-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=938 tabla=form_website origId=11 dateField=2026-01-29T21:25:45-08:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=939 tabla=andromeda_lead_form___jan_6 origId=69 dateField=2026-01-28T15:25:26-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=940 tabla=formusa1 origId=398 dateField=2026-01-29T20:53:13-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=941 tabla=organic_leads origId=164 dateField=2026-01-30 09:28:30 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=942 tabla=organic_leads origId=166 dateField=2026-01-30 09:47:32 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=943 tabla=form_website origId=12 dateField=2026-01-31T14:14:02-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=944 tabla=form_website origId=13 dateField=2026-02-02T21:48:49-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=945 tabla=form_website origId=14 dateField=2026-02-03T09:12:17-06:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=946 tabla=forms3 origId=224 dateField=2026-01-31T18:52:16-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=956 tabla=forms3 origId=239 dateField=2026-02-04T06:01:00-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=949 tabla=organic_leads origId=178 dateField=2026-02-03 17:21:28 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=953 tabla=forms3 origId=237 dateField=2026-02-03T22:10:12-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=952 tabla=form_website origId=18 dateField=2026-02-04T10:55:38+01:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=964 tabla=form_website origId=30 dateField=2026-02-05T12:48:07-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=965 tabla=organic_leads origId=189 dateField=2026-02-06 09:30:31 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=966 tabla=organic_leads origId=183 dateField=2026-02-05 10:05:13 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=967 tabla=form_website origId=31 dateField=2026-02-08T06:11:38-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=968 tabla=form_website origId=32 dateField=2026-02-08T18:11:37-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=969 tabla=form_website origId=33 dateField=2026-02-08T22:16:11-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=970 tabla=form_website origId=34 dateField=2026-02-09T17:58:23+00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=971 tabla=organic_leads origId=193 dateField=2026-02-08 10:28:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=990 tabla=organic_leads origId=214 dateField=2026-02-13 10:54:04 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=973 tabla=organic_leads origId=195 dateField=2026-02-06 10:49:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=974 tabla=formusa1 origId=418 dateField=2026-02-11T08:42:07-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=975 tabla=organic_leads origId=51 dateField=2025-12-26 11:07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=976 tabla=form_website origId=35 dateField=2026-02-12T13:35:48-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=977 tabla=form_website origId=36 dateField=2026-02-12T18:56:17+00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=978 tabla=form_website origId=37 dateField=2026-02-12T15:44:11-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=979 tabla=form_website origId=38 dateField=2026-02-12T14:06:11-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=983 tabla=form_website origId=40 dateField=2026-02-12T18:38:05-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=984 tabla=organic_leads origId=211 dateField=2026-02-13 10:33:52 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=985 tabla=organic_leads origId=216 dateField=2026-02-13 13:39:24 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=986 tabla=forms3 origId=249 dateField=2026-02-11T19:26:27-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=987 tabla=organic_leads origId=34 dateField=2025-12-16 11:18:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=988 tabla=organic_leads origId=198 dateField=2026-02-09 17:10:16 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=989 tabla=organic_leads origId=225 dateField=2026-02-16 17:34:14 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=991 tabla=form_website origId=41 dateField=2026-02-19T18:51:21-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=992 tabla=form_website origId=42 dateField=2026-02-19T17:30:37-06:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=993 tabla=form_website origId=43 dateField=2026-02-19T18:19:55-06:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=994 tabla=form_website origId=46 dateField=2026-02-19T19:33:14-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=995 tabla=form_website origId=47 dateField=2026-02-19T22:59:20-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=997 tabla=organic_leads origId=235 dateField=2026-02-20 14:44:52 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=998 tabla=form_website origId=48 dateField=2026-02-21T01:45:22+01:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=999 tabla=form_website origId=49 dateField=2026-02-20T18:38:57-07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1000 tabla=form_website origId=50 dateField=2026-02-21T16:04:47-07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1001 tabla=form_website origId=51 dateField=2026-02-21T18:25:39-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1002 tabla=form_website origId=52 dateField=2026-02-22T21:24:49-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1003 tabla=organic_leads origId=245 dateField=2026-02-21 11:00:39 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1004 tabla=formusa1 origId=438 dateField=2026-02-22T19:31:17-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1005 tabla=form_website origId=53 dateField=2026-02-23T21:11:46-07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1006 tabla=form_website origId=54 dateField=2026-02-23T22:42:51-07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1007 tabla=organic_leads origId=251 dateField=2026-02-24 09:54:05 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1008 tabla=form_website origId=55 dateField=2026-02-24T18:21:12-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1010 tabla=formusa1 origId=429 dateField=2026-02-17T23:11:00-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1011 tabla=organic_leads origId=236 dateField=2026-02-22 10:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1012 tabla=organic_leads origId=266 dateField=2026-02-25 15:40:17 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1013 tabla=form_website origId=56 dateField=2026-02-25T17:54:31-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1014 tabla=form_website origId=58 dateField=2026-02-26T20:43:33-08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1015 tabla=form_website origId=59 dateField=2026-02-27T13:11:27-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1016 tabla=organic_leads origId=272 dateField=2026-02-26 17:09:05 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1017 tabla=form_website origId=60 dateField=2026-02-27T16:42:25-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1018 tabla=form_website origId=61 dateField=2026-02-28T14:24:28-08:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1019 tabla=organic_leads origId=148 dateField=2026-01-25 19:28:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1020 tabla=organic_leads origId=168 dateField=2026-02-02 09:46:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1021 tabla=form_website origId=62 dateField=2026-03-02T16:00:18+00:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1022 tabla=organic_leads origId=279 dateField=2026-03-01 10:29:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1023 tabla=form_website origId=63 dateField=2026-03-02T19:45:04-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1024 tabla=form_website origId=64 dateField=2026-03-02T22:49:28-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1025 tabla=organic_leads origId=243 dateField=2026-02-22 10:56:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1026 tabla=organic_leads origId=284 dateField=2026-03-03 10:16:51 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1027 tabla=form_website origId=65 dateField=2026-03-04T11:58:27-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1028 tabla=organic_leads origId=256 dateField=2026-02-24 12:50:25 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1029 tabla=organic_leads origId=294 dateField=2026-03-04 10:44:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1030 tabla=organic_leads origId=297 dateField=2026-03-06 16:51:05 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1031 tabla=form_website origId=66 dateField=2026-03-06T22:51:48-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1032 tabla=forms3 origId=280 dateField=2026-03-06T09:14:02-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1033 tabla=forms3 origId=281 dateField=2026-03-06T12:30:05-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1035 tabla=organic_leads origId=298 dateField=2026-03-07 12:31:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1036 tabla=organic_leads origId=310 dateField=2026-03-12 10:51:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1037 tabla=form_website origId=67 dateField=2026-03-13T15:09:10-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1038 tabla=form_website origId=68 dateField=2026-03-14T01:32:36-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1039 tabla=form_website origId=69 dateField=2026-03-15T22:04:58-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1040 tabla=organic_leads origId=312 dateField=2026-03-13 09:42:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1042 tabla=form_website origId=70 dateField=2026-03-17T12:50:54+13:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1043 tabla=form_website origId=71 dateField=2026-03-17T08:59:29-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1044 tabla=form_website origId=72 dateField=2026-03-17T10:32:05-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1045 tabla=form_website origId=73 dateField=2026-03-17T15:43:46-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1046 tabla=organic_leads origId=271 dateField=2026-01-29 16:04:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1047 tabla=organic_leads origId=322 dateField=2026-03-16 11:36:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1049 tabla=form_website origId=74 dateField=2026-03-20T12:47:27-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1050 tabla=organic_leads origId=301 dateField=2026-03-08 12:52:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1051 tabla=form_website origId=75 dateField=2026-03-22T20:16:31-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1052 tabla=organic_leads origId=336 dateField=2026-03-21 09:55:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1053 tabla=organic_leads origId=345 dateField=2026-03-25 09:21:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1054 tabla=form_website origId=76 dateField=2026-03-25T21:57:04-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1055 tabla=form_website origId=77 dateField=2026-03-26T23:32:05-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1060 tabla=organic_leads origId=352 dateField=2026-03-27 11:45:36 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1061 tabla=wp_eventos_afianzados origId=1 dateField=2026-02-09 14:43:32 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1062 tabla=wp_eventos_afianzados origId=2 dateField=2026-03-25 11:29:20 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1063 tabla=form_website origId=78 dateField=2026-03-27T17:23:13-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1064 tabla=form_website origId=79 dateField=2026-03-29T11:16:18-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1065 tabla=form_website origId=80 dateField=2026-03-30T09:49:39-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1066 tabla=form_website origId=82 dateField=2026-03-30T09:58:37-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1067 tabla=form_website origId=83 dateField=2026-03-30T17:11:17-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1068 tabla=organic_leads origId=356 dateField=2026-03-29 10:04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1069 tabla=organic_leads origId=355 dateField=2026-03-30 09:45:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1070 tabla=form_website origId=84 dateField=2026-03-30T17:08:20-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1071 tabla=form_website origId=85 dateField=2026-03-31T21:04:22+02:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1072 tabla=organic_leads origId=363 dateField=2026-03-31 13:08:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1073 tabla=form_website origId=86 dateField=2026-03-31T13:45:14-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1074 tabla=organic_leads origId=367 dateField=2026-04-01 10:02:48 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1075 tabla=form_website origId=87 dateField=2026-04-01T12:10:51-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1076 tabla=organic_leads origId=357 dateField=2026-03-28 10:59:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1077 tabla=form_website origId=88 dateField=2026-04-02T12:36:58-07:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1078 tabla=form_website origId=89 dateField=2026-04-02T22:54:56-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1079 tabla=form_website origId=90 dateField=2026-04-03T12:12:10-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1080 tabla=form_website origId=92 dateField=2026-04-03T19:31:26-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1081 tabla=form_website origId=93 dateField=2026-04-04T10:11:16-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1082 tabla=form_website origId=94 dateField=2026-04-05T13:26:37-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1083 tabla=form_website origId=95 dateField=2026-04-06T18:17:28-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1084 tabla=form_website origId=96 dateField=2026-04-07T21:37:11-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1085 tabla=organic_leads origId=383 dateField=2026-04-08 10:10:37 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1086 tabla=organic_leads origId=377 dateField=2026-04-08 09:39:03 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1087 tabla=organic_leads origId=224 dateField=2026-02-16 17:01:05 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1088 tabla=organic_leads origId=388 dateField=2026-04-08 17:56:34 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1089 tabla=form_website origId=97 dateField=2026-04-08T22:24:35-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1090 tabla=form_website origId=98 dateField=2026-04-09T09:32:09-06:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1091 tabla=form_website origId=99 dateField=2026-04-09T09:58:08-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1093 tabla=form_website origId=100 dateField=2026-04-11T13:35:42-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1094 tabla=form_website origId=101 dateField=2026-04-11T19:52:36-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1095 tabla=organic_leads origId=401 dateField=2026-04-13 10:16:18 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1096 tabla=organic_leads origId=395 dateField=2026-04-13 09:37:36 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1097 tabla=form_website origId=103 dateField=2026-04-13T15:55:51-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1099 tabla=wp_eventos_afianzados origId=3 dateField=2026-04-15 11:12:52 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1100 tabla=wp_eventos_afianzados origId=4 dateField=2026-03-02 10:12:16 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1101 tabla=wp_eventos_afianzados origId=5 dateField=2026-03-17 16:58:04 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1102 tabla=form_website origId=105 dateField=2026-04-15T22:38:42-05:00 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1103 tabla=wp_eventos_afianzados origId=6 dateField=2026-04-16 17:58:38 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1104 tabla=wp_eventos_afianzados origId=7 dateField=2026-04-16 18:37:32 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1105 tabla=form_website origId=106 dateField=2026-04-17T10:44:22-06:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1107 tabla=organic_leads origId=389 dateField=2026-04-08 18:00:13 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1108 tabla=organic_leads origId=372 dateField=2026-04-01 12:01:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1109 tabla=form_website origId=108 dateField=2026-04-20T11:57:57-06:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1111 tabla=efege_form_10_marzo origId=60 dateField=2026-04-11T22:33:04-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1112 tabla=organic_leads origId=410 dateField=2026-04-20 12:08:50 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1113 tabla=form_website origId=109 dateField=2026-04-20T16:19:29-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1114 tabla=form_website origId=110 dateField=2026-04-20T18:31:38-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1116 tabla=wp_eventos_afianzados origId=8 dateField=2026-04-21 14:11:13 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1117 tabla=wp_eventos_afianzados origId=9 dateField=2026-04-21 14:17:20 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1132 tabla=form_website origId=126 dateField=2026-04-26T17:20:07-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1131 tabla=organic_leads origId=418 dateField=2026-04-23 10:21:38 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1124 tabla=form_website origId=120 dateField=2026-04-22T07:45:46+08:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1129 tabla=organic_leads origId=411 dateField=2026-04-22 09:26:56 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1126 tabla=form_website origId=123 dateField=2026-04-21T23:07:48-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1128 tabla=wp_eventos_afianzados origId=10 dateField=2026-04-23 11:36:11 estatus=1 cliente=1
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1133 tabla=organic_leads origId=430 dateField=2026-04-27 13:09:37 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1134 tabla=organic_leads origId=432 dateField=2026-04-27 14:46:36 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1135 tabla=organic_leads origId=435 dateField=2026-04-27 16:27:57 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1136 tabla=form_website origId=127 dateField=2026-04-28T08:22:47-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1137 tabla=organic_leads origId=433 dateField=2026-04-27 14:57:27 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1138 tabla=organic_leads origId=431 dateField=2026-04-27 14:06:47 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1139 tabla=organic_leads origId=423 dateField=2026-04-26 10:34:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1140 tabla=organic_leads origId=438 dateField=2026-04-28 10:03:24 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1141 tabla=organic_leads origId=443 dateField=2026-04-28 17:32:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1142 tabla=organic_leads origId=446 dateField=2026-04-29 11:11:16 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1143 tabla=form_website origId=128 dateField=2026-04-29T15:02:07-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1144 tabla=organic_leads origId=436 dateField=2026-04-28 09:54:59 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1145 tabla=organic_leads origId=448 dateField=2026-04-29 14:46:30 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1146 tabla=form_website origId=129 dateField=2026-04-29T19:50:12-04:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1147 tabla=organic_leads origId=453 dateField=2026-05-01 12:30:54 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1148 tabla=form_website origId=130 dateField=2026-05-03T08:56:11-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1149 tabla=form_website origId=131 dateField=2026-05-03T08:41:08-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1151 tabla=form_website origId=132 dateField=2026-05-04T10:03:29-05:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1152 tabla=form_website origId=133 dateField=2026-05-04T14:31:58-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1153 tabla=form_website origId=134 dateField=2026-05-04T17:09:44-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1154 tabla=wp_eventos_afianzados origId=11 dateField=2026-05-05 09:25:43 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1155 tabla=wp_eventos_afianzados origId=12 dateField=2026-05-05 09:28:41 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1156 tabla=organic_leads origId=460 dateField=2026-05-05 14:30:11 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1157 tabla=organic_leads origId=455 dateField=2026-05-05 10:33:10 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1158 tabla=organic_leads origId=461 dateField=2026-05-05 17:00:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1159 tabla=wp_eventos_afianzados origId=13 dateField=2026-05-05 18:28:23 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1160 tabla=forms3 origId=373 dateField=2026-05-05T09:13:58-05:00 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1161 tabla=form_website origId=135 dateField=2026-05-07T15:57:51-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1162 tabla=form_website origId=136 dateField=2026-05-09T21:54:14-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1163 tabla=form_website origId=137 dateField=2026-05-11T00:05:02-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1164 tabla=organic_leads origId=463 dateField=2026-05-06 09:43:01 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1165 tabla=organic_leads origId=470 dateField=2026-05-11 12:16:59 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1166 tabla=organic_leads origId=471 dateField=2026-05-11 13:10:16 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1167 tabla=form_website origId=138 dateField=2026-05-11T18:08:16-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1168 tabla=form_website origId=139 dateField=2026-05-12T21:19:52-06:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1169 tabla=organic_leads origId=477 dateField=2026-05-13 09:27:34 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1170 tabla=organic_leads origId=475 dateField=2026-05-12 19:25:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1171 tabla=organic_leads origId=472 dateField=2026-05-12 08:23:52 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1172 tabla=form_website origId=142 dateField=2026-05-13T17:14:26-05:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1173 tabla=form_website origId=143 dateField=2026-05-14T13:02:00-06:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1174 tabla=form_website origId=144 dateField=2026-05-14T14:10:13-07:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1175 tabla=organic_leads origId=378 dateField=2026-04-08 09:45:27 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1176 tabla=form_website origId=145 dateField=2026-05-17T21:36:20-05:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1177 tabla=organic_leads origId=486 dateField=2026-05-18 10:17:02 estatus=3 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1178 tabla=wp_eventos_afianzados origId=14 dateField=2026-05-18 14:04:45 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1179 tabla=wp_eventos_afianzados origId=15 dateField=2026-05-18 18:28:19 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1180 tabla=organic_leads origId=488 dateField=2026-05-18 18:30:52 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1181 tabla=form_website origId=146 dateField=2026-05-18T23:08:35-04:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1182 tabla=organic_leads origId=491 dateField=2026-05-19 09:28:44 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1191 tabla=organic_leads origId=492 dateField=2026-05-19 14:11:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1192 tabla=organic_leads origId=490 dateField=2026-05-19 09:18:00 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1194 tabla=form_website origId=147 dateField=2026-05-20T20:34:49+01:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1195 tabla=organic_leads origId=494 dateField=2026-05-19 19:31:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1196 tabla=organic_leads origId=496 dateField=2026-05-21 00:40:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1197 tabla=organic_leads origId=497 dateField=2026-05-21 00:45:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1198 tabla=organic_leads origId=498 dateField=2026-05-21 00:29:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1204 tabla=organic_leads origId=507 dateField=2026-05-21 11:00:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1205 tabla=organic_leads origId=509 dateField=2026-05-21 11:18:57 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1206 tabla=organic_leads origId=510 dateField=2026-05-21 11:29:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1208 tabla=organic_leads origId=511 dateField=2026-05-21 12:08:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1209 tabla=organic_leads origId=512 dateField=2026-05-21 12:24:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1213 tabla=organic_leads origId=513 dateField=2026-05-21 12:42:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1215 tabla=form_website origId=148 dateField=2026-05-21T17:26:51-05:00 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1216 tabla=form_website origId=149 dateField=2026-05-21T19:22:15-07:00 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1217 tabla=form_website origId=150 dateField=2026-05-21T23:05:05-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1219 tabla=wp_eventos_afianzados origId=16 dateField=2026-05-22 18:10:56 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1220 tabla=form_website origId=151 dateField=2026-05-24T01:32:13-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1224 tabla=organic_leads origId=516 dateField=2026-05-25 15:32:22 estatus=1 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1225 tabla=form_website origId=152 dateField=2026-05-25T18:15:22-04:00 estatus=2 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1232 tabla=form_website origId=153 dateField=2026-05-26T14:23:15-06:00 estatus=0 cliente=0
+[27-May-2026 14:23:56 America/Mexico_City] [AGENDADOS-DEBUG] TOTAL leadsAgendadosTotal=684 startDate= endDate= filterPlataforma=
+[27-May-2026 14:24:00 America/Mexico_City] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 4
+[27-May-2026 14:24:00 America/Mexico_City] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 13
+[27-May-2026 14:24:01 America/Mexico_City] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 4
+[27-May-2026 14:24:01 America/Mexico_City] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 13
+[27-May-2026 14:26:08 America/Mexico_City] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 4
+[27-May-2026 14:26:08 America/Mexico_City] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 13
+[27-May-2026 14:29:35 America/Mexico_City] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 4
+[27-May-2026 14:29:35 America/Mexico_City] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in /home/efegephocom/sandbox.efegepho.com.mx/admin/menu.php on line 13
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA andromeda_leadform: SELECT *, 'andromeda_leadform' as tabla_origen FROM `andromeda_leadform` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA andromeda_lead_form___jan_6: SELECT *, 'andromeda_lead_form___jan_6' as tabla_origen FROM `andromeda_lead_form___jan_6` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA efege_form_10_marzo: SELECT *, 'efege_form_10_marzo' as tabla_origen FROM `efege_form_10_marzo` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=181, Nombre=Luz Godoy, Fecha=2026-05-26T20:20:13-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=180, Nombre=Theresa Marquez, Fecha=2026-05-26T19:31:53-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=179, Nombre=Alyssa Griffin, Fecha=2026-05-26T13:26:40-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=178, Nombre=Lisa A Carter, Fecha=2026-05-19T05:04:34-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=177, Nombre=Judy Higgins, Fecha=2026-05-19T03:34:23-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=176, Nombre=Bernadette Kuuipo Ness, Fecha=2026-05-18T17:05:52-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=175, Nombre=Andrienne Cloud, Fecha=2026-05-18T15:47:22-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=174, Nombre=Emma Benitez, Fecha=2026-05-18T13:17:12-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=173, Nombre=Roselyn A. Lagda, Fecha=2026-05-18T03:00:32-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=172, Nombre=Kayla Ann, Fecha=2026-05-17T13:59:03-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=171, Nombre=Tracey Carter, Fecha=2026-05-17T12:49:10-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=170, Nombre=Lakia Broadnax, Fecha=2026-05-17T11:31:16-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=169, Nombre=April Stammerman, Fecha=2026-05-17T08:23:28-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=168, Nombre=Ashlynn thompson, Fecha=2026-05-17T00:18:27-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=167, Nombre=Angel N Rashad Moreno-Rhyne, Fecha=2026-05-16T21:11:26-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=166, Nombre=Shanti C Williams, Fecha=2026-05-15T21:52:34-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=165, Nombre=Nesmith David, Fecha=2026-05-15T18:58:01-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=164, Nombre=Joss, Fecha=2026-05-15T06:12:11-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=163, Nombre=Donna Beverly, Fecha=2026-05-14T13:03:53-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=162, Nombre=Monie Brown, Fecha=2026-05-13T20:10:34-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=161, Nombre=Hope Adams, Fecha=2026-05-13T18:50:28-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=160, Nombre=Anna Couch, Fecha=2026-05-13T15:10:35-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=159, Nombre=Joy Debroux, Fecha=2026-05-13T14:53:46-05:00
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA forms3: SELECT *, 'forms3' as tabla_origen FROM `forms3` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=391, Nombre=Jules Troliani, Fecha=2026-05-25T19:32:33-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=390, Nombre=Stephani navarrete, Fecha=2026-05-18T15:26:22-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=389, Nombre=Yesenia, Fecha=2026-05-18T10:14:50-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=388, Nombre=Clau Estefany, Fecha=2026-05-16T22:02:44-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=387, Nombre=Pame Arostegui, Fecha=2026-05-16T14:25:36-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=386, Nombre=Kaleigh Shuffett, Fecha=2026-05-16T14:19:34-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=385, Nombre=rubib5920@gmail.com, Fecha=2026-05-14T06:52:40-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de forms3: ID=384, Nombre=angela Sandridge, Fecha=2026-05-13T15:23:58-05:00
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA formusa1: SELECT *, 'formusa1' as tabla_origen FROM `formusa1` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA formusa2: SELECT *, 'formusa2' as tabla_origen FROM `formusa2` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA form_website: SELECT *, 'form_website' as tabla_origen FROM `form_website` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=153, Nombre=prueba sistemas, Fecha=2026-05-26T14:23:15-06:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=152, Nombre=Emily Reinke and Carter Hawthorne, Fecha=2026-05-25T18:15:22-04:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=151, Nombre=Angely Montilla, Fecha=2026-05-24T01:32:13-04:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=150, Nombre=Ashley & Kenji, Fecha=2026-05-21T23:05:05-04:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=149, Nombre=Rajvi and Aashay, Fecha=2026-05-21T19:22:15-07:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=148, Nombre=Jacqueline & Carlos, Fecha=2026-05-21T17:26:51-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=147, Nombre=Aman Sangha, Fecha=2026-05-20T20:34:49+01:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=146, Nombre=Paula de la Vega y Federico Kawage, Fecha=2026-05-18T23:08:35-04:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=145, Nombre=Michelle Chahda & Ross Brown, Fecha=2026-05-17T21:36:20-05:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=144, Nombre=Patricia Duran y Isaak Ortega, Fecha=2026-05-14T14:10:13-07:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=143, Nombre=Ana paula Solana, Fecha=2026-05-14T13:02:00-06:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de form_website: ID=142, Nombre=Michael & Natasha, Fecha=2026-05-13T17:14:26-05:00
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA organic_leads: SELECT *, 'organic_leads' as tabla_origen FROM `organic_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=520, Nombre=Samantha Calderon, Fecha=2026-05-27 08:55:39
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=519, Nombre=Catalina Paz Meza, Fecha=2026-05-27 07:57:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=518, Nombre=Shari Sanchez, Fecha=2026-05-27 07:49:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=517, Nombre=Moon Dlr, Fecha=2026-05-25 21:07:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=516, Nombre=Romina Ramirez y Juan Antonio Borrego, Fecha=2026-05-25 15:32:22
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=515, Nombre=Avanni Gudimetla, Fecha=2026-05-22 11:17:28
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=514, Nombre=Sofia Gutierrez, Fecha=2026-05-21 15:34:19
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=513, Nombre=Project, Fecha=2026-05-21 12:42:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=512, Nombre=Quia labore sed quis, Fecha=2026-05-21 12:24:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=511, Nombre=Project, Fecha=2026-05-21 12:08:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=510, Nombre=Paulo, Fecha=2026-05-21 11:29:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=497, Nombre=Kennia Astorga, Fecha=2026-05-21 00:45:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=496, Nombre=Brenda Cano, Fecha=2026-05-21 00:40:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=498, Nombre=prueba sistemas, Fecha=2026-05-21 00:29:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=494, Nombre=Adri Ortiz, Fecha=2026-05-19 19:31:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=493, Nombre=Stefany Bosques, Fecha=2026-05-19 14:36:39
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=492, Nombre=prueba sistemas 44, Fecha=2026-05-19 14:11:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=491, Nombre=Clau Aguirre, Fecha=2026-05-19 09:28:44
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=490, Nombre=Gabriela Moreno, Fecha=2026-05-19 09:18:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=489, Nombre=Carito V Vallejos, Fecha=2026-05-19 09:14:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=488, Nombre=Ara & Diego, Fecha=2026-05-18 18:30:52
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=487, Nombre=Clau Aguirre, Fecha=2026-05-18 13:08:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=486, Nombre=Milanna Wynne, Fecha=2026-05-18 10:17:02
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=485, Nombre=Magdalena Azocar, Fecha=2026-05-18 09:23:09
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=484, Nombre=Angie Rangel, Fecha=2026-05-18 09:21:29
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=483, Nombre=Selene Aguilar, Fecha=2026-05-18 09:18:40
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=482, Nombre=Karen Parente, Fecha=2026-05-17 14:04:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=481, Nombre=Alejandro Gonzalez, Fecha=2026-05-17 11:30:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=480, Nombre=Camila Vio, Fecha=2026-05-17 11:20:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=479, Nombre=Magdalena Azocar, Fecha=2026-05-17 11:19:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=478, Nombre=Monica Ramirez, Fecha=2026-05-13 12:47:56
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=477, Nombre=Mariana Rodarte, Fecha=2026-05-13 09:27:34
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de organic_leads: ID=476, Nombre=Isabela & Gerardo Marquez, Fecha=2026-05-13 09:23:16
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA wp_citas_leads: SELECT *, 'wp_citas_leads' as tabla_origen FROM `wp_citas_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=5, Nombre=TEST, Fecha=2026-05-26 14:47:39
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=4, Nombre=whatsapp, Fecha=2026-05-26 14:42:14
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=3, Nombre=whatsapp, Fecha=2026-05-26 13:28:11
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=2, Nombre=prueba registro WD, Fecha=2026-05-26 13:17:00
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=1, Nombre=sistemas, Fecha=2026-05-20 12:52:46
+[27-May-2026 15:04:35 America/Mexico_City] CONSULTA TABLA wp_eventos_afianzados: SELECT *, 'wp_eventos_afianzados' as tabla_origen FROM `wp_eventos_afianzados` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-13' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-27' ORDER BY `created_time` DESC
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=16, Nombre=Daniela Martinez, Fecha=2026-05-22 18:10:56
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=15, Nombre=Gael Garcia, Fecha=2026-05-18 18:28:19
+[27-May-2026 15:04:35 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=14, Nombre=Salma Cota, Fecha=2026-05-18 14:04:45
+[27-May-2026 15:04:35 America/Mexico_City] Total leads obtenidos de BD (allLeads): 84
+[27-May-2026 15:04:35 America/Mexico_City] Total leads después de filtro plataforma (filteredLeads): 84
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1169 tabla=organic_leads origId=477 dateField=2026-05-13 09:27:34 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1172 tabla=form_website origId=142 dateField=2026-05-13T17:14:26-05:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1173 tabla=form_website origId=143 dateField=2026-05-14T13:02:00-06:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1174 tabla=form_website origId=144 dateField=2026-05-14T14:10:13-07:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1176 tabla=form_website origId=145 dateField=2026-05-17T21:36:20-05:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1177 tabla=organic_leads origId=486 dateField=2026-05-18 10:17:02 estatus=3 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1178 tabla=wp_eventos_afianzados origId=14 dateField=2026-05-18 14:04:45 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1179 tabla=wp_eventos_afianzados origId=15 dateField=2026-05-18 18:28:19 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1180 tabla=organic_leads origId=488 dateField=2026-05-18 18:30:52 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1181 tabla=form_website origId=146 dateField=2026-05-18T23:08:35-04:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1182 tabla=organic_leads origId=491 dateField=2026-05-19 09:28:44 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1191 tabla=organic_leads origId=492 dateField=2026-05-19 14:11:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1192 tabla=organic_leads origId=490 dateField=2026-05-19 09:18:00 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1194 tabla=form_website origId=147 dateField=2026-05-20T20:34:49+01:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1195 tabla=organic_leads origId=494 dateField=2026-05-19 19:31:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1196 tabla=organic_leads origId=496 dateField=2026-05-21 00:40:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1197 tabla=organic_leads origId=497 dateField=2026-05-21 00:45:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1198 tabla=organic_leads origId=498 dateField=2026-05-21 00:29:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1204 tabla=organic_leads origId=507 dateField=2026-05-21 11:00:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1205 tabla=organic_leads origId=509 dateField=2026-05-21 11:18:57 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1206 tabla=organic_leads origId=510 dateField=2026-05-21 11:29:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1208 tabla=organic_leads origId=511 dateField=2026-05-21 12:08:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1209 tabla=organic_leads origId=512 dateField=2026-05-21 12:24:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1213 tabla=organic_leads origId=513 dateField=2026-05-21 12:42:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1215 tabla=form_website origId=148 dateField=2026-05-21T17:26:51-05:00 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1216 tabla=form_website origId=149 dateField=2026-05-21T19:22:15-07:00 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1217 tabla=form_website origId=150 dateField=2026-05-21T23:05:05-04:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1219 tabla=wp_eventos_afianzados origId=16 dateField=2026-05-22 18:10:56 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1220 tabla=form_website origId=151 dateField=2026-05-24T01:32:13-04:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1224 tabla=organic_leads origId=516 dateField=2026-05-25 15:32:22 estatus=1 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1225 tabla=form_website origId=152 dateField=2026-05-25T18:15:22-04:00 estatus=2 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1232 tabla=form_website origId=153 dateField=2026-05-26T14:23:15-06:00 estatus=0 cliente=0
+[27-May-2026 15:04:35 America/Mexico_City] [AGENDADOS-DEBUG] TOTAL leadsAgendadosTotal=32 startDate=2026-05-13 endDate=2026-05-27 filterPlataforma=
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA andromeda_leadform: SELECT *, 'andromeda_leadform' as tabla_origen FROM `andromeda_leadform` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA andromeda_lead_form___jan_6: SELECT *, 'andromeda_lead_form___jan_6' as tabla_origen FROM `andromeda_lead_form___jan_6` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA efege_form_10_marzo: SELECT *, 'efege_form_10_marzo' as tabla_origen FROM `efege_form_10_marzo` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=181, Nombre=Luz Godoy, Fecha=2026-05-26T20:20:13-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=180, Nombre=Theresa Marquez, Fecha=2026-05-26T19:31:53-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=179, Nombre=Alyssa Griffin, Fecha=2026-05-26T13:26:40-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=178, Nombre=Lisa A Carter, Fecha=2026-05-19T05:04:34-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=177, Nombre=Judy Higgins, Fecha=2026-05-19T03:34:23-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=176, Nombre=Bernadette Kuuipo Ness, Fecha=2026-05-18T17:05:52-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=175, Nombre=Andrienne Cloud, Fecha=2026-05-18T15:47:22-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=174, Nombre=Emma Benitez, Fecha=2026-05-18T13:17:12-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=173, Nombre=Roselyn A. Lagda, Fecha=2026-05-18T03:00:32-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=172, Nombre=Kayla Ann, Fecha=2026-05-17T13:59:03-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=171, Nombre=Tracey Carter, Fecha=2026-05-17T12:49:10-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=170, Nombre=Lakia Broadnax, Fecha=2026-05-17T11:31:16-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=169, Nombre=April Stammerman, Fecha=2026-05-17T08:23:28-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=168, Nombre=Ashlynn thompson, Fecha=2026-05-17T00:18:27-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=167, Nombre=Angel N Rashad Moreno-Rhyne, Fecha=2026-05-16T21:11:26-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=166, Nombre=Shanti C Williams, Fecha=2026-05-15T21:52:34-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=165, Nombre=Nesmith David, Fecha=2026-05-15T18:58:01-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=164, Nombre=Joss, Fecha=2026-05-15T06:12:11-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de efege_form_10_marzo: ID=163, Nombre=Donna Beverly, Fecha=2026-05-14T13:03:53-05:00
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA forms3: SELECT *, 'forms3' as tabla_origen FROM `forms3` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=391, Nombre=Jules Troliani, Fecha=2026-05-25T19:32:33-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=390, Nombre=Stephani navarrete, Fecha=2026-05-18T15:26:22-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=389, Nombre=Yesenia, Fecha=2026-05-18T10:14:50-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=388, Nombre=Clau Estefany, Fecha=2026-05-16T22:02:44-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=387, Nombre=Pame Arostegui, Fecha=2026-05-16T14:25:36-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=386, Nombre=Kaleigh Shuffett, Fecha=2026-05-16T14:19:34-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de forms3: ID=385, Nombre=rubib5920@gmail.com, Fecha=2026-05-14T06:52:40-05:00
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA formusa1: SELECT *, 'formusa1' as tabla_origen FROM `formusa1` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA formusa2: SELECT *, 'formusa2' as tabla_origen FROM `formusa2` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA form_website: SELECT *, 'form_website' as tabla_origen FROM `form_website` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=153, Nombre=prueba sistemas, Fecha=2026-05-26T14:23:15-06:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=152, Nombre=Emily Reinke and Carter Hawthorne, Fecha=2026-05-25T18:15:22-04:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=151, Nombre=Angely Montilla, Fecha=2026-05-24T01:32:13-04:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=150, Nombre=Ashley & Kenji, Fecha=2026-05-21T23:05:05-04:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=149, Nombre=Rajvi and Aashay, Fecha=2026-05-21T19:22:15-07:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=148, Nombre=Jacqueline & Carlos, Fecha=2026-05-21T17:26:51-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=147, Nombre=Aman Sangha, Fecha=2026-05-20T20:34:49+01:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=146, Nombre=Paula de la Vega y Federico Kawage, Fecha=2026-05-18T23:08:35-04:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=145, Nombre=Michelle Chahda & Ross Brown, Fecha=2026-05-17T21:36:20-05:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=144, Nombre=Patricia Duran y Isaak Ortega, Fecha=2026-05-14T14:10:13-07:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de form_website: ID=143, Nombre=Ana paula Solana, Fecha=2026-05-14T13:02:00-06:00
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA organic_leads: SELECT *, 'organic_leads' as tabla_origen FROM `organic_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=520, Nombre=Samantha Calderon, Fecha=2026-05-27 08:55:39
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=519, Nombre=Catalina Paz Meza, Fecha=2026-05-27 07:57:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=518, Nombre=Shari Sanchez, Fecha=2026-05-27 07:49:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=517, Nombre=Moon Dlr, Fecha=2026-05-25 21:07:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=516, Nombre=Romina Ramirez y Juan Antonio Borrego, Fecha=2026-05-25 15:32:22
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=515, Nombre=Avanni Gudimetla, Fecha=2026-05-22 11:17:28
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=514, Nombre=Sofia Gutierrez, Fecha=2026-05-21 15:34:19
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=513, Nombre=Project, Fecha=2026-05-21 12:42:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=512, Nombre=Quia labore sed quis, Fecha=2026-05-21 12:24:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=511, Nombre=Project, Fecha=2026-05-21 12:08:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=510, Nombre=Paulo, Fecha=2026-05-21 11:29:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=497, Nombre=Kennia Astorga, Fecha=2026-05-21 00:45:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=496, Nombre=Brenda Cano, Fecha=2026-05-21 00:40:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=498, Nombre=prueba sistemas, Fecha=2026-05-21 00:29:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=494, Nombre=Adri Ortiz, Fecha=2026-05-19 19:31:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=493, Nombre=Stefany Bosques, Fecha=2026-05-19 14:36:39
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=492, Nombre=prueba sistemas 44, Fecha=2026-05-19 14:11:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=491, Nombre=Clau Aguirre, Fecha=2026-05-19 09:28:44
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=490, Nombre=Gabriela Moreno, Fecha=2026-05-19 09:18:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=489, Nombre=Carito V Vallejos, Fecha=2026-05-19 09:14:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=488, Nombre=Ara & Diego, Fecha=2026-05-18 18:30:52
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=487, Nombre=Clau Aguirre, Fecha=2026-05-18 13:08:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=486, Nombre=Milanna Wynne, Fecha=2026-05-18 10:17:02
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=485, Nombre=Magdalena Azocar, Fecha=2026-05-18 09:23:09
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=484, Nombre=Angie Rangel, Fecha=2026-05-18 09:21:29
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=483, Nombre=Selene Aguilar, Fecha=2026-05-18 09:18:40
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=482, Nombre=Karen Parente, Fecha=2026-05-17 14:04:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=481, Nombre=Alejandro Gonzalez, Fecha=2026-05-17 11:30:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=480, Nombre=Camila Vio, Fecha=2026-05-17 11:20:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de organic_leads: ID=479, Nombre=Magdalena Azocar, Fecha=2026-05-17 11:19:00
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA wp_citas_leads: SELECT *, 'wp_citas_leads' as tabla_origen FROM `wp_citas_leads` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=5, Nombre=TEST, Fecha=2026-05-26 14:47:39
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=4, Nombre=whatsapp, Fecha=2026-05-26 14:42:14
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=3, Nombre=whatsapp, Fecha=2026-05-26 13:28:11
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=2, Nombre=prueba registro WD, Fecha=2026-05-26 13:17:00
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_citas_leads: ID=1, Nombre=sistemas, Fecha=2026-05-20 12:52:46
+[28-May-2026 09:19:54 America/Mexico_City] CONSULTA TABLA wp_eventos_afianzados: SELECT *, 'wp_eventos_afianzados' as tabla_origen FROM `wp_eventos_afianzados` WHERE (descartado = 0 OR descartado IS NULL) AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END >= '2026-05-14' AND CASE 
+                WHEN created_time LIKE '%T%' THEN DATE(STR_TO_DATE(SUBSTRING(created_time, 1, 19), '%Y-%m-%dT%H:%i:%s'))
+                ELSE DATE(created_time)
+            END <= '2026-05-28' ORDER BY `created_time` DESC
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=16, Nombre=Daniela Martinez, Fecha=2026-05-22 18:10:56
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=15, Nombre=Gael Garcia, Fecha=2026-05-18 18:28:19
+[28-May-2026 09:19:54 America/Mexico_City] Lead obtenido de wp_eventos_afianzados: ID=14, Nombre=Salma Cota, Fecha=2026-05-18 14:04:45
+[28-May-2026 09:19:54 America/Mexico_City] Total leads obtenidos de BD (allLeads): 75
+[28-May-2026 09:19:54 America/Mexico_City] Total leads después de filtro plataforma (filteredLeads): 75
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1173 tabla=form_website origId=143 dateField=2026-05-14T13:02:00-06:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1174 tabla=form_website origId=144 dateField=2026-05-14T14:10:13-07:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1176 tabla=form_website origId=145 dateField=2026-05-17T21:36:20-05:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1177 tabla=organic_leads origId=486 dateField=2026-05-18 10:17:02 estatus=3 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1178 tabla=wp_eventos_afianzados origId=14 dateField=2026-05-18 14:04:45 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1179 tabla=wp_eventos_afianzados origId=15 dateField=2026-05-18 18:28:19 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1180 tabla=organic_leads origId=488 dateField=2026-05-18 18:30:52 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1181 tabla=form_website origId=146 dateField=2026-05-18T23:08:35-04:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1182 tabla=organic_leads origId=491 dateField=2026-05-19 09:28:44 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1191 tabla=organic_leads origId=492 dateField=2026-05-19 14:11:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1192 tabla=organic_leads origId=490 dateField=2026-05-19 09:18:00 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1194 tabla=form_website origId=147 dateField=2026-05-20T20:34:49+01:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1195 tabla=organic_leads origId=494 dateField=2026-05-19 19:31:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1196 tabla=organic_leads origId=496 dateField=2026-05-21 00:40:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1197 tabla=organic_leads origId=497 dateField=2026-05-21 00:45:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1198 tabla=organic_leads origId=498 dateField=2026-05-21 00:29:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1204 tabla=organic_leads origId=507 dateField=2026-05-21 11:00:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1205 tabla=organic_leads origId=509 dateField=2026-05-21 11:18:57 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1206 tabla=organic_leads origId=510 dateField=2026-05-21 11:29:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1208 tabla=organic_leads origId=511 dateField=2026-05-21 12:08:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1209 tabla=organic_leads origId=512 dateField=2026-05-21 12:24:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1213 tabla=organic_leads origId=513 dateField=2026-05-21 12:42:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1215 tabla=form_website origId=148 dateField=2026-05-21T17:26:51-05:00 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1216 tabla=form_website origId=149 dateField=2026-05-21T19:22:15-07:00 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1217 tabla=form_website origId=150 dateField=2026-05-21T23:05:05-04:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1219 tabla=wp_eventos_afianzados origId=16 dateField=2026-05-22 18:10:56 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1220 tabla=form_website origId=151 dateField=2026-05-24T01:32:13-04:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1224 tabla=organic_leads origId=516 dateField=2026-05-25 15:32:22 estatus=1 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1225 tabla=form_website origId=152 dateField=2026-05-25T18:15:22-04:00 estatus=2 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] CONTADO cfId=1232 tabla=form_website origId=153 dateField=2026-05-26T14:23:15-06:00 estatus=0 cliente=0
+[28-May-2026 09:19:54 America/Mexico_City] [AGENDADOS-DEBUG] TOTAL leadsAgendadosTotal=30 startDate=2026-05-14 endDate=2026-05-28 filterPlataforma=

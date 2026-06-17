@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Inquiry Form</title>
+   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+</head>
+<body>
+    <div class="form-container">
+        <form id="weddingForm">
+            <input type="text" name="names" placeholder="your names" required>
+             <input type="text" name="wedding_location" placeholder="wedding location" required>
+           
+            <input type="email" name="email" placeholder="email address" required>
+<center class="wedding_date_label"><label  for="wedding_date">Wedding Date</label>
+<input type="date" class="wedding_date" id="wedding_date" name="wedding_date" onfocus="(this.type='date')" onblur="(this.type='text')" placeholder="" required></center>
+
+<input class="country-input" list="country_codes" name="country_code" placeholder="Country Code" required>
+<datalist id="country_codes">
+  <option value="+1">+1 (USA/Canada)</option>
+  <option value="+44">+44 (UK)</option>
+  <option value="+52">+52 (Mexico)</option>
+  <option value="+34">+34 (Spain)</option>
+  <option value="+33">+33 (France)</option>
+  <option value="+49">+49 (Germany)</option>
+  <option value="+39">+39 (Italy)</option>
+  <option value="+61">+61 (Australia)</option>
+  <option value="+81">+81 (Japan)</option>
+  <option value="+55">+55 (Brazil)</option>
+  <option value="+91">+91 (India)</option>
+  <option value="+82">+82 (South Korea)</option>
+  <option value="+7">+7 (Russia)</option>
+  <option value="+34">+34 (Spain)</option>
+  <option value="+47">+47 (Norway)</option>
+  <option value="+46">+46 (Sweden)</option>
+  <option value="+41">+41 (Switzerland)</option>
+  <option value="+32">+32 (Belgium)</option>
+  <option value="+31">+31 (Netherlands)</option>
+  <option value="+30">+30 (Greece)</option>
+  <option value="+20">+20 (Egypt)</option>
+  <option value="+62">+62 (Indonesia)</option>
+  <option value="+98">+98 (Iran)</option>
+  <option value="+966">+966 (Saudi Arabia)</option>
+  <option value="+92">+92 (Pakistan)</option>
+  <option value="+961">+961 (Lebanon)</option>
+  <option value="+971">+971 (United Arab Emirates)</option>
+  <option value="+966">+966 (Saudi Arabia)</option>
+  <option value="+1-242">+1-242 (Bahamas)</option>
+  <option value="+1-345">+1-345 (Cayman Islands)</option>
+  <option value="+1-473">+1-473 (Grenada)</option>
+  <option value="+1-876">+1-876 (Jamaica)</option>
+  <option value="+1-868">+1-868 (Trinidad and Tobago)</option>
+  <option value="+1-869">+1-869 (Saint Kitts and Nevis)</option>
+  <option value="+1-758">+1-758 (Saint Lucia)</option>
+  <option value="+1-784">+1-784 (Saint Vincent and the Grenadines)</option>
+  <option value="+1-242">+1-242 (Bahamas)</option>
+  <!-- Agrega más códigos de países aquí -->
+</datalist>
+
+             <input type="tel" name="telephone" placeholder="telephone" required>
+            <input type="text" name="wedding_planner" placeholder="wedding planner">
+            <input type="number" name="guests" pattern="[0-9]{10}" placeholder="how many guests will there be?" required>
+            <input type="text" name="meet" placeholder="how did you meet?">
+            <input type="text" name="couple_activities" placeholder="what do you like to do as a couple?">
+            <input type="text" name="favorite_movie_song" placeholder="do you have a favorite movie or song as a couple?">
+            <input type="text" name="photo_style" placeholder="do you like a documentary or editorial look?">
+            <input type="text" name="how_did_hear" placeholder="how did you hear about us?">
+            <input type="text" name="instagram" placeholder="can you share your Instagram handles with us?">
+             <select name="service" required>
+            <option value="" disabled selected>What service are you interested?</option>
+            <option value="Social Media">Social Media</option>
+            <option value="Wedding Planner">Wedding Planner</option>
+            <option value="Personal Reference">Personal Reference</option>
+            <option value="Other">Other</option>
+        </select>
+            <textarea name="details" placeholder="we would love to hear about your plans in as much detail as possible."></textarea><br><br>
+            <button type="submit">NEXT</button>
+        </form>
+    </div>
+   
+</body>
+</html>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("weddingForm");
+
+    form.addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        // Recolectar los datos del formulario
+        const formData = new FormData(form);
+
+        // Enviar datos vía AJAX
+        fetch("process_form.php", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito con SweetAlert
+                Swal.fire({
+                    title: "Success",
+                    text: "Schedule a call with us so that you can receive a quote.",
+                    icon: "success",
+                    confirmButtonText: "OK"
+                }).then(() => {
+                    // Redireccionar al usuario
+                    window.open("https://calendar.app.google/iycBoL79EuUswbDSA", "_blank");
+                });
+                form.reset();
+            } else {
+                // Mostrar mensaje de error
+                Swal.fire({
+                    title: "Error",
+                    text: "There was an issue submitting your registration. Please try again.",
+                    icon: "error",
+                    confirmButtonText: "OK"
+                });
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            Swal.fire({
+                title: "Error",
+                text: "An unexpected error occurred. Please try again later.",
+                icon: "error",
+                confirmButtonText: "OK"
+            });
+        });
+    });
+});
+</script>
+<style>
+  #wedding_date {
+    width: 100%;
+  }
+</style>
+
+<style>
+ * {
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Cormorant Garamond', serif;
+    background: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+
+ select {
+            padding: 10px;
+            border: none;
+            border-bottom: 1px solid #ccc;
+            font-size: 18px;
+            outline: none;
+            background: none;
+            font-family: 'Cormorant Garamond', serif;
+            appearance: none; /* Elimina el estilo por defecto del select */
+            -webkit-appearance: none; /* Compatibilidad con navegadores WebKit */
+            -moz-appearance: none; /* Compatibilidad con navegadores Mozilla */
+            color: #000; /* Color del texto */
+        }
+
+        select:focus {
+            border-bottom: 1px solid #000; /* Cambia el color del borde al enfocar */
+        }
+
+        /* Estilo para la flechita */
+        select::after {
+            content: '\25BC'; /* Código Unicode para la flecha */
+            position: absolute;
+            color: #000;
+            right: 10px;
+            pointer-events: none; /* Evita que interfiera con el clic */
+        }
+
+        /* Para que el placeholder se muestre al inicio */
+        select option[value=""][disabled] {
+            display: none;
+        }
+
+.country-input {
+  width: 15%;
+}
+
+form {
+    width: 100%;
+    max-width: 100%;
+    background: none;
+    padding: 20px;
+    border-radius: 10px;
+    
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-family: 'Cormorant Garamond', serif;
+}
+input, textarea, button {
+    padding: 10px;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    font-size: 18px;
+    outline: none;
+     background: none;
+    font-family: 'Cormorant Garamond', serif;
+}
+input, textarea {
+    width: calc(50% - 10px);
+}
+input[name="names"],
+textarea,
+button {
+    width: 100%;
+}
+button {
+    background-color: none;
+    color: #000;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+button:hover {
+    background-color: none;
+    font-size: 22px;
+}
+
+  
+
+  @media (max-width: 600px) {
+    input::placeholder,
+    textarea::placeholder {
+      
+        font-size: 12px; /* Tamaño de la fuente */
+    }
+    
+    .wedding_date_label{
+    
+    width: 300px !important;
+    margin: 25px;
+    font-size: 12px !important;  /* Tamaño de la fuente */
+  } 
+  
+  .wedding_date {
+    
+    width: 50% !important;
+     
+    
+    font-size: 12px !important;  /* Tamaño de la fuente */
+  }
+  
+  .country-input {
+  width: 30%;
+}
+
+
+
+ select {
+            padding: 10px;
+            border: none;
+            border-bottom: 1px solid #ccc;
+             font-size: 12px !important;  /* Tamaño de la fuente */
+            outline: none;
+            background: none;
+            font-family: 'Cormorant Garamond', serif;
+            appearance: none; /* Elimina el estilo por defecto del select */
+            -webkit-appearance: none; /* Compatibilidad con navegadores WebKit */
+            -moz-appearance: none; /* Compatibilidad con navegadores Mozilla */
+            color: #909090; /* Color del texto */
+        }
+
+}
+</style>  

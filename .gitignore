@@ -1,0 +1,62 @@
+# Archivos comprimidos y respaldos
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.gz
+*.bz2
+*.xz
+*.lz
+*.cab
+*.iso
+*.dmg
+
+# Bases de datos y dumps SQL
+*.sql
+*.sql.gz
+*.sql.bz2
+*.dump
+*.bak
+
+# Logs
+*.log
+logs/
+
+# Entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Dependencias
+vendor/
+node_modules/
+
+# Admin - librerías y assets pesados
+admin/ckeditor5/
+admin/assets/
+admin/uploads/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos temporales
+*.tmp
+*.temp
+*.cache
+
+# Uploads y archivos generados por el usuario
+uploads/*
+!uploads/.gitkeep
+uploads_nextstep/*
+!uploads_nextstep/.gitkeep

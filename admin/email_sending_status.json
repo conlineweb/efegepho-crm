@@ -1,0 +1,18 @@
+{
+    "current": {
+        "index": 5,
+        "total": 19,
+        "type": "primer",
+        "table": "formusa1",
+        "id": 432,
+        "email": "crybaybeecrybaby@gmail.com",
+        "status": "sending",
+        "timestamp": "2026-02-20 10:04:20"
+    },
+    "stats": {
+        "sent": 4,
+        "errors": 0,
+        "remaining": 14
+    },
+    "dry": false
+}
