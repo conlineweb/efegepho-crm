@@ -6,6 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 include 'menu.php';
 include 'conn.php';
 require_once __DIR__ . '/dashboard_comercial_helper.php';
+require_once __DIR__ . '/status_badge_helper.php';
 
 $startDate = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
 $endDate   = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
@@ -136,6 +137,7 @@ $conn->close();
         .dc-records-table th { position: sticky; top: 0; background: var(--bg); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; z-index: 1; }
         .dc-records-table tbody tr:hover { background: #f8fafc; }
         .dc-records-count { padding: 12px 24px; font-size: 0.82rem; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--bg); }
+        <?php echo getLeadStatusBadgeCss(); ?>
     </style>
 </head>
 <body>
@@ -186,7 +188,7 @@ $conn->close();
         <div class="global-kpi-grid">
             <?php
             $bottomCards = [
-                ['key' => 'calificacion', 'class' => 'calificacion', 'title' => 'Tasa de Calificación Global', 'formula' => 'Agendas ÷ Leads'],
+                ['key' => 'calificacion', 'class' => 'calificacion', 'title' => 'Tasa de agendas', 'formula' => 'Agendas ÷ Leads'],
                 ['key' => 'atencion',     'class' => 'atencion',     'title' => 'Tasa de Atención Global',     'formula' => 'Atendidos ÷ Agendas'],
             ];
             foreach ($bottomCards as $card):
@@ -235,24 +237,7 @@ $conn->close();
                         aria-label="Ver detalle de <?php echo htmlspecialchars($v['nombre'], ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="vendor-name"><?php echo htmlspecialchars($v['nombre'], ENT_QUOTES, 'UTF-8'); ?></div>
 
-                        <div class="vendor-kpi">
-                            <div class="vendor-kpi-head">
-                                <span class="vendor-kpi-title">Tasa de Calificación</span>
-                                <span class="vendor-kpi-pct"><?php echo htmlspecialchars($v['calificacion']['porcentaje'], ENT_QUOTES, 'UTF-8'); ?></span>
-                            </div>
-                            <div class="vendor-kpi-detail"><?php echo number_format($v['calificacion']['numerador']); ?> agendas / <?php echo number_format($v['calificacion']['denominador']); ?> leads asignados</div>
-                            <div class="vendor-bar"><span class="vendor-bar-fill" style="width: <?php echo min(100, max(0, $pctCal)); ?>%;"></span></div>
-                        </div>
-
-                        <div class="vendor-kpi">
-                            <div class="vendor-kpi-head">
-                                <span class="vendor-kpi-title">Tasa de Atención</span>
-                                <span class="vendor-kpi-pct"><?php echo htmlspecialchars($v['atencion']['porcentaje'], ENT_QUOTES, 'UTF-8'); ?></span>
-                            </div>
-                            <div class="vendor-kpi-detail"><?php echo number_format($v['atencion']['numerador']); ?> atendidos / <?php echo number_format($v['atencion']['denominador']); ?> agendas</div>
-                            <div class="vendor-bar"><span class="vendor-bar-fill atencion" style="width: <?php echo min(100, max(0, $pctAte)); ?>%;"></span></div>
-                        </div>
-
+                       
                         <div class="vendor-kpi">
                             <div class="vendor-kpi-head">
                                 <span class="vendor-kpi-title">Tasa de Cierre</span>
@@ -319,7 +304,6 @@ $conn->close();
                             <th>Teléfono</th>
                             <th>Fecha</th>
                             <th>Vendedora</th>
-                            <th>Origen</th>
                             <th>Estatus</th>
                             <th>Cita</th>
                         </tr>
@@ -345,7 +329,7 @@ $conn->close();
             ]
         },
         calificacion: {
-            title: 'Tasa de Calificación Global',
+            title: 'Tasa de agendas',
             tabs: [
                 { type: 'agendas', label: 'Agendas' }
             ]
@@ -389,6 +373,8 @@ $conn->close();
             .replace(/"/g, '&quot;');
     }
 
+    <?php echo renderLeadStatusBadgeJsFunctions(); ?>
+
     function openModal() {
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden', 'false');
@@ -417,8 +403,7 @@ $conn->close();
                 + '<td>' + escapeHtml(row.telefono) + '</td>'
                 + '<td>' + escapeHtml(row.fecha) + '</td>'
                 + '<td>' + escapeHtml(row.vendedora) + '</td>'
-                + '<td>' + escapeHtml(row.origen) + '</td>'
-                + '<td>' + escapeHtml(row.estatus) + '</td>'
+                + '<td>' + jsRenderLeadStatusBadge(row.estatus_key || row.estatus, row.estatus) + '</td>'
                 + '<td>' + escapeHtml(row.cita) + '</td>'
                 + '</tr>';
         }).join('');

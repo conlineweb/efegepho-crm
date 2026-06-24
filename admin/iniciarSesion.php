@@ -19,7 +19,9 @@ if($nr == 1)
     $_SESSION['uid']=$res['id'];
     $_SESSION['tus']=$res['tipoUsu'];
     $_SESSION['login']=true;
-    if ($res['tipoUsu'] == "2" || $res['tipoUsu'] == "3") {
+    if ((int)$res['id'] === 27) {
+        $data = 27;
+    } elseif ($res['tipoUsu'] == "2" || $res['tipoUsu'] == "3") {
         $data = 2;
     } elseif ($res['tipoUsu'] == "4") {
         $data = 4;

@@ -17,7 +17,10 @@ if (!isset($_SESSION['login']) || $_SESSION['login'] === false) {
     exit();
 }
 
+require_once __DIR__ . '/usuario_roles_helper.php';
+
 $tipoUsuario = $_SESSION['tus'];
+$isAdminLike = usuarioTipoEsAdminLike($tipoUsuario);
 $isMarketingOnly = ($tipoUsuario === '4');
 
 $marketingAllowedPages = [
@@ -405,7 +408,7 @@ function submenuExpandedAttr(bool $isExpanded): string
             <?php
             $currentPage = basename($_SERVER['PHP_SELF']);
             
-            $leadsPages = ['consulta_leads.php', 'consulta_agendados_leads.php', 'consulta_post_leads.php', 'consulta_post_leads_trazabilidad.php', 'clientes.php'];
+            $leadsPages = ['consulta_leads.php', 'consulta_agendados_leads.php', 'consulta_post_leads.php', 'clientes.php'];
             $mailingPages = ['plantillas_marketing.php', 'consulta_leads_marketing.php', 'tasa_apertura_plantillas_marketing.php'];
             $citasPages = ['consulta.php', 'citas-sin-asesor.php', 'horarios.php', 'bloquear-dias.php', 'bloquear-dias-eventos.php', 'plantillas.php', 'tutoriales.php', 'formulario-registro-manual.php', 'alta-usuarios.php'];
             $bloqueoPages = ['bloquear-dias.php', 'bloquear-dias-eventos.php'];
@@ -466,12 +469,11 @@ function submenuExpandedAttr(bool $isExpanded): string
                 <svg class="new-nav-icon chevron <?php echo $leadsActive ? 'open' : ''; ?>" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="new-sub-items <?php echo $leadsActive ? 'open' : ''; ?>" id="funnel">
-                <a href="consulta_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_leads.php' ? 'active' : '' ?>">Pre qualified leads</a>
-                <a href="consulta_agendados_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_agendados_leads.php' ? 'active' : '' ?>">Agendados</a>
+                <a href="consulta_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_leads.php' ? 'active' : '' ?>">Leads Precalificados</a>
+                <a href="consulta_agendados_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_agendados_leads.php' ? 'active' : '' ?>">Leads Agendados</a>
 
-                <a href="consulta_post_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_post_leads.php' ? 'active' : '' ?>">Post qualified leads</a>
-                <a href="consulta_post_leads_trazabilidad.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_post_leads_trazabilidad.php' ? 'active' : '' ?>">Trazabilidad de leads</a>
-                <a href="clientes.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'clientes.php' ? 'active' : '' ?>">Cliente final</a>
+                <a href="consulta_post_leads.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta_post_leads.php' ? 'active' : '' ?>">Leads Atendidos</a>
+                <a href="clientes.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'clientes.php' ? 'active' : '' ?>">Clientes Cerrados</a>
             </div>
 
             <div class="new-nav-item <?php echo $citasActive ? 'active' : ''; ?>" onclick="toggleNewSubmenu('agendas', this)">
@@ -491,17 +493,17 @@ function submenuExpandedAttr(bool $isExpanded): string
                     <a href="consulta.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta.php' ? 'active' : '' ?>">Citas agendadas</a>
                 <?php endif; ?>
                 
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <a href="citas-sin-asesor.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'citas-sin-asesor.php' ? 'active' : '' ?>">Citas sin asesor</a>
                 <?php endif; ?>
                 
 
                 
-                <?php if ($tipoUsuario == "0" || $tipoUsuario == "1"): ?>
+                <?php if ($isAdminLike || $tipoUsuario == "1"): ?>
                     <a href="horarios.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'horarios.php' ? 'active' : '' ?>">Horarios</a>
                 <?php endif; ?>
                 
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <div class="new-sub-item" style="justify-content:space-between;cursor:pointer" onclick="toggleNewSubmenu('bloquear', this)">
                         <span style="display:flex;align-items:center;gap:8px">
                             <span style="width:4px;height:4px;border-radius:50%;background:var(--sidebar-border);display:inline-block;margin-right:4px"></span>
@@ -582,11 +584,11 @@ function submenuExpandedAttr(bool $isExpanded): string
                 <svg class="new-nav-icon chevron <?php echo $clientesActive ? 'open' : ''; ?>" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="new-sub-items <?php echo $clientesActive ? 'open' : ''; ?>" id="cs">
-                <?php if ($tipoUsuario == "0" || $tipoUsuario == "1" || $tipoUsuario == "2" || $tipoUsuario == "3"): ?>
+                <?php if ($isAdminLike || $tipoUsuario == "1" || $tipoUsuario == "2" || $tipoUsuario == "3"): ?>
                     <a href="consulta-clientes.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'consulta-clientes.php' ? 'active' : '' ?>">Clientes</a>
                     <a href="clientes-editar.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'clientes-editar.php' ? 'active' : '' ?>">Editar clientes</a>
                     
-                    <?php if ($tipoUsuario == "0" || $tipoUsuario == "3"): ?>
+                    <?php if ($isAdminLike || $tipoUsuario == "3"): ?>
                         <a href="formulario-datos-transferencia.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'formulario-datos-transferencia.php' ? 'active' : '' ?>">Datos para transferencia</a>
                         <a href="subir_nextstep.php" class="new-sub-item has-dot <?= basename($_SERVER['PHP_SELF']) == 'subir_nextstep.php' ? 'active' : '' ?>">Subir nextstep</a>
                     <?php endif; ?>
@@ -604,7 +606,7 @@ function submenuExpandedAttr(bool $isExpanded): string
                 <svg class="new-nav-icon chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="new-sub-items" id="finanzas">
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <div class="new-sub-item has-dot" style="font-style:italic;color:var(--text-muted)">submodulos por definir</div>
                 <?php endif; ?>
             </div>
@@ -627,7 +629,7 @@ function submenuExpandedAttr(bool $isExpanded): string
                     <span class="label">Tutoriales</span>
                 </a>
 
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <a href="alta-usuarios.php" class="new-nav-item <?= basename($_SERVER['PHP_SELF']) == 'alta-usuarios.php' ? 'active' : '' ?>">
                         <div class="icon">
                             <svg class="new-nav-icon" viewBox="0 0 24 24">

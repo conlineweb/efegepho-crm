@@ -11,6 +11,8 @@ $tipoUsuario = $_SESSION['tipo_usuario'] ?? 0; // Ajusta según tu sistema de au
 include 'menu.php';
 include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 require_once __DIR__ . '/campaign_badge_helper.php';
+require_once __DIR__ . '/lead_field_badge_helper.php';
+require_once __DIR__ . '/lead_origin_helper.php';
 
 function formatCreatedTime($dateString)
 {
@@ -247,15 +249,8 @@ if ($result && $result->num_rows > 0) {
         // Guardar origen real antes de auto-fill para tipo de cliente
         $merged['how_did_you_meet_raw'] = trim((string)($merged['how_did_you_meet'] ?? ''));
 
-        // Auto-fill how_did_you_meet desde how_long_known_us cuando está vacío
-        if (trim((string)($merged['how_did_you_meet'] ?? '')) === '') {
-            $_knownUs = mb_strtolower(trim((string)($merged['how_long_known_us'] ?? '')), 'UTF-8');
-            if (in_array($_knownUs, ['less than 6 months', 'less than 3 months', 'between 3 months and 1 year'], true)) {
-                $merged['how_did_you_meet'] = '3'; // New Audience
-            } elseif (in_array($_knownUs, ['more than 6 months', 'more than 1 year'], true)) {
-                $merged['how_did_you_meet'] = '2'; // Community
-            }
-        }
+        // Resolver how_did_you_meet: how_long_known_us prevalece en registro manual / website
+        applyResolvedHowDidYouMeetToLead($merged);
 
         $allLeads[] = $merged;
     }
@@ -1685,7 +1680,11 @@ $preQKnownUsPieJson = json_encode($preQKnownUsPieData, JSON_UNESCAPED_UNICODE | 
 // Función auxiliar origen categoría (usa how_did_you_meet)
 if (!function_exists('getOrigenCategoriaLabel')) {
     function getOrigenCategoriaLabel($lead) {
-        $howRaw = trim((string)($lead['how_did_you_meet'] ?? ''));
+        $howRaw = resolveHowDidYouMeetCode(
+            $lead['how_did_you_meet'] ?? '',
+            $lead['how_long_known_us'] ?? '',
+            $lead
+        );
         $tablaOrigen = strtolower(trim((string)($lead['tabla_origen'] ?? '')));
         $howMap = ['1' => 'Wedding Planner', '2' => 'Community', '3' => 'New Audience'];
 
@@ -2396,7 +2395,9 @@ $conn->close();
         .efege-postq .origin-default  { background: var(--surface);    color: var(--muted); border: 1px solid var(--border); }
         .efege-postq .badge,
         .efege-postq .ch-badge,
-        .efege-postq .badge-campaign {
+        .efege-postq .badge-campaign,
+        .efege-postq .badge-contact-method,
+        .efege-postq .badge-tipo-cliente {
             display: inline-flex;
             align-items: center;
             gap: 5px;
@@ -2411,9 +2412,12 @@ $conn->close();
         .efege-postq .badge-newmarket { background: var(--new-bg); color: var(--newmarket); }
         .efege-postq .badge-neutral,
         .efege-postq .ch-badge { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-        .efege-postq .badge-campaign {
+        .efege-postq .badge-campaign,
+        .efege-postq .badge-contact-method,
+        .efege-postq .badge-tipo-cliente {
             letter-spacing: .05em;
             text-transform: uppercase;
+            font-weight: 700;
         }
         .efege-postq .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
@@ -2942,10 +2946,10 @@ $conn->close();
                         </td>
 
                         <!-- Método de contacto -->
-                        <td data-column="metodo_contacto"><span class="ch-badge"><?php echo htmlspecialchars($contactChannelBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                        <td data-column="metodo_contacto"><?php echo renderContactMethodBadge($contactMethodLabel, $contactChannelBadgeLabel); ?></td>
 
                         <!-- Tipo de cliente -->
-                        <td data-column="tipo_cliente"><span class="td-inline-muted"><?php echo htmlspecialchars($tipoClienteLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                        <td data-column="tipo_cliente"><?php echo renderTipoClienteBadge($tipoClienteLabel); ?></td>
 
                         <!-- Origen -->
                         <td data-column="origen_cliente"><span class="<?php echo htmlspecialchars($originBadgeClass, ENT_QUOTES, 'UTF-8'); ?>"><span class="badge-dot"></span><?php echo htmlspecialchars($originBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
@@ -3055,9 +3059,24 @@ $conn->close();
 
                         <?php if ($tipoUsuario != 4): ?>
                         <td>
-                            <button class="action-btn" onclick="verComentarios(<?php echo intval($lead['id']); ?>)">
-                                <i class="fas fa-comment-dots"></i> Comentarios
-                            </button>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <?php
+                                $traceParams = ['cf_id' => (int) ($lead['id'] ?? 0)];
+                                $traceTabla = trim((string) ($lead['tabla_origen'] ?? ''));
+                                $traceOrigId = (int) ($lead['original_lead_id'] ?? 0);
+                                if ($traceTabla !== '' && $traceOrigId > 0) {
+                                    $traceParams['tabla'] = $traceTabla;
+                                    $traceParams['orig_id'] = $traceOrigId;
+                                }
+                                $traceUrl = 'consulta_post_leads_trazabilidad.php?' . http_build_query($traceParams);
+                                ?>
+                                <a href="<?php echo htmlspecialchars($traceUrl, ENT_QUOTES, 'UTF-8'); ?>" class="action-btn" style="text-decoration:none;" title="Trazabilidad">
+                                    <i class="fas fa-message"></i>
+                                </a>
+                                <button class="action-btn" onclick="verComentarios(<?php echo intval($lead['id']); ?>)">
+                                    <i class="fas fa-comment-dots"></i> Comentarios
+                                </button>
+                            </div>
                         </td>
                         <?php endif; ?>
 

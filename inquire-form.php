@@ -765,9 +765,8 @@ if ($resultBloqueoDiasEventos) {
                     <label class="form-label">How long have you known us?</label>
                     <select name="how_long_known_us" required>
                         <option value="" disabled <?php echo (($pref_how_long_known_us ?? '') === '') ? 'selected' : ''; ?>>Select...</option>
-                        <option value="Less than 3 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 3 months') ? 'selected' : ''; ?>>Less than 3 months</option>
-                        <option value="Between 3 months and 1 year" <?php echo (($pref_how_long_known_us ?? '') === 'Between 3 months and 1 year') ? 'selected' : ''; ?>>Between 3 months and 1 year</option>
-                        <option value="More than 1 year" <?php echo (($pref_how_long_known_us ?? '') === 'More than 1 year') ? 'selected' : ''; ?>>More than 1 year</option>
+                        <option value="Less than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
+                        <option value="More than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
                     </select>
                 </div>
             </div>
@@ -1025,9 +1024,10 @@ if ($resultBloqueoDiasEventos) {
                 // Fecha actual
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const minDate = new Date(today); // Fecha mínima (hoy)
+                const minDate = new Date(today);
+                minDate.setDate(today.getDate() + 1); // Primer día habilitado: mañana
                 const maxDate = new Date(today);
-                maxDate.setDate(today.getDate() + 14); // Fecha máxima (20 días después)
+                maxDate.setDate(today.getDate() + 3); // Último día habilitado: 3 días después de hoy
                 maxDate.setHours(23, 59, 59, 999);
 
                 let date = 1;
@@ -1061,7 +1061,7 @@ if ($resultBloqueoDiasEventos) {
                 $calendar.find('tbody').html(html);
                 $currentMonth.text(new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
 
-                const $dayCells = $calendar.find('td[data-day]');
+                const $dayCells = $calendar.find('td[data-day]:not(.disabled):not(.blocked)');
                 $dayCells.each(function () {
                     $(this).click(showSchedule);
                 });
@@ -1566,21 +1566,37 @@ if ($resultBloqueoDiasEventos) {
 
                                     // Verifica si el estado es 'success'
                                     if (res.status === 'success') {
-                                        // Obtiene la fecha y el nombre del vendedor
-                                        const vendedor = res.data.vendedor;
+                                        const vendedor = res.data.vendedor || 'N/A';
+                                        const nombreCliente = res.data.nombre_cliente || $('[name="names"]').val() || 'N/A';
                                         const fecha = res.data.fecha;
                                         const hora = res.data.hora;
-                                        const lastMessage = res.data.lastMessage;
-                                        var formattedDateHora = (hora && hora.trim()) ? moment(hora, 'HH:mm:ss').format('hh:mm a') : "No disponible";
-                                        var formattedDateFecha = (fecha && fecha.trim()) ? moment(fecha).format('DD-MM-YYYY') : "No disponible";
+                                        const meetLink = res.data.enlace_meet || '';
+                                        var formattedDateHora = (hora && hora.trim()) ? moment(hora, 'HH:mm:ss').format('hh:mm A') : 'N/A';
+                                        var formattedDateFecha = (fecha && fecha.trim()) ? moment(fecha).format('MMMM D, YYYY') : 'N/A';
 
-                                        // Muestra un SweetAlert con el mensaje, la fecha y el nombre del vendedor
+                                        function escapeHtml(text) {
+                                            return $('<div>').text(text || '').html();
+                                        }
+
+                                        const meetLinkHtml = meetLink
+                                            ? `<a href="${escapeHtml(meetLink)}" target="_blank" rel="noopener" style="color:#0d6efd; word-break:break-all;">${escapeHtml(meetLink)}</a>`
+                                            : 'N/A';
+
                                         Swal.fire({
                                             icon: 'success',
-                                            title: res.message,  // Muestra el mensaje principal
-                                            html: `Vendedor: ${vendedor}<br>Fecha: ${formattedDateFecha}<br>Hora: ${formattedDateHora}<br><br><h3>${lastMessage}</h3>`, // Muestra la fecha, hora, nombre del vendedor y el último mensaje
-                                            confirmButtonText: 'Ir a la página', // Cambia el texto del botón
-
+                                            title: '✅ Your session has been successfully scheduled',
+                                            html: `
+                                                <div style="text-align:left; font-size:1rem; line-height:1.7;">
+                                                    <p><strong>Client Name:</strong> ${escapeHtml(nombreCliente)}</p>
+                                                    <p><strong>Session Date:</strong> ${escapeHtml(formattedDateFecha)}</p>
+                                                    <p><strong>Session Time:</strong> ${escapeHtml(formattedDateHora)}</p>
+                                                    <p><strong>Assigned Advisor:</strong> ${escapeHtml(vendedor)}</p>
+                                                    <p style="margin-top:16px;"><strong>Here is the link for your video call:</strong></p>
+                                                    <p>${meetLinkHtml}</p>
+                                                    <p style="margin-top:16px;">We look forward to meeting with you at the scheduled date and time. It will be our pleasure to assist you!</p>
+                                                </div>
+                                            `,
+                                            confirmButtonText: 'Ir a la página',
                                             customClass: {
                                                 popup: 'swal2-popup-center'
                                             }

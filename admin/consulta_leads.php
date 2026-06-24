@@ -6,6 +6,8 @@ error_reporting(E_ALL);
 include 'menu.php';
 include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 require_once __DIR__ . '/campaign_badge_helper.php';
+require_once __DIR__ . '/lead_field_badge_helper.php';
+require_once __DIR__ . '/lead_origin_helper.php';
 
 $__weddingDateNotDefinedCol = $conn->query("SHOW COLUMNS FROM `organic_leads` LIKE 'wedding_date_not_defined'");
 if ($__weddingDateNotDefinedCol && $__weddingDateNotDefinedCol->num_rows === 0) {
@@ -56,6 +58,71 @@ function formatLeadDate($dateString, $notDefined = false)
     return date('d/m/Y', $timestamp);
 }
 
+function formatLeadSessionTimeDisplay($timeString)
+{
+    $value = trim((string) $timeString);
+    if ($value === '') {
+        return '—';
+    }
+
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return $value;
+    }
+
+    return date('h:i A', $timestamp);
+}
+
+function buildLeadSessionInfo(array $lead, $cfRow, $appointment, $assignedUserId, array $vendedoresById)
+{
+    $hasAppointment = is_array($appointment) && (
+        trim((string) ($appointment['fecha'] ?? '')) !== '' ||
+        trim((string) ($appointment['fecha_cliente'] ?? '')) !== '' ||
+        trim((string) ($appointment['hora'] ?? '')) !== '' ||
+        trim((string) ($appointment['hora_cliente'] ?? '')) !== ''
+    );
+    $status = mb_strtolower(trim((string) ($lead['estatus'] ?? '')), 'UTF-8');
+    $isScheduledStatus = in_array($status, ['agendado', 'atendido', 'cliente'], true);
+
+    if (!$hasAppointment && !$isScheduledStatus) {
+        return null;
+    }
+
+    $clientName = firstNonEmptyValue(
+        $lead['full_name'] ?? '',
+        is_array($cfRow) ? ($cfRow['names'] ?? '') : ''
+    );
+
+    $sessionDate = '';
+    $sessionTime = '';
+    if (is_array($appointment)) {
+        $sessionDate = firstNonEmptyValue($appointment['fecha_cliente'] ?? '', $appointment['fecha'] ?? '');
+        $sessionTime = firstNonEmptyValue($appointment['hora_cliente'] ?? '', $appointment['hora'] ?? '');
+    }
+    if ($sessionDate === '' && is_array($cfRow)) {
+        $sessionDate = trim((string) ($cfRow['date_appointment'] ?? ''));
+    }
+    if ($sessionTime === '' && is_array($cfRow)) {
+        $sessionTime = trim((string) ($cfRow['time_appointment'] ?? ''));
+    }
+
+    $advisorLabel = getVendedorAsignadoLabel($assignedUserId, $vendedoresById);
+    $meetLink = '';
+    if ($assignedUserId > 0 && isset($vendedoresById[$assignedUserId])) {
+        $meetLink = trim((string) ($vendedoresById[$assignedUserId]['enlace_meet'] ?? ''));
+    }
+
+    return [
+        'nombre_cliente' => $clientName !== '' ? $clientName : '—',
+        'fecha' => formatLeadDate($sessionDate),
+        'hora' => formatLeadSessionTimeDisplay($sessionTime),
+        'fecha_raw' => $sessionDate,
+        'hora_raw' => $sessionTime,
+        'asesora' => $advisorLabel !== '—' ? $advisorLabel : 'Sin asignar',
+        'enlace_meet' => $meetLink !== '' ? $meetLink : '—',
+    ];
+}
+
 function firstNonEmptyValue()
 {
     foreach (func_get_args() as $value) {
@@ -83,19 +150,13 @@ function isB1B2CampaignName($campaignName)
 
 function getDondeNosConocioLabel($lead)
 {
-    $howRaw = trim((string)($lead['how_did_you_meet'] ?? ''));
+    $howRaw = resolveHowDidYouMeetCode(
+        $lead['how_did_you_meet'] ?? '',
+        $lead['how_long_known_us'] ?? '',
+        $lead
+    );
     $hearRaw = trim((string)($lead['hear_about_us'] ?? ''));
     $tablaOrigen = strtolower(trim((string) ($lead['tabla_origen'] ?? '')));
-
-    // Auto-fill desde how_long_known_us cuando how_did_you_meet está vacío
-    if ($howRaw === '') {
-        $_knownUs = mb_strtolower(trim((string)($lead['how_long_known_us'] ?? '')), 'UTF-8');
-        if (in_array($_knownUs, ['less than 6 months', 'less than 3 months', 'between 3 months and 1 year'], true)) {
-            $howRaw = '3'; // New Audience
-        } elseif (in_array($_knownUs, ['more than 6 months', 'more than 1 year'], true)) {
-            $howRaw = '2'; // Community
-        }
-    }
 
     $howMap = [
         '1' => 'Wedding Planner',
@@ -115,7 +176,11 @@ function getDondeNosConocioLabel($lead)
 
 function getOriginCategoryLabel($lead)
 {
-    $howRaw = trim((string) ($lead['how_did_you_meet'] ?? ''));
+    $howRaw = resolveHowDidYouMeetCode(
+        $lead['how_did_you_meet'] ?? '',
+        $lead['how_long_known_us'] ?? '',
+        $lead
+    );
     $tablaOrigen = strtolower(trim((string) ($lead['tabla_origen'] ?? '')));
     $howMap = [
         '1' => 'Wedding Planner',
@@ -747,13 +812,16 @@ foreach ($leadIdsByTable as $t => $ids) {
     $idsList = implode(',', array_map('intval', $ids));
     if (trim($idsList) === '')
         continue;
-    $sql = "SELECT id, original_lead_id, cliente, how_did_you_meet, hear_about_us, engagement, first_contact_channel, referrer_url, how_long_known_us, tipo_cliente FROM contact_form WHERE LOWER(tabla_origen) = LOWER('" . $safeTable . "') AND original_lead_id IN (" . $idsList . ")";
+    $sql = "SELECT id, original_lead_id, names, date_appointment, time_appointment, cliente, how_did_you_meet, hear_about_us, engagement, first_contact_channel, referrer_url, how_long_known_us, tipo_cliente FROM contact_form WHERE LOWER(tabla_origen) = LOWER('" . $safeTable . "') AND original_lead_id IN (" . $idsList . ")";
     $resCf = $conn->query($sql);
     if ($resCf) {
         while ($row = $resCf->fetch_assoc()) {
             $key = $t . '|' . intval($row['original_lead_id']);
             $contactFormByLead[$key] = [
                 'cf_id'                => intval($row['id']),
+                'names'                => $row['names'] ?? '',
+                'date_appointment'     => $row['date_appointment'] ?? '',
+                'time_appointment'     => $row['time_appointment'] ?? '',
                 'cliente'              => isset($row['cliente']) ? intval($row['cliente']) : 0,
                 'how_did_you_meet'     => $row['how_did_you_meet'] ?? null,
                 'hear_about_us'        => $row['hear_about_us'] ?? null,
@@ -810,7 +878,7 @@ foreach ($filteredLeads as $leadRow) {
 $appointmentsByCalendarioId = [];
 if (!empty($calendarioIds)) {
     $calList = implode(',', array_map('intval', array_keys($calendarioIds)));
-    $calRes = $conn->query('SELECT id, idusu FROM calendario WHERE id IN (' . $calList . ')');
+    $calRes = $conn->query('SELECT id, idusu, fecha, hora, fecha_cliente, hora_cliente FROM calendario WHERE id IN (' . $calList . ')');
     if ($calRes) {
         while ($calRow = $calRes->fetch_assoc()) {
             $calId = intval($calRow['id'] ?? 0);
@@ -1153,6 +1221,12 @@ $knownUsCounts = [];
 $campaignDisplayCounts = [];
 $pendingLeadCount = 0;
 foreach ($filteredLeads as $lead) {
+    $_reportRowKey = ($lead['tabla_origen'] ?? '') . '|' . intval($lead['id'] ?? 0);
+    applyResolvedHowDidYouMeetToLead(
+        $lead,
+        isset($contactFormByLead[$_reportRowKey]) ? $contactFormByLead[$_reportRowKey] : null
+    );
+
     $contactLabel = normalizeFirstContactChannelLabel($lead['first_contact_channel'] ?? '');
     if (!isset($contactMethodCounts[$contactLabel])) {
         $contactMethodCounts[$contactLabel] = 0;
@@ -1324,7 +1398,7 @@ if (is_dir($sessionsDir)) {
 <?php
 // Obtener vendedores (tipoUsu = 0 o 1) para los selects de asignación
 $vendedores = [];
-$resV = $conn->query("SELECT id, nombre, apepat FROM usuarios WHERE tipoUsu IN (0,1) ORDER BY nombre, apepat");
+$resV = $conn->query("SELECT id, nombre, apepat, enlace_meet FROM usuarios WHERE tipoUsu IN (0,1) ORDER BY nombre, apepat");
 if ($resV && $resV->num_rows > 0) {
     while ($r = $resV->fetch_assoc()) {
         $vendedores[] = $r;
@@ -2833,7 +2907,9 @@ if (($startDate !== '' || $endDate !== '') && empty($_GET['show_all'])) {
     letter-spacing: .04em;
 }
 
-.badge-campaign {
+.badge-campaign,
+.badge-contact-method,
+.badge-tipo-cliente {
     display: inline-flex;
     align-items: center;
     padding: 4px 10px;
@@ -2936,6 +3012,59 @@ if (($startDate !== '' || $endDate !== '') && empty($_GET['show_all'])) {
 .action-stack .badge,
 .action-stack a.btn {
     flex-shrink: 0;
+}
+
+.lead-session-tabs .nav-link {
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.lead-session-tabs .nav-link.active {
+    color: #8a4a0f;
+    font-weight: 600;
+}
+
+.lead-session-preview {
+    white-space: pre-wrap;
+    text-align: left;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    max-height: 340px;
+    overflow-y: auto;
+    color: #1e293b;
+}
+
+.lead-session-copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.lead-session-copy-btn {
+    background: #8a4a0f;
+    border-color: #8a4a0f;
+    color: #fff;
+}
+
+.lead-session-copy-btn:hover {
+    background: #6d3a0c;
+    border-color: #6d3a0c;
+    color: #fff;
+}
+
+.lead-session-copy-btn-en {
+    background: #5e543f;
+    border-color: #5e543f;
+}
+
+.lead-session-copy-btn-en:hover {
+    background: #4a4332;
+    border-color: #4a4332;
 }
 
 /* ── EFEGE PAGE LAYOUT ── */
@@ -3422,6 +3551,11 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         $lead['how_did_you_meet'] = '1'; // Wedding Planner
                                     }
 
+                                    applyResolvedHowDidYouMeetToLead(
+                                        $lead,
+                                        isset($contactFormByLead[$rowStatusKey]) ? $contactFormByLead[$rowStatusKey] : null
+                                    );
+
                                     $weddingLocationDisplay = firstNonEmptyValue(
                                         $lead['wedding_location'] ?? '',
                                         $weddingLocationsMap[$rowStatusKey] ?? '',
@@ -3480,8 +3614,8 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         <?php endif; ?>
                                         </td>
                                         <td data-column="fecha_registro"><span class="td-inline-muted"><?php echo htmlspecialchars(formatCreatedTime($lead['created_time'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td data-column="metodo_contacto"><span class="ch-badge"><?php echo htmlspecialchars($contactChannelBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td data-column="tipo_cliente"><span class="td-inline-muted"><?php echo htmlspecialchars($tipoClienteLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-column="metodo_contacto"><?php echo renderContactMethodBadge($contactMethodLabel, $contactChannelBadgeLabel); ?></td>
+                                        <td data-column="tipo_cliente"><?php echo renderTipoClienteBadge($tipoClienteLabel); ?></td>
                                         <td data-column="origen_cliente"><span class="<?php echo htmlspecialchars($originBadgeClass, ENT_QUOTES, 'UTF-8'); ?>"><span class="badge-dot"></span><?php echo htmlspecialchars($originCategoryLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <td data-column="campana"><?php echo renderCampaignBadge($campaignDisplayLabel); ?></td>
                                         <td data-column="ciudad_origen"><span class="td-inline-muted"><?php echo htmlspecialchars($leadCityDisplay !== '' ? $leadCityDisplay : '—', ENT_QUOTES, 'UTF-8'); ?></span></td>
@@ -3515,8 +3649,15 @@ body { background: var(--dark, #F8FAFC) !important; }
                                             $appointmentForVendedor = ($cfIdForVendedor > 0 && isset($appointmentsByCFId[$cfIdForVendedor]))
                                                 ? $appointmentsByCFId[$cfIdForVendedor]
                                                 : null;
+                                            if (!$appointmentForVendedor) {
+                                                $calendarioIdForRow = intval($lead['id_calendario'] ?? 0);
+                                                if ($calendarioIdForRow > 0 && isset($appointmentsByCalendarioId[$calendarioIdForRow])) {
+                                                    $appointmentForVendedor = $appointmentsByCalendarioId[$calendarioIdForRow];
+                                                }
+                                            }
                                             $assignedUserId = resolveLeadBoardVendedorId($lead, $appointmentForVendedor, $appointmentsByCalendarioId);
                                             $vendedorDisplayLabel = getVendedorAsignadoLabel($assignedUserId, $vendedoresById);
+                                            $sessionInfo = buildLeadSessionInfo($lead, $cfForVendedor, $appointmentForVendedor, $assignedUserId, $vendedoresById);
                                             ?>
                                             <td data-column="vendedor"><span class="td-inline-muted"><?php echo htmlspecialchars($vendedorDisplayLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                             <td data-column="asignado">
@@ -3642,6 +3783,32 @@ body { background: var(--dark, #F8FAFC) !important; }
                                                         <?php endif; ?>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
+                                                <?php
+                                                $traceParams = [];
+                                                $traceTabla = trim((string) ($lead['tabla_origen'] ?? ''));
+                                                $traceOrigId = (int) ($lead['id'] ?? 0);
+                                                if ($traceTabla !== '' && $traceOrigId > 0) {
+                                                    $traceParams['tabla'] = $traceTabla;
+                                                    $traceParams['orig_id'] = $traceOrigId;
+                                                }
+                                                $cfForTrace = isset($contactFormByLead[$rowStatusKey]) ? $contactFormByLead[$rowStatusKey] : null;
+                                                $cfIdForTrace = $cfForTrace ? (int) ($cfForTrace['cf_id'] ?? 0) : 0;
+                                                if ($cfIdForTrace > 0) {
+                                                    $traceParams['cf_id'] = $cfIdForTrace;
+                                                }
+                                                $traceUrl = 'consulta_post_leads_trazabilidad.php?' . http_build_query($traceParams);
+                                                ?>
+                                                <a href="<?php echo htmlspecialchars($traceUrl, ENT_QUOTES, 'UTF-8'); ?>" class="efege-btn" style="text-decoration:none;" title="Trazabilidad">
+                                                    <i class="fas fa-message"></i>
+                                                </a>
+                                                <?php if (!empty($sessionInfo)): ?>
+                                                    <button type="button" class="mb-2 btn btn-outline-success btn-sm lead-session-btn"
+                                                        title="Ver datos de la sesión"
+                                                        style="margin-right: 5px;"
+                                                        onclick='verDatosSesion(<?php echo htmlspecialchars(json_encode($sessionInfo, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>)'>
+                                                        <i class="bi bi-calendar-check"></i> Sesión
+                                                    </button>
+                                                <?php endif; ?>
                                                 <button class="mb-2 btn btn-info btn-sm" title="Ver Más"
                                                     style="background-color: #5e543f; color: white; border: 1px solid #5e543f; margin-right: 5px;"
                                                     onclick='verMas(<?php echo htmlspecialchars(json_encode($lead, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>)'><i
@@ -3686,6 +3853,48 @@ body { background: var(--dark, #F8FAFC) !important; }
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btnConfirmAgendarWp"><i class="bi bi-save"></i>
                         Agendar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="leadSessionModal" tabindex="-1" aria-labelledby="leadSessionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="leadSessionModalLabel">Datos de la sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs lead-session-tabs" id="leadSessionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="lead-session-es-tab" data-bs-toggle="tab" data-bs-target="#lead-session-es" type="button" role="tab">Español</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="lead-session-en-tab" data-bs-toggle="tab" data-bs-target="#lead-session-en" type="button" role="tab">English</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content pt-3" id="leadSessionTabContent">
+                        <div class="tab-pane fade show active" id="lead-session-es" role="tabpanel">
+                            <div id="leadSessionPreviewEs" class="lead-session-preview"></div>
+                            <div class="lead-session-copy-row">
+                                <button type="button" class="btn btn-sm lead-session-copy-btn" id="leadSessionCopyMsgEs">
+                                    <i class="bi bi-clipboard"></i> Copiar mensaje (Español)
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="lead-session-en" role="tabpanel">
+                            <div id="leadSessionPreviewEn" class="lead-session-preview"></div>
+                            <div class="lead-session-copy-row">
+                                <button type="button" class="btn btn-sm lead-session-copy-btn lead-session-copy-btn-en" id="leadSessionCopyMsgEn">
+                                    <i class="bi bi-clipboard"></i> Copy message (English)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -4050,40 +4259,7 @@ body { background: var(--dark, #F8FAFC) !important; }
         </div>
     </div>
 
-    <!-- Modal de éxito con link del formulario -->
-    <div class="modal fade" id="linkFormularioModal" tabindex="-1" aria-labelledby="linkFormularioModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="bg-success text-white modal-header">
-                    <h5 class="modal-title" id="linkFormularioModalLabel"><i class="bi bi-check-circle"></i> Lead
-                        Registrado
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-3 text-center">El lead ha sido registrado correctamente.</p>
-                    <div class="mb-3">
-                        <label for="linkFormulario" class="form-label">Link del formulario de agenda:</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="linkFormulario" readonly>
-                            <button class="btn-outline-primary btn" type="button" id="btnCopiarLink"
-                                title="Copiar link">
-                                <i class="bi bi-clipboard"></i> Copiar
-                            </button>
-                        </div>
-                    </div>
-                    <div id="copiadoAlert" class="alert alert-success d-none" role="alert">
-                        <i class="bi bi-check2"></i> ¡Link copiado al portapapeles!
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Modal de éxito con link del formulario: reemplazado por verLinkFormulario() (SweetAlert) -->
 
     <?php
 
@@ -5074,6 +5250,167 @@ body { background: var(--dark, #F8FAFC) !important; }
             return '—';
         }
 
+        function copyTextToClipboard(text) {
+            if (!text) {
+                return Promise.reject(new Error('empty'));
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise(function (resolve, reject) {
+                var textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    resolve();
+                } catch (err) {
+                    document.body.removeChild(textarea);
+                    reject(err);
+                }
+            });
+        }
+
+        var leadSessionMessages = { es: '', en: '' };
+
+        function formatLeadSessionDateSpanish(dateStr) {
+            var raw = (dateStr == null ? '' : String(dateStr)).trim();
+            if (!raw || raw === '—') {
+                return 'N/A';
+            }
+            var parsed = moment(raw, ['YYYY-MM-DD', 'DD/MM/YYYY', 'D/M/YYYY'], true);
+            if (!parsed.isValid()) {
+                parsed = moment(raw);
+            }
+            return parsed.isValid() ? parsed.locale('es').format('D [de] MMMM [de] YYYY') : raw;
+        }
+
+        function formatLeadSessionDateEnglish(dateStr) {
+            var raw = (dateStr == null ? '' : String(dateStr)).trim();
+            if (!raw || raw === '—') {
+                return 'N/A';
+            }
+            var parsed = moment(raw, ['YYYY-MM-DD', 'DD/MM/YYYY', 'D/M/YYYY'], true);
+            if (!parsed.isValid()) {
+                parsed = moment(raw);
+            }
+            return parsed.isValid() ? parsed.locale('en').format('MMMM D, YYYY') : raw;
+        }
+
+        function formatLeadSessionTimeJs(hora) {
+            var raw = (hora == null ? '' : String(hora)).trim();
+            if (!raw || raw === '—') {
+                return 'N/A';
+            }
+            var parsed = moment(raw, ['HH:mm:ss', 'HH:mm', 'h:mm A', 'hh:mm A'], true);
+            if (!parsed.isValid()) {
+                parsed = moment(raw, ['h:mm a', 'hh:mm a'], true);
+            }
+            return parsed.isValid() ? parsed.format('hh:mm A') : raw;
+        }
+
+        function buildLeadSessionMessageEs(data) {
+            return (
+                '✅ Tu sesión se ha agendado con éxito\n\n' +
+                'Nombre del cliente: ' + data.nombreCliente + '\n' +
+                'Día de la sesión: ' + data.fechaEs + '\n' +
+                'Hora de la sesión: ' + data.hora + '\n' +
+                'Asesora asignada: ' + data.asesora + '\n\n' +
+                'Este es el enlace de tu videollamada:\n\n' +
+                data.meetLinkEs + '\n\n' +
+                'Te esperamos en la fecha y hora programadas. ¡Será un placer atenderte!'
+            );
+        }
+
+        function buildLeadSessionMessageEn(data) {
+            return (
+                '✅ Your session has been successfully scheduled\n\n' +
+                'Client Name: ' + data.nombreCliente + '\n' +
+                'Session Date: ' + data.fechaEn + '\n' +
+                'Session Time: ' + data.hora + '\n' +
+                'Assigned Advisor: ' + data.asesora + '\n\n' +
+                'Here is the link for your video call:\n\n' +
+                data.meetLinkEn + '\n\n' +
+                'We look forward to meeting with you at the scheduled date and time. It will be our pleasure to assist you!'
+            );
+        }
+
+        function showLeadSessionCopyToast(title, icon) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: icon || 'success',
+                title: title,
+                showConfirmButton: false,
+                timer: 2200,
+                timerProgressBar: true
+            });
+        }
+
+        function copyLeadSessionMessage(lang) {
+            var text = leadSessionMessages[lang] || '';
+            if (!text) {
+                return;
+            }
+            copyTextToClipboard(text).then(function () {
+                showLeadSessionCopyToast(
+                    lang === 'es' ? 'Mensaje en español copiado' : 'English message copied',
+                    'success'
+                );
+            }).catch(function () {
+                showLeadSessionCopyToast('No se pudo copiar el mensaje', 'error');
+            });
+        }
+
+        function verDatosSesion(sessionData) {
+            if (!sessionData) {
+                return;
+            }
+
+            var meetRaw = (sessionData.enlace_meet || '').trim();
+            var meetLinkEs = (meetRaw && meetRaw !== '—') ? meetRaw : 'No disponible';
+            var meetLinkEn = (meetRaw && meetRaw !== '—') ? meetRaw : 'Not available';
+            var fechaSource = sessionData.fecha_raw || sessionData.fecha || '';
+            var horaSource = sessionData.hora_raw || sessionData.hora || '';
+
+            var messageData = {
+                nombreCliente: sessionData.nombre_cliente || '—',
+                asesora: sessionData.asesora || 'Sin asignar',
+                meetLinkEs: meetLinkEs,
+                meetLinkEn: meetLinkEn,
+                fechaEs: formatLeadSessionDateSpanish(fechaSource),
+                fechaEn: formatLeadSessionDateEnglish(fechaSource),
+                hora: formatLeadSessionTimeJs(horaSource)
+            };
+
+            leadSessionMessages.es = buildLeadSessionMessageEs(messageData);
+            leadSessionMessages.en = buildLeadSessionMessageEn(messageData);
+
+            $('#leadSessionPreviewEs').text(leadSessionMessages.es);
+            $('#leadSessionPreviewEn').text(leadSessionMessages.en);
+
+            $('#leadSessionCopyMsgEs').off('click').on('click', function () {
+                copyLeadSessionMessage('es');
+            });
+            $('#leadSessionCopyMsgEn').off('click').on('click', function () {
+                copyLeadSessionMessage('en');
+            });
+
+            var esTab = document.getElementById('lead-session-es-tab');
+            if (esTab && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(esTab).show();
+            }
+
+            var modalEl = document.getElementById('leadSessionModal');
+            if (modalEl) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        }
+
         function asignarUsuario(selectElem) {
             // Coerce the select value to an integer when possible to avoid sending unexpected text.
             var rawVal = selectElem.value;
@@ -5292,7 +5629,7 @@ body { background: var(--dark, #F8FAFC) !important; }
             if (!lead['scheduled'] || lead['scheduled'] == 0) {
                 var agendaVendedoraUrlOrg = 'https://citas.efegepho.com.mx/inquire-form-vendedor.php?tabla_origen=' + encodeURIComponent(tablaOrigen) + '&id=' + encodeURIComponent(leadId);
                 actionsHtml += '<button class="btn btn-info btn-sm" title="Ver Link del Formulario" style="background-color: #5e543f; color: white; border: 1px solid #5e543f;" onclick=\'verLinkFormulario(' + JSON.stringify(tablaOrigen) + ', ' + JSON.stringify(leadId) + ')\'><i class="bi bi-link-45deg"></i> Ver Link</button>';
-                actionsHtml += '<a class="btn btn-sm" title="Agendar por vendedora" target="_blank" rel="noopener noreferrer" style="background-color: #8a4a0f; color: white; border: 1px solid #8a4a0f; margin-left:5px;" href="' + agendaVendedoraUrlOrg + '"><i class="bi bi-person-fill-gear"></i> Agendar por vendedora</a>';
+                actionsHtml += '<a class="btn btn-sm" title="Agendar por vendedora" target="_blank" rel="noopener noreferrer" style="background-color: #8a4a0f; color: white; border: 1px solid #8a4a0f; margin-left:5px;" href="' + agendaVendedoraUrlOrg + '"><i class="bi bi-person-fill-gear"></i> Agendar vía interno</a>';
                 // WhatsApp button (if phone present)
                 if (lead['phone'] && String(lead['phone']).replace(/\D/g, '').length >= 8) {
                     if (lead['whatsapp_enviado'] && parseInt(lead['whatsapp_enviado']) === 1) {
@@ -5310,8 +5647,8 @@ body { background: var(--dark, #F8FAFC) !important; }
             var agendaVendedoraUrl = 'https://citas.efegepho.com.mx/inquire-form-vendedor.php?tabla_origen=' + encodeURIComponent(tablaOrigen) + '&id=' + encodeURIComponent(leadId);
             actionsHtml += '<div class="d-flex gap-2 flex-wrap">';
             if (!lead['scheduled'] || lead['scheduled'] == 0) {
-                actionsHtml += '<a class="btn btn-warning btn-sm" title="Agenda manual (cliente)" target="_blank" rel="noopener noreferrer" style="background-color: #5e543f; color: white; border: 1px solid #5e543f;" href="' + agendaUrl + '"><i class="bi bi-calendar"></i> Agenda manual</a>';
-                actionsHtml += '<a class="btn btn-sm" title="Agendar por vendedora" target="_blank" rel="noopener noreferrer" style="background-color: #8a4a0f; color: white; border: 1px solid #8a4a0f;" href="' + agendaVendedoraUrl + '"><i class="bi bi-person-fill-gear"></i> Agendar por vendedora</a>';
+                actionsHtml += '<a class="btn btn-warning btn-sm" title="Agenda manual (cliente)" target="_blank" rel="noopener noreferrer" style="background-color: #5e543f; color: white; border: 1px solid #5e543f;" href="' + agendaUrl + '"><i class="bi bi-calendar"></i> Agenda vía cliente</a>';
+                actionsHtml += '<a class="btn btn-sm" title="Agendar vía vendedora" target="_blank" rel="noopener noreferrer" style="background-color: #8a4a0f; color: white; border: 1px solid #8a4a0f;" href="' + agendaVendedoraUrl + '"><i class="bi bi-person-fill-gear"></i> Agendar vía inerno</a>';
                 // Ver Link for non-organics: also show if not scheduled (hide for Wedding Planner)
                 if (tablaOrigen !== 'wedding_planners') {
                     actionsHtml += '<button class="btn btn-info btn-sm" title="Ver Link del Formulario" style="background-color: #5e543f; color: white; border: 1px solid #5e543f; margin-left:5px;" onclick=\'verLinkFormulario(' + JSON.stringify(tablaOrigen) + ', ' + JSON.stringify(leadId) + ')\'><i class="bi bi-link-45deg"></i> Ver Link</button>';
@@ -5358,13 +5695,16 @@ body { background: var(--dark, #F8FAFC) !important; }
         });
     }
 
-    function verLinkFormulario(tablaOrigen, leadId) {
+    function verLinkFormulario(tablaOrigen, leadId, options) {
+        options = options || {};
         var link = 'https://citas.efegepho.com.mx/inquire-form.php?tabla_origen=' + encodeURIComponent(tablaOrigen) + '&id=' + encodeURIComponent(leadId);
         var linkVendedora = 'https://citas.efegepho.com.mx/inquire-form-vendedor.php?tabla_origen=' + encodeURIComponent(tablaOrigen) + '&id=' + encodeURIComponent(leadId);
-        Swal.fire({
-            title: 'Links del Formulario',
-            html: '<div class="mb-3">' +
-                '<label class="form-label"><strong>Link para el lead</strong> (enviar al cliente):</label>' +
+        var introHtml = options.introHtml || '';
+        return Swal.fire({
+            title: options.title || 'Links del Formulario',
+            html: introHtml +
+                '<div class="mb-3">' +
+                '<label class="form-label"><strong>Link para el lead</strong> (agendar vía cliente):</label>' +
                 '<div class="input-group">' +
                 '<input type="text" class="form-control" id="linkOrganicLead" value="' + link + '" readonly>' +
                 '<button class="btn-outline-primary btn" type="button" onclick="copiarLinkOrganic()" title="Copiar link">' +
@@ -5377,7 +5717,7 @@ body { background: var(--dark, #F8FAFC) !important; }
                 '</div>' +
                 '<hr>' +
                 '<div class="mb-3">' +
-                '<label class="form-label"><strong>Link para la vendedora</strong> (registrar cita manualmente):</label>' +
+                '<label class="form-label"><strong>Link para la vendedora</strong> (agendar vía interno):</label>' +
                 '<div class="input-group">' +
                 '<input type="text" class="form-control" id="linkVendedoraLead" value="' + linkVendedora + '" readonly>' +
                 '<button class="btn-outline-warning btn" type="button" onclick="copiarLinkVendedora()" title="Copiar link vendedora">' +
@@ -5391,6 +5731,11 @@ body { background: var(--dark, #F8FAFC) !important; }
             showCloseButton: true,
             showConfirmButton: false,
             width: '640px'
+        }).then(function (result) {
+            if (typeof options.onClose === 'function') {
+                options.onClose(result);
+            }
+            return result;
         });
     }
 
@@ -6332,6 +6677,8 @@ body { background: var(--dark, #F8FAFC) !important; }
                 $('#leadFechaRegistro').val('');
             }
 
+            $('#leadComentarios').val(lead['registro_notas'] || lead['comentarios'] || '');
+
             // Cambiar título y botón del modal
             $('#registroManualModalLabel').text('Editar Lead Manual');
             $('#registroManualModal .rlm-subtitle').text('Modifica los datos del lead #' + (lead['id'] || ''));
@@ -6588,8 +6935,8 @@ body { background: var(--dark, #F8FAFC) !important; }
                                 $row.find('td[data-column="boda"]').text(updatedWeddingLoc || '—');
                                 $row.find('td[data-column="cuando_se_casa"]').text(jsFormatLeadDate(updatedWeddingDate, updatedWeddingDateNotDefined));
                                 $row.find('td[data-column="ciudad_origen"]').text(updatedCity || '—');
-                                $row.find('td[data-column="metodo_contacto"]').html(jsContactChannelBadge(jsNormalizeContactChannel(firstContactChannel)));
-                                $row.find('td[data-column="tipo_cliente"]').text(tipoCliente || '—');
+                                $row.find('td[data-column="metodo_contacto"]').html(jsRenderContactMethodBadge(jsNormalizeContactChannel(firstContactChannel), jsContactChannelDisplayLabel(jsNormalizeContactChannel(firstContactChannel))));
+                                $row.find('td[data-column="tipo_cliente"]').html(jsRenderTipoClienteBadge(tipoCliente || '—'));
                                 $row.find('td[data-column="desde_conoce"]').html(jsKnownUsBadge(howLongKnownUs || 'Not asked'));
                                 // Actualizar atributos del tr
                                 $row
@@ -6633,15 +6980,13 @@ body { background: var(--dark, #F8FAFC) !important; }
                             });
                             _currentEditingLead = null;
                         } else {
-                            // Modo creación: mostrar modal con link
-                            $('#linkFormulario').val(resp.link);
-                            var linkModal = new bootstrap.Modal(document.getElementById('linkFormularioModal'));
-                            linkModal.show();
-
-                            // Recargar la página después de cerrar el modal de éxito
-                            document.getElementById('linkFormularioModal').addEventListener('hidden.bs.modal', function handler() {
-                                document.getElementById('linkFormularioModal').removeEventListener('hidden.bs.modal', handler);
-                                location.reload();
+                            // Modo creación: mostrar links del formulario (cliente y vendedora)
+                            verLinkFormulario('organic_leads', resp.id, {
+                                title: 'Lead registrado correctamente',
+                                introHtml: '<p class="text-center mb-3">El lead ha sido registrado. Comparte el link correspondiente:</p>',
+                                onClose: function () {
+                                    location.reload();
+                                }
                             });
                         }
                     } else {
@@ -6661,34 +7006,6 @@ body { background: var(--dark, #F8FAFC) !important; }
                 }
             });
         });
-
-        // Copiar link al portapapeles
-        $('#btnCopiarLink').on('click', function () {
-            var linkInput = document.getElementById('linkFormulario');
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999); // Para móviles
-
-            // Usar API moderna si está disponible
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(linkInput.value).then(function () {
-                    mostrarAlertaCopiado();
-                }).catch(function () {
-                    // Fallback
-                    document.execCommand('copy');
-                    mostrarAlertaCopiado();
-                });
-            } else {
-                document.execCommand('copy');
-                mostrarAlertaCopiado();
-            }
-        });
-
-        function mostrarAlertaCopiado() {
-            $('#copiadoAlert').removeClass('d-none');
-            setTimeout(function () {
-                $('#copiadoAlert').addClass('d-none');
-            }, 2000);
-        }
 
         function isValidEmail(email) {
             var regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -7068,7 +7385,11 @@ body { background: var(--dark, #F8FAFC) !important; }
     }
 
     window.CAMPAIGN_BADGE_OVERRIDES = <?php echo json_encode(getCampaignBadgeColorOverrides(), JSON_UNESCAPED_UNICODE); ?>;
+    window.DEFAULT_FIELD_BADGE_COLORS = <?php echo json_encode(getDefaultFieldBadgeColors(), JSON_UNESCAPED_UNICODE); ?>;
+    window.CONTACT_METHOD_BADGE_OVERRIDES = <?php echo json_encode(getContactMethodBadgeColorOverrides(), JSON_UNESCAPED_UNICODE); ?>;
+    window.TIPO_CLIENTE_BADGE_OVERRIDES = <?php echo json_encode(getTipoClienteBadgeColorOverrides(), JSON_UNESCAPED_UNICODE); ?>;
     <?php echo renderCampaignBadgeJsFunctions(); ?>
+    <?php echo renderLeadFieldBadgeJsFunctions(); ?>
 
     function formatPercent(count, totalCount) {
         if (!totalCount) {
@@ -7094,9 +7415,8 @@ body { background: var(--dark, #F8FAFC) !important; }
         return '<span class="' + badgeClass + '"><span class="badge-dot"></span>' + escapeHtml(normalized) + '</span>';
     }
 
-    function jsContactChannelBadge(label) {
+    function jsContactChannelDisplayLabel(label) {
         var normalized = (label || '').trim() || 'Sin dato';
-        var display = normalized;
         var map = {
             'WhatsApp': 'WhatsApp',
             'Instagram DM - Campaña': 'IG Campaign',
@@ -7106,11 +7426,12 @@ body { background: var(--dark, #F8FAFC) !important; }
             'Sin dato': 'Not asked'
         };
 
-        if (Object.prototype.hasOwnProperty.call(map, normalized)) {
-            display = map[normalized];
-        }
+        return Object.prototype.hasOwnProperty.call(map, normalized) ? map[normalized] : normalized;
+    }
 
-        return '<span class="ch-badge">' + escapeHtml(display) + '</span>';
+    function jsContactChannelBadge(label) {
+        var normalized = (label || '').trim() || 'Sin dato';
+        return jsRenderContactMethodBadge(normalized, jsContactChannelDisplayLabel(normalized));
     }
 
     function jsKnownUsBadge(label) {

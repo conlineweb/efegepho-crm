@@ -16,6 +16,21 @@
  * y se invoca en cada punto donde se actualiza el estatus.
  */
 
+if (!function_exists('tracerLoadPltraceChatHelper')) {
+    function tracerLoadPltraceChatHelper()
+    {
+        if (!function_exists('tracerAppendChatMessagesToEvents')) {
+            $chatHelperPath = __DIR__ . '/pltrace_chat_helper.php';
+            if (!is_file($chatHelperPath)) {
+                return false;
+            }
+            require_once $chatHelperPath;
+        }
+
+        return function_exists('tracerAppendChatMessagesToEvents');
+    }
+}
+
 if (!function_exists('ensureCalendarioEstatusHistorialTable')) {
     /**
      * Crea la tabla `calendario_estatus_historial` si no existe. Idempotente.
@@ -148,6 +163,147 @@ if (!function_exists('calendarioEstatusHistorialLabel')) {
     }
 }
 
+if (!function_exists('tracerDisplayTimezone')) {
+    function tracerDisplayTimezone()
+    {
+        return new DateTimeZone('America/Mexico_City');
+    }
+}
+
+if (!function_exists('tracerParseMetaLeadClockTime')) {
+    /**
+     * Fecha de registro en tablas de leads (organic_leads, etc.).
+     * Convención EFEGE / Meta: en ISO el reloj YYYY-MM-DDTHH:MM:SS ya es hora México;
+     * el offset (+0000) no debe convertirse a UTC (misma lógica que SUBSTRING en SQL).
+     */
+    function tracerParseMetaLeadClockTime($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string) $value);
+        if ($value === '' || strpos($value, '0000-00-00') === 0) {
+            return null;
+        }
+
+        $displayTz = tracerDisplayTimezone();
+
+        if (strpos($value, 'T') !== false) {
+            $naive = str_replace('T', ' ', substr($value, 0, 19));
+            try {
+                $dt = new DateTime($naive, $displayTz);
+                return $dt->format('Y-m-d H:i:s');
+            } catch (Exception $e) {
+                return null;
+            }
+        }
+
+        try {
+            $dt = new DateTime($value, $displayTz);
+            return $dt->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            $ts = strtotime($value);
+            if ($ts === false || $ts <= 0) {
+                return null;
+            }
+            $dt = new DateTime('@' . $ts);
+            $dt->setTimezone($displayTz);
+            return $dt->format('Y-m-d H:i:s');
+        }
+    }
+}
+
+if (!function_exists('tracerCollectLeadRegistrationTimes')) {
+    /**
+     * @return array<int, string> normalized Y-m-d H:i:s
+     */
+    function tracerCollectLeadRegistrationTimes(array $row)
+    {
+        $candidates = [];
+        $isoKeys = ['created_time', 'created_at', 'submission_date'];
+        foreach ($isoKeys as $key) {
+            if (empty($row[$key])) {
+                continue;
+            }
+            $parsed = tracerParseMetaLeadClockTime($row[$key]);
+            if ($parsed !== null) {
+                $candidates[] = $parsed;
+            }
+        }
+        if (!empty($row['fecha_importacion'])) {
+            $parsed = tracerParseMetaLeadClockTime($row['fecha_importacion']);
+            if ($parsed === null) {
+                $parsed = tracerNormalizeDateTime($row['fecha_importacion']);
+            }
+            if ($parsed !== null) {
+                $candidates[] = $parsed;
+            }
+        }
+        return array_values(array_unique($candidates));
+    }
+}
+
+if (!function_exists('tracerResolvePreLeadDateTime')) {
+    /**
+     * Primera aparición del lead en el funnel (la más temprana entre origen y contact_form).
+     */
+    function tracerResolvePreLeadDateTime(array $leadRow, ?array $cfRow = null)
+    {
+        $candidates = tracerCollectLeadRegistrationTimes($leadRow);
+        if (is_array($cfRow)) {
+            $candidates = array_merge($candidates, tracerCollectLeadRegistrationTimes($cfRow));
+        }
+        $candidates = array_values(array_unique(array_filter($candidates)));
+        if (empty($candidates)) {
+            return null;
+        }
+        usort($candidates, function ($a, $b) {
+            return strtotime($a) <=> strtotime($b);
+        });
+        return $candidates[0];
+    }
+}
+
+if (!function_exists('tracerResolvePreLeadRegistroNotas')) {
+    /**
+     * Notas opcionales capturadas al registrar el lead manualmente.
+     */
+    function tracerResolvePreLeadRegistroNotas(array $leadRow, ?array $cfRow = null)
+    {
+        $rows = [$leadRow];
+        if (is_array($cfRow)) {
+            $rows[] = $cfRow;
+        }
+
+        foreach ($rows as $row) {
+            foreach (['registro_notas', 'comentarios', 'comentario', 'notes', 'notas'] as $key) {
+                $value = trim((string) ($row[$key] ?? ''));
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('tracerBuildPreLeadEventMeta')) {
+    /**
+     * @return array<string, string>
+     */
+    function tracerBuildPreLeadEventMeta(array $leadRow, ?array $cfRow = null)
+    {
+        $meta = [];
+        $notas = tracerResolvePreLeadRegistroNotas($leadRow, $cfRow);
+        if ($notas !== '') {
+            $meta['Notas'] = $notas;
+        }
+
+        return $meta;
+    }
+}
+
 if (!function_exists('tracerNormalizeDateTime')) {
     function tracerNormalizeDateTime($value)
     {
@@ -158,12 +314,49 @@ if (!function_exists('tracerNormalizeDateTime')) {
         if ($value === '' || strpos($value, '0000-00-00') === 0) {
             return null;
         }
-        $candidate = (strpos($value, 'T') !== false) ? substr($value, 0, 19) : $value;
-        $ts = strtotime($candidate);
-        if ($ts === false || $ts <= 0) {
-            return null;
+
+        $displayTz = tracerDisplayTimezone();
+
+        if (strpos($value, 'T') !== false) {
+            try {
+                $hasOffset = (bool) preg_match('/([Zz]|[+-]\d{2}:?\d{2})$/', $value);
+                $dt = $hasOffset
+                    ? new DateTime($value)
+                    : new DateTime($value, $displayTz);
+                $dt->setTimezone($displayTz);
+                return $dt->format('Y-m-d H:i:s');
+            } catch (Exception $e) {
+                // Continúa con el fallback inferior.
+            }
         }
-        return date('Y-m-d H:i:s', $ts);
+
+        try {
+            $dt = new DateTime($value, $displayTz);
+            return $dt->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            $ts = strtotime($value);
+            if ($ts === false || $ts <= 0) {
+                return null;
+            }
+            $dt = new DateTime('@' . $ts);
+            $dt->setTimezone($displayTz);
+            return $dt->format('Y-m-d H:i:s');
+        }
+    }
+}
+
+if (!function_exists('tracerFormatStoredDateTime')) {
+    function tracerFormatStoredDateTime($normalized)
+    {
+        if ($normalized === null || trim((string) $normalized) === '') {
+            return '—';
+        }
+        try {
+            $dt = new DateTime((string) $normalized, tracerDisplayTimezone());
+            return $dt->format('d/m/Y h:i a');
+        } catch (Exception $e) {
+            return '—';
+        }
     }
 }
 
@@ -174,7 +367,7 @@ if (!function_exists('tracerFormatDisplayDateTime')) {
         if ($normalized === null) {
             return '—';
         }
-        return date('d/m/Y h:i a', strtotime($normalized));
+        return tracerFormatStoredDateTime($normalized);
     }
 }
 
@@ -234,6 +427,51 @@ if (!function_exists('tracerFinalizeEvents')) {
         }
 
         return $cleanEvents;
+    }
+}
+
+if (!function_exists('tracerAdjustPreLeadBeforeInteractions')) {
+    /**
+     * El registro del lead no puede ser posterior a la primera interacción registrada.
+     */
+    function tracerAdjustPreLeadBeforeInteractions(array &$events)
+    {
+        $preIdx = null;
+        $firstInteractionTs = null;
+
+        foreach ($events as $index => $event) {
+            $tipo = (string) ($event['tipo'] ?? '');
+            if ($tipo === 'pre_lead') {
+                $preIdx = $index;
+            }
+            if ($tipo === 'interaccion') {
+                $ts = (int) ($event['sort_ts'] ?? 0);
+                if ($ts <= 0 && !empty($event['fecha'])) {
+                    $ts = (int) strtotime((string) $event['fecha']);
+                }
+                if ($ts > 0 && ($firstInteractionTs === null || $ts < $firstInteractionTs)) {
+                    $firstInteractionTs = $ts;
+                }
+            }
+        }
+
+        if ($preIdx === null || $firstInteractionTs === null) {
+            return;
+        }
+
+        $preTs = (int) ($events[$preIdx]['sort_ts'] ?? 0);
+        if ($preTs <= 0 && !empty($events[$preIdx]['fecha'])) {
+            $preTs = (int) strtotime((string) $events[$preIdx]['fecha']);
+        }
+        if ($preTs <= $firstInteractionTs) {
+            return;
+        }
+
+        $adjusted = date('Y-m-d H:i:s', $firstInteractionTs - 60);
+        $events[$preIdx]['fecha'] = $adjusted;
+        $events[$preIdx]['sort_ts'] = strtotime($adjusted);
+        $events[$preIdx]['fecha_display'] = tracerFormatStoredDateTime($adjusted);
+        $events[$preIdx]['es_estimado'] = true;
     }
 }
 
@@ -393,7 +631,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
      *
      * @return array{success:bool,error?:string,lead?:array,events?:array}
      */
-    function obtenerTrazabilidadLeadPorContactForm($conn, $contactFormId)
+    function obtenerTrazabilidadLeadPorContactForm($conn, $contactFormId, $currentUserId = 0)
     {
         if (!($conn instanceof mysqli)) {
             return ['success' => false, 'error' => 'Conexión inválida'];
@@ -429,6 +667,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
         $origId = (int) ($cf['original_lead_id'] ?? 0);
         $origCreatedTime = null;
         $origLeadName = null;
+        $leadRow = null;
 
         if ($tablaOrigen !== '' && $origId > 0) {
             $escapedForm = $conn->real_escape_string($tablaOrigen);
@@ -437,7 +676,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
                 $leadRes = $conn->query("SELECT * FROM `$escapedForm` WHERE id = $origId LIMIT 1");
                 if ($leadRes && $leadRes->num_rows > 0) {
                     $leadRow = $leadRes->fetch_assoc();
-                    $origCreatedTime = tracerNormalizeDateTime($leadRow['created_time'] ?? $leadRow['created_at'] ?? null);
+                    $origCreatedTime = tracerResolvePreLeadDateTime($leadRow, $cf);
                     foreach (['full_name', 'names', 'name'] as $nameKey) {
                         $candidate = trim((string) ($leadRow[$nameKey] ?? ''));
                         if ($candidate !== '') {
@@ -449,6 +688,10 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
             }
         }
 
+        if ($origCreatedTime === null) {
+            $origCreatedTime = tracerResolvePreLeadDateTime($cf);
+        }
+
         if ($origLeadName !== null && $origLeadName !== '') {
             $leadName = $origLeadName;
         }
@@ -456,21 +699,28 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
         $events = [];
 
         if ($origCreatedTime !== null) {
+            $preLeadMeta = [];
+            if (is_array($leadRow)) {
+                $preLeadMeta = tracerBuildPreLeadEventMeta($leadRow, $cf);
+            } elseif ($tablaOrigen === '' || $origId <= 0) {
+                $preLeadMeta = tracerBuildPreLeadEventMeta($cf);
+            }
+
             $events[] = [
                 'sort_ts'     => strtotime($origCreatedTime),
                 'sort_order'  => 10,
                 'fecha'       => $origCreatedTime,
-                'fecha_display' => tracerFormatDisplayDateTime($origCreatedTime),
+                'fecha_display' => tracerFormatStoredDateTime($origCreatedTime),
                 'tipo'        => 'pre_lead',
                 'label'       => 'Registro del lead',
                 'detalle'     => 'Pre-calificación en ' . $tablaOrigen . ' (ID ' . $origId . ')',
-                'meta'        => [],
+                'meta'        => $preLeadMeta,
                 'es_estimado' => false,
             ];
         }
 
-        $cfCreated = tracerNormalizeDateTime($cf['created_time'] ?? null);
-        $cfSubmitted = tracerNormalizeDateTime($cf['submission_date'] ?? null);
+        $cfCreated = tracerParseMetaLeadClockTime($cf['created_time'] ?? null);
+        $cfSubmitted = tracerParseMetaLeadClockTime($cf['submission_date'] ?? null);
         $postEntryTime = $cfCreated ?? $cfSubmitted;
 
         $isDuplicatePostEntry = false;
@@ -483,7 +733,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
                 'sort_ts'     => strtotime($postEntryTime),
                 'sort_order'  => 20,
                 'fecha'       => $postEntryTime,
-                'fecha_display' => tracerFormatDisplayDateTime($postEntryTime),
+                'fecha_display' => tracerFormatStoredDateTime($postEntryTime),
                 'tipo'        => 'post_lead',
                 'label'       => 'Entrada post-calificación',
                 'detalle'     => 'Registro en contact_form (ID ' . $contactFormId . ')',
@@ -643,6 +893,11 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
 
         tracerAppendLeadInteractionsToEvents($conn, $events, $contactFormId, $tablaOrigen, $origId);
 
+        if ($tablaOrigen !== '' && $origId > 0 && tracerLoadPltraceChatHelper()) {
+            tracerAppendChatMessagesToEvents($conn, $events, $tablaOrigen, $origId, $currentUserId);
+        }
+
+        tracerAdjustPreLeadBeforeInteractions($events);
         $cleanEvents = tracerFinalizeEvents($events);
 
         return [
@@ -652,6 +907,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
                 'nombre'       => $leadName,
                 'email'        => trim((string) ($cf['email_address'] ?? '')),
                 'tabla_origen' => $tablaOrigen,
+                'orig_id'      => $origId,
                 'estatus_actual' => $estatusActualLabel,
             ],
             'events'  => $cleanEvents,
@@ -665,7 +921,7 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
      *
      * @return array{success:bool,error?:string,lead?:array,events?:array}
      */
-    function obtenerTrazabilidadLeadSoloPreCalificacion($conn, $tablaOrigen, $origId)
+    function obtenerTrazabilidadLeadSoloPreCalificacion($conn, $tablaOrigen, $origId, $currentUserId = 0)
     {
         if (!($conn instanceof mysqli)) {
             return ['success' => false, 'error' => 'Conexión inválida'];
@@ -697,7 +953,7 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
         }
 
         $status = pltraceResolveLeadStatus($tablaOrigen, null, null, $leadRow);
-        $createdTime = tracerNormalizeDateTime($leadRow['created_time'] ?? $leadRow['created_at'] ?? null);
+        $createdTime = tracerResolvePreLeadDateTime($leadRow);
         $events = [];
 
         if ($createdTime !== null) {
@@ -705,16 +961,22 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
                 'sort_ts'       => strtotime($createdTime),
                 'sort_order'    => 10,
                 'fecha'         => $createdTime,
-                'fecha_display' => tracerFormatDisplayDateTime($createdTime),
+                'fecha_display' => tracerFormatStoredDateTime($createdTime),
                 'tipo'          => 'pre_lead',
                 'label'         => 'Registro del lead',
                 'detalle'       => 'Pre-calificación en ' . $tablaOrigen . ' (ID ' . $origId . ')',
-                'meta'          => [],
+                'meta'          => tracerBuildPreLeadEventMeta($leadRow),
                 'es_estimado'   => false,
             ];
         }
 
         tracerAppendLeadInteractionsToEvents($conn, $events, 0, $tablaOrigen, $origId);
+
+        if (tracerLoadPltraceChatHelper()) {
+            tracerAppendChatMessagesToEvents($conn, $events, $tablaOrigen, $origId, $currentUserId);
+        }
+
+        tracerAdjustPreLeadBeforeInteractions($events);
         $cleanEvents = tracerFinalizeEvents($events);
 
         return [
@@ -724,6 +986,7 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
                 'nombre'         => $leadName,
                 'email'          => dashComercialResolveLeadEmail($leadRow),
                 'tabla_origen'   => $tablaOrigen,
+                'orig_id'        => $origId,
                 'estatus_actual' => ucfirst($status),
             ],
             'events'  => $cleanEvents,
@@ -743,18 +1006,19 @@ if (!function_exists('obtenerTrazabilidadLead')) {
         $contactFormId = (int) ($options['contact_form_id'] ?? $options['id'] ?? 0);
         $tablaOrigen = trim((string) ($options['tabla_origen'] ?? $options['tabla'] ?? ''));
         $origId = (int) ($options['orig_id'] ?? $options['original_lead_id'] ?? 0);
+        $currentUserId = (int) ($options['current_user_id'] ?? 0);
 
         if ($contactFormId > 0) {
-            return obtenerTrazabilidadLeadPorContactForm($conn, $contactFormId);
+            return obtenerTrazabilidadLeadPorContactForm($conn, $contactFormId, $currentUserId);
         }
 
         if ($tablaOrigen !== '' && $origId > 0) {
             require_once __DIR__ . '/pltrace_leads_helper.php';
             $cfId = pltraceFindContactFormId($conn, $tablaOrigen, $origId);
             if ($cfId > 0) {
-                return obtenerTrazabilidadLeadPorContactForm($conn, $cfId);
+                return obtenerTrazabilidadLeadPorContactForm($conn, $cfId, $currentUserId);
             }
-            return obtenerTrazabilidadLeadSoloPreCalificacion($conn, $tablaOrigen, $origId);
+            return obtenerTrazabilidadLeadSoloPreCalificacion($conn, $tablaOrigen, $origId, $currentUserId);
         }
 
         return ['success' => false, 'error' => 'Parámetros inválidos'];

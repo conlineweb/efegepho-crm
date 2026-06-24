@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/usuario_roles_helper.php';
+
 function wpEventFirstNonEmptyValue()
 {
     foreach (func_get_args() as $value) {
@@ -265,7 +267,7 @@ function wpEventPersistExistingEvent($conn, $eventId, array $payload)
     }
 
     $rowAsesor = $resAsesor->fetch_assoc();
-    if (intval($rowAsesor['tipoUsu'] ?? 0) !== 1) {
+    if (!usuarioTipoPuedeAsignarSesionWp($rowAsesor['tipoUsu'] ?? -1)) {
         throw new Exception('El usuario seleccionado no es un asesor válido.');
     }
 

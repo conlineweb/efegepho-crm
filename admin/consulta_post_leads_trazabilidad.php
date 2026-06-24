@@ -12,6 +12,15 @@ require_once __DIR__ . '/pltrace_leads_helper.php';
 $startDate = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
 $endDate   = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 $filterPlataforma = isset($_GET['filter_plataforma']) ? trim($_GET['filter_plataforma']) : '';
+$filterTipo = isset($_GET['filter_tipo']) ? trim((string) $_GET['filter_tipo']) : '';
+if (!in_array($filterTipo, ['', 'wp', 'leads', 'clientes'], true)) {
+    $filterTipo = '';
+}
+$filterEstatus = isset($_GET['filter_estatus']) ? trim((string) $_GET['filter_estatus']) : '';
+$allowedEstatus = ['', 'lead', 'agendado', 'atendido', 'fantasma', 'muerto', 'cliente'];
+if (!in_array($filterEstatus, $allowedEstatus, true)) {
+    $filterEstatus = '';
+}
 
 if (isset($_GET['show_all'])) {
     unset($_SESSION['leads_filter_start'], $_SESSION['leads_filter_end']);
@@ -28,7 +37,45 @@ if ($startDate === '' && $endDate === '' && empty($_GET['show_all'])) {
     $startDate = date('Y-m-d', strtotime('-14 days', strtotime($endDate)));
 }
 
-$traceLeads = pltraceFetchConsultaLeadsList($conn, $startDate, $endDate, $filterPlataforma);
+$allTraceLeads = pltraceFetchConsultaLeadsList($conn, $startDate, $endDate, $filterPlataforma);
+$traceLeadTotalCount = count($allTraceLeads);
+$traceLeadWpCount = 0;
+$traceLeadClientCount = 0;
+$traceLeadOnlyCount = 0;
+foreach ($allTraceLeads as $leadRowCount) {
+    if (!empty($leadRowCount['is_wedding_planner'])) {
+        $traceLeadWpCount++;
+    } elseif (!empty($leadRowCount['is_cliente'])) {
+        $traceLeadClientCount++;
+    } else {
+        $traceLeadOnlyCount++;
+    }
+}
+
+$traceLeads = $allTraceLeads;
+if ($filterTipo === 'wp') {
+    $traceLeads = array_values(array_filter($allTraceLeads, function ($row) {
+        return !empty($row['is_wedding_planner']);
+    }));
+} elseif ($filterTipo === 'clientes') {
+    $traceLeads = array_values(array_filter($allTraceLeads, function ($row) {
+        return !empty($row['is_cliente']) && empty($row['is_wedding_planner']);
+    }));
+} elseif ($filterTipo === 'leads') {
+    $traceLeads = array_values(array_filter($allTraceLeads, function ($row) {
+        return empty($row['is_wedding_planner']) && empty($row['is_cliente']);
+    }));
+}
+
+$traceLeadCountBeforeEstatus = count($traceLeads);
+if ($filterEstatus !== '') {
+    $traceLeads = array_values(array_filter($traceLeads, function ($row) use ($filterEstatus) {
+        $raw = mb_strtolower(trim((string) ($row['estatus_raw'] ?? $row['estatus'] ?? '')), 'UTF-8');
+        return $raw === $filterEstatus;
+    }));
+}
+
+$pltracePendingBadgesMap = pltraceFetchLeadPendingBadgesMap($conn, $traceLeads);
 
 $selectedTabla = isset($_GET['tabla']) ? trim((string) $_GET['tabla']) : '';
 $selectedOrigId = isset($_GET['orig_id']) ? (int) $_GET['orig_id'] : 0;
@@ -41,7 +88,7 @@ $selectedKey = '';
 if ($selectedTabla !== '' && $selectedOrigId > 0) {
     $selectedKey = $selectedTabla . '|' . $selectedOrigId;
 } elseif ($selectedCfId > 0) {
-    foreach ($traceLeads as $leadRow) {
+    foreach ($allTraceLeads as $leadRow) {
         if ((int) ($leadRow['cf_id'] ?? 0) === $selectedCfId) {
             $selectedKey = (string) ($leadRow['trace_key'] ?? '');
             $selectedTabla = (string) ($leadRow['tabla_origen'] ?? $selectedTabla);
@@ -81,6 +128,37 @@ if ($startDate !== '' || $endDate !== '') {
     $reportRangeEnd   = $endDate !== '' ? date('d/m/Y', strtotime($endDate)) : '...';
     $reportRangeLabel = $reportRangeStart . ' → ' . $reportRangeEnd;
 }
+
+$pltraceListQueryParams = [];
+if ($startDate !== '') {
+    $pltraceListQueryParams['start_date'] = $startDate;
+}
+if ($endDate !== '') {
+    $pltraceListQueryParams['end_date'] = $endDate;
+}
+if ($filterPlataforma !== '') {
+    $pltraceListQueryParams['filter_plataforma'] = $filterPlataforma;
+}
+if ($filterEstatus !== '') {
+    $pltraceListQueryParams['filter_estatus'] = $filterEstatus;
+}
+if ($selectedTabla !== '' && $selectedOrigId > 0) {
+    $pltraceListQueryParams['tabla'] = $selectedTabla;
+    $pltraceListQueryParams['orig_id'] = $selectedOrigId;
+} elseif ($selectedCfId > 0) {
+    $pltraceListQueryParams['cf_id'] = $selectedCfId;
+}
+
+$pltraceBuildTipoFilterUrl = function ($tipoValue) use ($pltraceListQueryParams) {
+    $params = $pltraceListQueryParams;
+    if ($tipoValue !== '') {
+        $params['filter_tipo'] = $tipoValue;
+    } else {
+        unset($params['filter_tipo']);
+    }
+    $query = http_build_query($params);
+    return 'consulta_post_leads_trazabilidad.php' . ($query !== '' ? '?' . $query : '');
+};
 
 $conn->close();
 ?>
@@ -186,7 +264,8 @@ $conn->close();
             background: var(--pltrace-surface);
         }
 
-        #pltraceApp .pltrace-filter-row input[type="date"] {
+        #pltraceApp .pltrace-filter-row input[type="date"],
+        #pltraceApp .pltrace-filter-row select {
             flex: 1 1 120px;
             min-width: 0;
             border: 1px solid var(--pltrace-border);
@@ -195,6 +274,11 @@ $conn->close();
             border-radius: 6px;
             padding: 6px 8px;
             font-size: 0.78rem;
+        }
+
+        #pltraceApp .pltrace-filter-row select {
+            flex: 1 1 100%;
+            cursor: pointer;
         }
 
         #pltraceApp .pltrace-filter-submit {
@@ -235,6 +319,7 @@ $conn->close();
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            position: relative;
         }
 
         #pltraceApp .pltrace-lead-card:hover {
@@ -298,6 +383,110 @@ $conn->close();
         #pltraceApp .pltrace-badge--agendado { background: #eff6ff; color: #1d4ed8; }
         #pltraceApp .pltrace-badge--lead { background: #f1f5f9; color: #334155; }
         #pltraceApp .pltrace-badge--default { background: #f1f5f9; color: #475569; }
+        #pltraceApp .pltrace-badge--wp { background: #fdf4ff; color: #86198f; margin-left: 4px; }
+
+        #pltraceApp .pltrace-lead-type-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0 0 12px;
+        }
+
+        #pltraceApp .pltrace-lead-type-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid var(--pltrace-border);
+            background: #fff;
+            color: var(--pltrace-muted);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        #pltraceApp .pltrace-lead-type-tab:hover {
+            border-color: var(--pltrace-gold);
+            color: var(--pltrace-ink);
+        }
+
+        #pltraceApp .pltrace-lead-type-tab.pltrace-lead-type-tab--active {
+            background: var(--pltrace-gold-soft);
+            border-color: var(--pltrace-gold);
+            color: #7c5e10;
+        }
+
+        #pltraceApp .pltrace-lead-type-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: rgba(100, 116, 139, 0.12);
+            font-size: 0.66rem;
+            font-weight: 700;
+        }
+
+        #pltraceApp .pltrace-lead-type-tab.pltrace-lead-type-tab--active .pltrace-lead-type-count {
+            background: rgba(197, 160, 40, 0.22);
+            color: #7c5e10;
+        }
+
+        #pltraceApp .pltrace-lead-action-top {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        #pltraceApp .interaction-type-badge,
+        #pltraceApp .outcome-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.62rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 2px 7px;
+            border: 1px solid transparent;
+            line-height: 1.2;
+        }
+
+        #pltraceApp .pending-chip {
+            border-radius: 999px;
+            padding: 2px 7px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            background: rgba(197, 160, 40, 0.16);
+            color: #8c6816;
+            line-height: 1.2;
+        }
+
+        #pltraceApp .pending-chip--overdue {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        #pltraceApp .type-llamada      { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+        #pltraceApp .type-whatsapp     { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        #pltraceApp .type-email        { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; }
+        #pltraceApp .type-reunion      { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+        #pltraceApp .type-nota         { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
+        #pltraceApp .type-sinrespuesta { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        #pltraceApp .type-default      { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+        #pltraceApp .outcome-positivo    { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        #pltraceApp .outcome-neutral     { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+        #pltraceApp .outcome-negativo    { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+        #pltraceApp .outcome-cerrar      { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+        #pltraceApp .outcome-seguimiento { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+        #pltraceApp .outcome-sinrespuesta{ background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        #pltraceApp .outcome-default     { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
 
         #pltraceApp .pltrace-list-empty {
             padding: 16px;
@@ -343,6 +532,65 @@ $conn->close();
             border-radius: 999px;
             padding: 6px 12px;
             white-space: nowrap;
+        }
+
+        #pltraceApp .pltrace-filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--pltrace-border);
+            background: var(--pltrace-surface);
+        }
+
+        #pltraceApp .pltrace-filter-tabs[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-filter-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--pltrace-border);
+            background: var(--pltrace-bg);
+            color: var(--pltrace-muted);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+
+        #pltraceApp .pltrace-filter-tab:hover {
+            border-color: #d4cfc4;
+            color: var(--pltrace-ink);
+        }
+
+        #pltraceApp .pltrace-filter-tab.pltrace-filter-tab--active {
+            background: var(--pltrace-gold-soft);
+            border-color: var(--pltrace-gold);
+            color: #5c4600;
+            box-shadow: 0 0 0 1px rgba(197, 160, 40, 0.2);
+        }
+
+        #pltraceApp .pltrace-filter-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        #pltraceApp .pltrace-filter-tab.pltrace-filter-tab--active .pltrace-filter-count {
+            background: rgba(197, 160, 40, 0.25);
+            color: #5c4600;
         }
 
         #pltraceApp .pltrace-timeline-scroll {
@@ -508,6 +756,612 @@ $conn->close();
 
         #pltraceApp .pltrace-readonly-note i { color: #94a3b8; }
 
+        #pltraceApp .pltrace-unread-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #dc2626;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 18px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(220, 38, 38, 0.35);
+        }
+
+        #pltraceApp .pltrace-unread-badge[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-composer {
+            border-top: 1px solid var(--pltrace-border);
+            background: var(--pltrace-surface);
+            padding: 12px 16px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+        }
+
+        #pltraceApp .pltrace-composer-actions {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        #pltraceApp .pltrace-composer-plus {
+            width: 42px;
+            height: 42px;
+            border: 1px solid var(--pltrace-border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--pltrace-ink);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        #pltraceApp .pltrace-composer-plus:hover:not(:disabled) {
+            background: var(--pltrace-bg);
+            border-color: var(--pltrace-gold);
+        }
+
+        #pltraceApp .pltrace-composer-plus:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        #pltraceApp .pltrace-chat-input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--pltrace-border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: var(--pltrace-ink);
+            background: #fff;
+        }
+
+        #pltraceApp .pltrace-chat-input:focus {
+            outline: none;
+            border-color: var(--pltrace-gold);
+            box-shadow: 0 0 0 2px rgba(197, 160, 40, 0.15);
+        }
+
+        #pltraceApp .pltrace-chat-input:disabled {
+            background: var(--pltrace-bg);
+            color: var(--pltrace-muted);
+        }
+
+        #pltraceApp .pltrace-chat-send {
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: var(--pltrace-gold);
+            color: #1a1a1a;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        #pltraceApp .pltrace-chat-send:hover:not(:disabled) {
+            background: #b89224;
+        }
+
+        #pltraceApp .pltrace-chat-send:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        #pltraceApp .pltrace-chat-row {
+            max-width: 720px;
+            margin: 0 auto 10px;
+            display: flex;
+            width: 100%;
+        }
+
+        #pltraceApp .pltrace-chat-row--in {
+            justify-content: flex-start;
+        }
+
+        #pltraceApp .pltrace-chat-row--out {
+            justify-content: flex-end;
+        }
+
+        #pltraceApp .pltrace-chat-bubble {
+            max-width: 78%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+            line-height: 1.4;
+        }
+
+        #pltraceApp .pltrace-chat-bubble--in {
+            background: #fff;
+            border: 1px solid var(--pltrace-border);
+            border-top-left-radius: 4px;
+        }
+
+        #pltraceApp .pltrace-chat-bubble--out {
+            background: linear-gradient(135deg, #f5edd6 0%, #ede0b8 100%);
+            border: 1px solid rgba(197, 160, 40, 0.35);
+            border-top-right-radius: 4px;
+        }
+
+        #pltraceApp .pltrace-chat-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        #pltraceApp .pltrace-chat-author {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--pltrace-ink);
+        }
+
+        #pltraceApp .pltrace-chat-role {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: var(--pltrace-gold-soft);
+            color: #7a5c00;
+        }
+
+        #pltraceApp .pltrace-chat-text {
+            font-size: 0.88rem;
+            color: #334155;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        #pltraceApp .pltrace-chat-time {
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: var(--pltrace-muted);
+            text-align: right;
+        }
+
+        @keyframes pltraceMsgIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #pltraceApp .pltrace-msg-animate {
+            animation: pltraceMsgIn 0.28s ease-out;
+        }
+
+        .pltrace-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 12000;
+            background: rgba(15, 23, 42, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .pltrace-modal-overlay[hidden] {
+            display: none;
+        }
+
+        .pltrace-modal {
+            width: min(520px, 100%);
+            max-height: calc(100vh - 40px);
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pltrace-modal--lg {
+            width: min(760px, 100%);
+            max-height: calc(100vh - 32px);
+        }
+
+        .pltrace-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--pltrace-border);
+        }
+
+        .pltrace-modal-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--pltrace-ink);
+        }
+
+        .pltrace-modal-close {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--pltrace-muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pltrace-modal-close:hover {
+            background: var(--pltrace-bg);
+            color: var(--pltrace-ink);
+        }
+
+        .pltrace-modal-body {
+            padding: 14px 18px 18px;
+            overflow: auto;
+        }
+
+        .pltrace-modal-body--flush {
+            padding: 0;
+        }
+
+        #pltraceApp .pltrace-action-popover {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 0;
+            z-index: 50;
+            min-width: 240px;
+            padding: 8px 0;
+            background: #233138;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.35);
+            transform-origin: bottom left;
+        }
+
+        #pltraceApp .pltrace-action-popover[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-action-popover:not([hidden]) {
+            animation: pltracePopoverIn 0.18s ease-out;
+        }
+
+        @keyframes pltracePopoverIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        #pltraceApp .pltrace-action-option {
+            width: 100%;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            color: #e9edef;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.92rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.12s;
+        }
+
+        #pltraceApp .pltrace-action-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #pltraceApp .pltrace-action-option-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+
+        #pltraceApp .pltrace-action-option-icon--interaction {
+            background: #0ea5e9;
+        }
+
+        #pltraceApp .pltrace-action-option-icon--upload {
+            background: #8b5cf6;
+        }
+
+        #pltraceApp .pltrace-composer-upload-indicator {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: calc(100% + 8px);
+            z-index: 40;
+            background: #fff;
+            border: 1px solid var(--pltrace-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            padding: 12px 14px;
+            animation: pltraceMsgIn 0.22s ease-out;
+        }
+
+        #pltraceApp .pltrace-composer-upload-indicator[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-upload-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.82rem;
+            color: var(--pltrace-ink);
+        }
+
+        #pltraceApp .pltrace-upload-head i {
+            color: #8b5cf6;
+        }
+
+        #pltraceApp .pltrace-upload-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        #pltraceApp .pltrace-upload-progress {
+            height: 6px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        #pltraceApp .pltrace-upload-progress-bar {
+            height: 100%;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #8b5cf6, #c5a028);
+            transition: width 0.15s ease;
+        }
+
+        #pltraceApp .pltrace-chat-bubble--file {
+            max-width: min(88%, 420px);
+        }
+
+        #pltraceApp .pltrace-chat-file-meta {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #pltraceApp .pltrace-chat-file-meta-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        #pltraceApp .pltrace-chat-file-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--pltrace-ink);
+            word-break: break-word;
+        }
+
+        #pltraceApp .pltrace-chat-file-type {
+            font-size: 0.72rem;
+            color: var(--pltrace-muted);
+        }
+
+        #pltraceApp .pltrace-chat-image-btn {
+            display: block;
+            width: 100%;
+            padding: 0;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: zoom-in;
+        }
+
+        #pltraceApp .pltrace-chat-image-btn img {
+            display: block;
+            width: 100%;
+            max-height: 280px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        #pltraceApp .pltrace-chat-file--video video {
+            display: block;
+            width: 100%;
+            max-height: 280px;
+            border-radius: 10px;
+            background: #0f172a;
+        }
+
+        #pltraceApp .pltrace-chat-pdf-card,
+        #pltraceApp .pltrace-chat-doc-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--pltrace-border);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.72);
+            text-align: left;
+        }
+
+        #pltraceApp .pltrace-chat-pdf-card {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
+
+        #pltraceApp .pltrace-chat-pdf-card:hover,
+        #pltraceApp .pltrace-chat-doc-card:hover {
+            border-color: rgba(197, 160, 40, 0.45);
+        }
+
+        #pltraceApp .pltrace-chat-file-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.15rem;
+            color: #fff;
+        }
+
+        #pltraceApp .pltrace-chat-file-icon--pdf { background: #ef4444; }
+        #pltraceApp .pltrace-chat-file-icon--document { background: #2563eb; }
+        #pltraceApp .pltrace-chat-file-icon--archive { background: #f59e0b; }
+        #pltraceApp .pltrace-chat-file-icon--other { background: #64748b; }
+
+        #pltraceApp .pltrace-chat-file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #pltraceApp .pltrace-chat-file-size {
+            font-size: 0.72rem;
+            color: var(--pltrace-muted);
+        }
+
+        #pltraceApp .pltrace-chat-download-btn {
+            flex-shrink: 0;
+            border: 1px solid var(--pltrace-border);
+            background: #fff;
+            color: var(--pltrace-ink);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #pltraceApp .pltrace-chat-download-btn:hover {
+            border-color: var(--pltrace-gold);
+            background: var(--pltrace-gold-soft);
+        }
+
+        #pltraceApp .pltrace-chat-row--uploading .pltrace-chat-bubble {
+            opacity: 0.75;
+        }
+
+        .pltrace-media-modal {
+            position: relative;
+            width: min(920px, calc(100vw - 32px));
+            max-height: calc(100vh - 32px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pltrace-media-modal img {
+            max-width: 100%;
+            max-height: calc(100vh - 80px);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+        }
+
+        .pltrace-media-modal-close {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 999px;
+            background: #fff;
+            color: #334155;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+        }
+
+        .pltrace-modal-head-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pltrace-modal-download {
+            border: 1px solid var(--pltrace-border);
+            background: #fff;
+            color: var(--pltrace-ink);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .pltrace-modal-download:hover {
+            border-color: var(--pltrace-gold);
+            background: var(--pltrace-gold-soft);
+        }
+
+        .pltrace-pdf-frame {
+            width: 100%;
+            height: min(78vh, 820px);
+            border: 0;
+            display: block;
+            background: #f8fafc;
+        }
+
+        .pltrace-interaction-frame {
+            width: 100%;
+            height: min(72vh, 720px);
+            border: 0;
+            display: block;
+            background: #f8fafc;
+        }
+
         #pltraceApp .pltrace-ico-pre_lead { background: #818cf8; }
         #pltraceApp .pltrace-ico-post_lead { background: #60a5fa; }
         #pltraceApp .pltrace-ico-estatus_0 { background: #3b82f6; }
@@ -537,7 +1391,32 @@ $conn->close();
     <aside class="pltrace-list-panel">
         <div class="pltrace-list-head">
             <h1 class="pltrace-list-title">Trazabilidad</h1>
-            <p class="pltrace-list-sub">Leads pre-calificación · <?php echo count($traceLeads); ?> registros</p>
+            <?php
+            $pltraceListSub = count($traceLeads) . ' registros';
+            $pltraceFilteredTotal = ($filterTipo !== '' ? $traceLeadCountBeforeEstatus : $traceLeadTotalCount);
+            if (($filterTipo !== '' || $filterEstatus !== '') && count($traceLeads) !== $pltraceFilteredTotal) {
+                $pltraceListSub .= ' · ' . $pltraceFilteredTotal . ' en total';
+            }
+            ?>
+            <p class="pltrace-list-sub">Leads pre-calificación · <?php echo htmlspecialchars($pltraceListSub, ENT_QUOTES, 'UTF-8'); ?></p>
+            <div class="pltrace-lead-type-tabs">
+                <a href="<?php echo htmlspecialchars($pltraceBuildTipoFilterUrl(''), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="pltrace-lead-type-tab<?php echo $filterTipo === '' ? ' pltrace-lead-type-tab--active' : ''; ?>">
+                    Todos <span class="pltrace-lead-type-count"><?php echo (int) $traceLeadTotalCount; ?></span>
+                </a>
+                <a href="<?php echo htmlspecialchars($pltraceBuildTipoFilterUrl('wp'), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="pltrace-lead-type-tab<?php echo $filterTipo === 'wp' ? ' pltrace-lead-type-tab--active' : ''; ?>">
+                    WP <span class="pltrace-lead-type-count"><?php echo (int) $traceLeadWpCount; ?></span>
+                </a>
+                <a href="<?php echo htmlspecialchars($pltraceBuildTipoFilterUrl('leads'), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="pltrace-lead-type-tab<?php echo $filterTipo === 'leads' ? ' pltrace-lead-type-tab--active' : ''; ?>">
+                    Leads <span class="pltrace-lead-type-count"><?php echo (int) $traceLeadOnlyCount; ?></span>
+                </a>
+                <a href="<?php echo htmlspecialchars($pltraceBuildTipoFilterUrl('clientes'), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="pltrace-lead-type-tab<?php echo $filterTipo === 'clientes' ? ' pltrace-lead-type-tab--active' : ''; ?>">
+                    Clientes <span class="pltrace-lead-type-count"><?php echo (int) $traceLeadClientCount; ?></span>
+                </a>
+            </div>
             <div class="pltrace-search-box">
                 <i class="fas fa-search"></i>
                 <input type="search" id="pltraceSearchInput" class="pltrace-search-input" placeholder="Buscar lead...">
@@ -547,6 +1426,18 @@ $conn->close();
         <form method="get" class="pltrace-filter-row">
             <input type="date" name="start_date" value="<?php echo htmlspecialchars($startDate, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="date" name="end_date" value="<?php echo htmlspecialchars($endDate, ENT_QUOTES, 'UTF-8'); ?>">
+            <select name="filter_estatus" aria-label="Filtrar por estatus">
+                <option value=""<?php echo $filterEstatus === '' ? ' selected' : ''; ?>>Todos los estatus</option>
+                <option value="lead"<?php echo $filterEstatus === 'lead' ? ' selected' : ''; ?>>Lead</option>
+                <option value="agendado"<?php echo $filterEstatus === 'agendado' ? ' selected' : ''; ?>>Agendado</option>
+                <option value="atendido"<?php echo $filterEstatus === 'atendido' ? ' selected' : ''; ?>>Atendido</option>
+                <option value="cliente"<?php echo $filterEstatus === 'cliente' ? ' selected' : ''; ?>>Cliente</option>
+                <option value="fantasma"<?php echo $filterEstatus === 'fantasma' ? ' selected' : ''; ?>>Fantasma</option>
+                <option value="muerto"<?php echo $filterEstatus === 'muerto' ? ' selected' : ''; ?>>Muerto</option>
+            </select>
+            <?php if ($filterTipo !== ''): ?>
+                <input type="hidden" name="filter_tipo" value="<?php echo htmlspecialchars($filterTipo, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
             <button type="submit" class="pltrace-filter-submit">Filtrar</button>
             <?php if ($selectedKey !== ''): ?>
                 <?php
@@ -579,6 +1470,8 @@ $conn->close();
                     elseif ($statusRaw === 'fantasma') $badgeClass = 'pltrace-badge--fantasma';
                     elseif ($statusRaw === 'muerto') $badgeClass = 'pltrace-badge--muerto';
                     elseif ($statusRaw === 'agendado') $badgeClass = 'pltrace-badge--agendado';
+                    $pendingBadge = $pltracePendingBadgesMap[$traceKey] ?? null;
+                    $isWeddingPlanner = !empty($lead['is_wedding_planner']);
                     ?>
                     <button type="button"
                         class="pltrace-lead-card<?php echo $traceKey === $selectedKey ? ' pltrace-selected' : ''; ?>"
@@ -588,12 +1481,44 @@ $conn->close();
                         data-pltrace-cf-id="<?php echo (int) $cfId; ?>"
                         data-pltrace-name="<?php echo htmlspecialchars($lead['nombre'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                         data-pltrace-estatus="<?php echo htmlspecialchars($lead['estatus'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                        data-pltrace-is-wp="<?php echo $isWeddingPlanner ? '1' : '0'; ?>"
                         data-pltrace-search="<?php echo htmlspecialchars(mb_strtolower(($lead['nombre'] ?? '') . ' ' . ($lead['email'] ?? '') . ' ' . ($lead['telefono'] ?? ''), 'UTF-8'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <span class="pltrace-unread-badge" hidden aria-label="Mensajes no leídos"></span>
                         <div class="pltrace-lead-avatar"><i class="fas fa-user"></i></div>
                         <div class="pltrace-lead-body">
                             <div class="pltrace-lead-name"><?php echo htmlspecialchars($lead['nombre'] ?? 'Sin nombre', ENT_QUOTES, 'UTF-8'); ?></div>
                             <div class="pltrace-lead-email"><?php echo htmlspecialchars($lead['email'] ?: ($lead['telefono'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                             <span class="pltrace-badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($lead['estatus'] ?? '—', ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php if ($isWeddingPlanner): ?>
+                                <span class="pltrace-badge pltrace-badge--wp" title="Wedding Planner">WP</span>
+                            <?php endif; ?>
+                            <?php if (is_array($pendingBadge)): ?>
+                                <div class="pltrace-lead-action-top">
+                                    <?php if (($pendingBadge['source'] ?? '') === 'interaccion'): ?>
+                                        <?php
+                                        $evtType = trim((string) ($pendingBadge['interaction_type'] ?? ''));
+                                        $evtOutcome = trim((string) ($pendingBadge['outcome'] ?? ''));
+                                        ?>
+                                        <?php if ($evtType !== ''): ?>
+                                            <span class="interaction-type-badge <?php echo pltraceTypeClass($evtType); ?>">
+                                                <span><?php echo htmlspecialchars(pltraceTypeIcon($evtType), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <span><?php echo htmlspecialchars($evtType, ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if ($evtOutcome !== ''): ?>
+                                            <span class="outcome-badge <?php echo pltraceOutcomeClass($evtOutcome); ?>">
+                                                <span><?php echo htmlspecialchars(pltraceOutcomeIcon($evtOutcome), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <span><?php echo htmlspecialchars($evtOutcome, ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="interaction-type-badge type-default">📅 Cita</span>
+                                    <?php endif; ?>
+                                    <span class="pending-chip<?php echo !empty($pendingBadge['is_overdue']) ? ' pending-chip--overdue' : ''; ?>">
+                                        <?php echo htmlspecialchars((string) ($pendingBadge['due_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </button>
                 <?php endforeach; ?>
@@ -610,16 +1535,105 @@ $conn->close();
             <div class="pltrace-period-chip"><i class="far fa-calendar"></i> <?php echo htmlspecialchars($reportRangeLabel, ENT_QUOTES, 'UTF-8'); ?></div>
         </header>
 
+        <div class="pltrace-filter-tabs" id="pltraceFilterTabs" hidden>
+            <button type="button" class="pltrace-filter-tab pltrace-filter-tab--active" data-filter="todos">
+                Todos <span class="pltrace-filter-count" data-count-for="todos">0</span>
+            </button>
+            <button type="button" class="pltrace-filter-tab" data-filter="sistema">
+                Sistema <span class="pltrace-filter-count" data-count-for="sistema">0</span>
+            </button>
+            <button type="button" class="pltrace-filter-tab" data-filter="interacciones">
+                Interacciones <span class="pltrace-filter-count" data-count-for="interacciones">0</span>
+            </button>
+            <button type="button" class="pltrace-filter-tab" data-filter="chat">
+                Chat <span class="pltrace-filter-count" data-count-for="chat">0</span>
+            </button>
+        </div>
+
         <div class="pltrace-timeline-scroll" id="pltraceTimelineScroll">
             <div class="pltrace-timeline-empty" id="pltraceTimelineEmpty">Selecciona un lead de la lista para ver su trazabilidad.</div>
         </div>
 
-        <div class="pltrace-readonly-note">
-            <i class="fas fa-lock"></i>
-            Vista de solo lectura — por ahora no se pueden enviar mensajes, solo consultar la trazabilidad.
+        <div class="pltrace-composer" id="pltraceComposer">
+            <div class="pltrace-composer-actions">
+                <button type="button" id="pltraceComposerPlus" class="pltrace-composer-plus" disabled title="Más acciones" aria-haspopup="menu" aria-expanded="false" aria-controls="pltraceActionPopover">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <div class="pltrace-action-popover" id="pltraceActionPopover" hidden role="menu" aria-label="Acciones">
+                    <button type="button" class="pltrace-action-option" id="pltraceActionRegisterInteraction" role="menuitem">
+                        <span class="pltrace-action-option-icon pltrace-action-option-icon--interaction" aria-hidden="true">
+                            <i class="fas fa-comments"></i>
+                        </span>
+                        <span>Registrar interacción</span>
+                    </button>
+                    <button type="button" class="pltrace-action-option" id="pltraceActionUploadFile" role="menuitem">
+                        <span class="pltrace-action-option-icon pltrace-action-option-icon--upload" aria-hidden="true">
+                            <i class="fas fa-paperclip"></i>
+                        </span>
+                        <span>Cargar archivo</span>
+                    </button>
+                </div>
+                <input type="file" id="pltraceFileInput" hidden>
+            </div>
+            <div class="pltrace-composer-upload-indicator" id="pltraceUploadIndicator" hidden aria-live="polite">
+                <div class="pltrace-upload-head">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span class="pltrace-upload-name" id="pltraceUploadName">Subiendo archivo...</span>
+                    <span id="pltraceUploadPercent">0%</span>
+                </div>
+                <div class="pltrace-upload-progress">
+                    <div class="pltrace-upload-progress-bar" id="pltraceUploadProgressBar"></div>
+                </div>
+            </div>
+            <input type="text" id="pltraceChatInput" class="pltrace-chat-input" placeholder="Selecciona un lead para enviar un mensaje al equipo..." maxlength="5000" disabled>
+            <button type="button" id="pltraceChatSend" class="pltrace-chat-send" disabled title="Enviar mensaje">
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </section>
 </div>
+</div>
+
+<div class="pltrace-modal-overlay" id="pltraceInteractionModal" hidden aria-hidden="true">
+    <div class="pltrace-modal pltrace-modal--lg" role="dialog" aria-modal="true" aria-labelledby="pltraceInteractionModalTitle">
+        <header class="pltrace-modal-head">
+            <h3 class="pltrace-modal-title" id="pltraceInteractionModalTitle">Registrar interacción</h3>
+            <button type="button" class="pltrace-modal-close" id="pltraceInteractionModalClose" title="Cerrar" aria-label="Cerrar">
+                <i class="fas fa-times"></i>
+            </button>
+        </header>
+        <div class="pltrace-modal-body pltrace-modal-body--flush">
+            <iframe id="pltraceInteractionFrame" class="pltrace-interaction-frame" title="Formulario de interacción"></iframe>
+        </div>
+    </div>
+</div>
+
+<div class="pltrace-modal-overlay" id="pltraceImageModal" hidden aria-hidden="true">
+    <div class="pltrace-media-modal" role="dialog" aria-modal="true" aria-label="Vista ampliada">
+        <button type="button" class="pltrace-media-modal-close" id="pltraceImageModalClose" title="Cerrar" aria-label="Cerrar">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="pltraceImageModalImg" src="" alt="Imagen ampliada">
+    </div>
+</div>
+
+<div class="pltrace-modal-overlay" id="pltracePdfModal" hidden aria-hidden="true">
+    <div class="pltrace-modal pltrace-modal--lg" role="dialog" aria-modal="true" aria-labelledby="pltracePdfModalTitle">
+        <header class="pltrace-modal-head">
+            <h3 class="pltrace-modal-title" id="pltracePdfModalTitle">Documento PDF</h3>
+            <div class="pltrace-modal-head-actions">
+                <a href="#" id="pltracePdfModalDownload" class="pltrace-modal-download" download>
+                    <i class="fas fa-download"></i> Descargar
+                </a>
+                <button type="button" class="pltrace-modal-close" id="pltracePdfModalClose" title="Cerrar" aria-label="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </header>
+        <div class="pltrace-modal-body pltrace-modal-body--flush">
+            <iframe id="pltracePdfFrame" class="pltrace-pdf-frame" title="Visor PDF"></iframe>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -628,6 +1642,8 @@ $conn->close();
     const INITIAL_TABLA = <?php echo json_encode($selectedTabla, JSON_UNESCAPED_UNICODE); ?>;
     const INITIAL_ORIG_ID = <?php echo (int) $selectedOrigId; ?>;
     const INITIAL_CF_ID = <?php echo (int) $selectedCfId; ?>;
+    const CURRENT_USER_ID = <?php echo (int) ($_SESSION['uid'] ?? 0); ?>;
+    const PLTRACE_CHAT_API = 'post_lead_tracer.php';
     const ICONS = {
         pre_lead: 'fa-user-plus',
         post_lead: 'fa-inbox',
@@ -646,7 +1662,41 @@ $conn->close();
     const titleEl = document.getElementById('pltraceDetailTitle');
     const subEl = document.getElementById('pltraceDetailSub');
     const searchEl = document.getElementById('pltraceSearchInput');
+    const chatInputEl = document.getElementById('pltraceChatInput');
+    const chatSendEl = document.getElementById('pltraceChatSend');
+    const composerPlusEl = document.getElementById('pltraceComposerPlus');
+    const actionPopoverEl = document.getElementById('pltraceActionPopover');
+    const actionRegisterEl = document.getElementById('pltraceActionRegisterInteraction');
+    const actionUploadEl = document.getElementById('pltraceActionUploadFile');
+    const fileInputEl = document.getElementById('pltraceFileInput');
+    const uploadIndicatorEl = document.getElementById('pltraceUploadIndicator');
+    const uploadNameEl = document.getElementById('pltraceUploadName');
+    const uploadPercentEl = document.getElementById('pltraceUploadPercent');
+    const uploadProgressBarEl = document.getElementById('pltraceUploadProgressBar');
+    const imageModalEl = document.getElementById('pltraceImageModal');
+    const imageModalImgEl = document.getElementById('pltraceImageModalImg');
+    const imageModalCloseEl = document.getElementById('pltraceImageModalClose');
+    const pdfModalEl = document.getElementById('pltracePdfModal');
+    const pdfModalTitleEl = document.getElementById('pltracePdfModalTitle');
+    const pdfModalDownloadEl = document.getElementById('pltracePdfModalDownload');
+    const pdfModalCloseEl = document.getElementById('pltracePdfModalClose');
+    const pdfFrameEl = document.getElementById('pltracePdfFrame');
+    const interactionModalEl = document.getElementById('pltraceInteractionModal');
+    const interactionModalCloseEl = document.getElementById('pltraceInteractionModalClose');
+    const interactionFrameEl = document.getElementById('pltraceInteractionFrame');
+    const filterTabsEl = document.getElementById('pltraceFilterTabs');
+
     let loadToken = 0;
+    let allEvents = [];
+    let activeTimelineFilter = 'todos';
+    let currentLead = { tabla: '', origId: 0, cfId: 0, traceKey: '' };
+    let lastMessageId = 0;
+    let chatPollTimer = null;
+    let badgePollTimer = null;
+    let markReadTimer = null;
+    let isSending = false;
+    let isUploading = false;
+    let timelineFingerprint = '';
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -654,6 +1704,29 @@ $conn->close();
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function escapeAttr(value) {
+        return escapeHtml(value).replace(/'/g, '&#39;');
+    }
+
+    function fileIconClass(categoria) {
+        if (categoria === 'pdf') return 'pltrace-chat-file-icon--pdf';
+        if (categoria === 'archive') return 'pltrace-chat-file-icon--archive';
+        if (categoria === 'document') return 'pltrace-chat-file-icon--document';
+        return 'pltrace-chat-file-icon--other';
+    }
+
+    function fileIconFa(categoria, extension) {
+        if (categoria === 'pdf') return 'fa-file-pdf';
+        if (categoria === 'archive') return 'fa-file-archive';
+        if (categoria === 'video') return 'fa-file-video';
+        if (categoria === 'image') return 'fa-file-image';
+        const ext = String(extension || '').toLowerCase();
+        if (['doc', 'docx', 'rtf'].indexOf(ext) !== -1) return 'fa-file-word';
+        if (['xls', 'xlsx', 'csv'].indexOf(ext) !== -1) return 'fa-file-excel';
+        if (ext === 'txt') return 'fa-file-alt';
+        return 'fa-file';
     }
 
     function parseEventDate(raw) {
@@ -682,10 +1755,385 @@ $conn->close();
         return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
     }
 
-    function renderTrace(events) {
+    function getEventCategory(ev) {
+        const tipo = ev.tipo || 'default';
+        if (tipo === 'chat_mensaje') return 'chat';
+        if (tipo === 'interaccion') return 'interacciones';
+        return 'sistema';
+    }
+
+    function filterEventsForTab(events, tab) {
+        if (tab === 'todos') return events.slice();
+        return events.filter(function (ev) {
+            return getEventCategory(ev) === tab;
+        });
+    }
+
+    function computeCategoryCounts(events) {
+        let sistema = 0;
+        let interacciones = 0;
+        let chat = 0;
+        events.forEach(function (ev) {
+            const cat = getEventCategory(ev);
+            if (cat === 'sistema') sistema++;
+            else if (cat === 'interacciones') interacciones++;
+            else if (cat === 'chat') chat++;
+        });
+        return {
+            todos: events.length,
+            sistema: sistema,
+            interacciones: interacciones,
+            chat: chat
+        };
+    }
+
+    function emptyMessageForFilter(tab) {
+        if (tab === 'sistema') return 'No hay cambios de estatus del sistema para este lead.';
+        if (tab === 'interacciones') return 'No hay interacciones registradas para este lead.';
+        if (tab === 'chat') return 'No hay mensajes de chat para este lead.';
+        return 'Sin eventos registrados para este lead.';
+    }
+
+    function updateFilterTabUI() {
+        if (!filterTabsEl) return;
+        const counts = computeCategoryCounts(allEvents);
+        filterTabsEl.querySelectorAll('.pltrace-filter-tab').forEach(function (btn) {
+            const filter = btn.dataset.filter || 'todos';
+            btn.classList.toggle('pltrace-filter-tab--active', filter === activeTimelineFilter);
+            const countEl = btn.querySelector('.pltrace-filter-count');
+            if (countEl) {
+                countEl.textContent = String(counts[filter] || 0);
+            }
+        });
+    }
+
+    function setTimelineFilter(tab) {
+        activeTimelineFilter = tab || 'todos';
+        refreshTimelineView({ preserveScroll: true });
+    }
+
+    function setFilterTabsVisible(visible) {
+        if (filterTabsEl) filterTabsEl.hidden = !visible;
+    }
+
+    function refreshTimelineView(opts) {
+        opts = opts || {};
+        updateFilterTabUI();
+        const filtered = filterEventsForTab(allEvents, activeTimelineFilter);
+        renderTrace(filtered, opts);
+    }
+
+    function setAllEvents(events, opts) {
+        allEvents = sortEvents(events || []);
+        timelineFingerprint = eventFingerprint(allEvents);
+        lastMessageId = 0;
+        allEvents.forEach(function (ev) {
+            if (ev.tipo === 'chat_mensaje' && ev.chat && ev.chat.message_id) {
+                const mid = parseInt(ev.chat.message_id, 10) || 0;
+                if (mid > lastMessageId) lastMessageId = mid;
+            }
+        });
+        refreshTimelineView(opts);
+    }
+
+    function eventSortValue(ev) {
+        const date = parseEventDate(ev.fecha);
+        const ts = date ? date.getTime() : 0;
+        const msgId = ev.chat && ev.chat.message_id ? parseInt(ev.chat.message_id, 10) : 0;
+        return [ts, msgId];
+    }
+
+    function sortEvents(events) {
+        return events.slice().sort(function (a, b) {
+            const va = eventSortValue(a);
+            const vb = eventSortValue(b);
+            if (va[0] !== vb[0]) return va[0] - vb[0];
+            return va[1] - vb[1];
+        });
+    }
+
+    function eventFingerprint(events) {
+        try {
+            return JSON.stringify(events);
+        } catch (e) {
+            return String(events.length);
+        }
+    }
+
+    function isNearBottom(el) {
+        if (!el) return true;
+        const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+        return remaining < 48;
+    }
+
+    function scrollTimelineToBottom() {
+        if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function setComposerEnabled(enabled) {
+        if (chatInputEl) {
+            chatInputEl.disabled = !enabled;
+            chatInputEl.placeholder = enabled
+                ? 'Escribe un mensaje al equipo...'
+                : 'Selecciona un lead para enviar un mensaje al equipo...';
+        }
+        if (chatSendEl) chatSendEl.disabled = !enabled || isSending || isUploading;
+        if (composerPlusEl) composerPlusEl.disabled = !enabled || isUploading;
+    }
+
+    function syncBodyScrollLock() {
+        const anyOpen = (interactionModalEl && !interactionModalEl.hidden) ||
+            (imageModalEl && !imageModalEl.hidden) ||
+            (pdfModalEl && !pdfModalEl.hidden);
+        document.body.style.overflow = anyOpen ? 'hidden' : '';
+    }
+
+    function openOverlayModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.hidden = false;
+        modalEl.setAttribute('aria-hidden', 'false');
+        syncBodyScrollLock();
+    }
+
+    function closeOverlayModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.hidden = true;
+        modalEl.setAttribute('aria-hidden', 'true');
+        syncBodyScrollLock();
+    }
+
+    function openImageModal(url) {
+        if (!url || !imageModalEl || !imageModalImgEl) return;
+        imageModalImgEl.src = url;
+        openOverlayModal(imageModalEl);
+    }
+
+    function closeImageModal() {
+        if (imageModalImgEl) imageModalImgEl.src = '';
+        closeOverlayModal(imageModalEl);
+    }
+
+    function openPdfModal(url, name, downloadUrl) {
+        if (!url || !pdfModalEl || !pdfFrameEl) return;
+        if (pdfModalTitleEl) pdfModalTitleEl.textContent = name || 'Documento PDF';
+        if (pdfModalDownloadEl) {
+            pdfModalDownloadEl.href = downloadUrl || url;
+            pdfModalDownloadEl.setAttribute('download', name || 'documento.pdf');
+        }
+        pdfFrameEl.src = url;
+        openOverlayModal(pdfModalEl);
+    }
+
+    function closePdfModal() {
+        if (pdfFrameEl) pdfFrameEl.src = 'about:blank';
+        closeOverlayModal(pdfModalEl);
+    }
+
+    function showUploadIndicator(fileName, percent) {
+        if (!uploadIndicatorEl) return;
+        uploadIndicatorEl.hidden = false;
+        if (uploadNameEl) uploadNameEl.textContent = 'Subiendo ' + fileName + '...';
+        updateUploadProgress(percent, fileName);
+    }
+
+    function updateUploadProgress(percent, fileName) {
+        const pct = Math.max(0, Math.min(100, parseInt(percent, 10) || 0));
+        if (uploadProgressBarEl) uploadProgressBarEl.style.width = pct + '%';
+        if (uploadPercentEl) uploadPercentEl.textContent = pct + '%';
+        if (uploadNameEl && fileName) uploadNameEl.textContent = 'Subiendo ' + fileName + '...';
+    }
+
+    function hideUploadIndicator() {
+        if (!uploadIndicatorEl) return;
+        uploadIndicatorEl.hidden = true;
+        if (uploadProgressBarEl) uploadProgressBarEl.style.width = '0%';
+        if (uploadPercentEl) uploadPercentEl.textContent = '0%';
+    }
+
+    function openModal(modalEl) {
+        openOverlayModal(modalEl);
+    }
+
+    function closeModal(modalEl) {
+        closeOverlayModal(modalEl);
+    }
+
+    function buildInteractionEmbedUrl(tabla, origId) {
+        return 'lead_interaction.php?embed=1&tabla_origen=' + encodeURIComponent(tabla) +
+            '&id=' + encodeURIComponent(String(origId));
+    }
+
+    function isActionPopoverOpen() {
+        return actionPopoverEl && !actionPopoverEl.hidden;
+    }
+
+    function openActionPopover() {
+        if (!currentLead.tabla || currentLead.origId <= 0 || !actionPopoverEl) return;
+        actionPopoverEl.hidden = false;
+        actionPopoverEl.setAttribute('aria-hidden', 'false');
+        if (composerPlusEl) composerPlusEl.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeActionPopover() {
+        if (!actionPopoverEl) return;
+        actionPopoverEl.hidden = true;
+        actionPopoverEl.setAttribute('aria-hidden', 'true');
+        if (composerPlusEl) composerPlusEl.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleActionPopover() {
+        if (isActionPopoverOpen()) {
+            closeActionPopover();
+        } else {
+            openActionPopover();
+        }
+    }
+
+    function openInteractionModal() {
+        if (!currentLead.tabla || currentLead.origId <= 0) return;
+        closeActionPopover();
+        if (interactionFrameEl) {
+            interactionFrameEl.src = buildInteractionEmbedUrl(currentLead.tabla, currentLead.origId);
+        }
+        openModal(interactionModalEl);
+    }
+
+    function closeInteractionModal(clearFrame) {
+        closeModal(interactionModalEl);
+        if (clearFrame !== false && interactionFrameEl) {
+            interactionFrameEl.src = 'about:blank';
+        }
+    }
+
+    function reloadCurrentLeadTrace() {
+        if (!currentLead.tabla || currentLead.origId <= 0) return;
+        loadLeadTrace(
+            currentLead.tabla,
+            currentLead.origId,
+            currentLead.cfId,
+            {
+                name: titleEl ? titleEl.textContent : '',
+                estatus: (subEl && subEl.textContent.indexOf('Estatus actual: ') === 0)
+                    ? subEl.textContent.replace('Estatus actual: ', '')
+                    : '',
+                timelineFilter: activeTimelineFilter
+            }
+        );
+    }
+
+    function buildDownloadBtnHtml(downloadUrl, nombre) {
+        if (!downloadUrl) return '';
+        return '<a href="' + escapeAttr(downloadUrl) + '" class="pltrace-chat-download-btn" download="' + escapeAttr(nombre) + '" title="Descargar archivo">' +
+            '<i class="fas fa-download"></i> Descargar' +
+        '</a>';
+    }
+
+    function buildFileMetaHtml(nombre, tipoLabel, tamano, downloadUrl) {
+        return '<div class="pltrace-chat-file-meta">' +
+            '<div class="pltrace-chat-file-meta-info">' +
+                '<span class="pltrace-chat-file-name">' + escapeHtml(nombre) + '</span>' +
+                '<span class="pltrace-chat-file-type">' + escapeHtml(tipoLabel) + '</span>' +
+                (tamano ? '<span class="pltrace-chat-file-size">' + escapeHtml(tamano) + '</span>' : '') +
+            '</div>' +
+            buildDownloadBtnHtml(downloadUrl, nombre) +
+        '</div>';
+    }
+
+    function buildFileContentHtml(archivo) {
+        if (!archivo) return '';
+
+        const categoria = archivo.categoria || 'other';
+        const nombre = archivo.nombre || 'Archivo';
+        const tipoLabel = archivo.tipo_label || 'Archivo';
+        const tamano = archivo.tamano_display || '';
+        const url = archivo.url || '';
+        const downloadUrl = archivo.download_url || url;
+        const iconClass = fileIconClass(categoria);
+        const iconFa = fileIconFa(categoria, archivo.extension);
+
+        const metaHtml = buildFileMetaHtml(nombre, tipoLabel, tamano, downloadUrl);
+
+        if (categoria === 'image' && url) {
+            return '<div class="pltrace-chat-file pltrace-chat-file--image">' +
+                '<button type="button" class="pltrace-chat-image-btn" data-pltrace-image="' + escapeAttr(url) + '" title="Ver imagen ampliada">' +
+                    '<img src="' + escapeAttr(url) + '" alt="' + escapeAttr(nombre) + '" loading="lazy">' +
+                '</button>' +
+                metaHtml +
+            '</div>';
+        }
+
+        if (categoria === 'video' && url) {
+            return '<div class="pltrace-chat-file pltrace-chat-file--video">' +
+                '<video controls preload="metadata" src="' + escapeAttr(url) + '"></video>' +
+                metaHtml +
+            '</div>';
+        }
+
+        if (categoria === 'pdf') {
+            return '<div class="pltrace-chat-file pltrace-chat-file--pdf">' +
+                '<div class="pltrace-chat-doc-card">' +
+                    '<button type="button" class="pltrace-chat-pdf-card" data-pltrace-pdf="' + escapeAttr(url) + '" data-pltrace-pdf-name="' + escapeAttr(nombre) + '" data-pltrace-pdf-download="' + escapeAttr(downloadUrl) + '">' +
+                        '<span class="pltrace-chat-file-icon ' + iconClass + '"><i class="fas ' + iconFa + '"></i></span>' +
+                        '<span class="pltrace-chat-file-info">' +
+                            '<span class="pltrace-chat-file-name">' + escapeHtml(nombre) + '</span>' +
+                            '<span class="pltrace-chat-file-type">' + escapeHtml(tipoLabel) + '</span>' +
+                            (tamano ? '<span class="pltrace-chat-file-size">' + escapeHtml(tamano) + '</span>' : '') +
+                        '</span>' +
+                    '</button>' +
+                    buildDownloadBtnHtml(downloadUrl, nombre) +
+                '</div>' +
+            '</div>';
+        }
+
+        return '<div class="pltrace-chat-file pltrace-chat-file--doc">' +
+            '<div class="pltrace-chat-doc-card">' +
+                '<span class="pltrace-chat-file-icon ' + iconClass + '"><i class="fas ' + iconFa + '"></i></span>' +
+                '<span class="pltrace-chat-file-info">' +
+                    '<span class="pltrace-chat-file-name">' + escapeHtml(nombre) + '</span>' +
+                    '<span class="pltrace-chat-file-type">' + escapeHtml(tipoLabel) + '</span>' +
+                    (tamano ? '<span class="pltrace-chat-file-size">' + escapeHtml(tamano) + '</span>' : '') +
+                '</span>' +
+                buildDownloadBtnHtml(downloadUrl, nombre) +
+            '</div>' +
+        '</div>';
+    }
+
+    function buildChatBubbleHtml(ev, animate) {
+        const chat = ev.chat || {};
+        const isMine = !!chat.is_mine;
+        const rowClass = isMine ? 'out' : 'in';
+        const msgId = chat.message_id ? String(chat.message_id) : '';
+        const tipoContenido = chat.tipo_contenido || 'texto';
+        const isFile = tipoContenido === 'archivo' && chat.archivo;
+        const bubbleClass = isFile ? ' pltrace-chat-bubble--file' : '';
+
+        let bodyHtml = '';
+        if (isFile) {
+            bodyHtml = buildFileContentHtml(chat.archivo);
+        } else {
+            bodyHtml = '<div class="pltrace-chat-text">' + escapeHtml(ev.detalle || '') + '</div>';
+        }
+
+        return '<div class="pltrace-chat-row pltrace-chat-row--' + rowClass + (animate ? ' pltrace-msg-animate' : '') + '" data-message-id="' + escapeHtml(msgId) + '">' +
+            '<div class="pltrace-chat-bubble pltrace-chat-bubble--' + rowClass + bubbleClass + '">' +
+                '<div class="pltrace-chat-meta">' +
+                    '<span class="pltrace-chat-author">' + escapeHtml(chat.usuario_nombre || 'Usuario') + '</span>' +
+                    '<span class="pltrace-chat-role">' + escapeHtml(chat.usuario_rol || '') + '</span>' +
+                '</div>' +
+                bodyHtml +
+                '<div class="pltrace-chat-time">' + escapeHtml(ev.fecha_display || '—') + '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function renderTrace(events, opts) {
+        opts = opts || {};
+        const wasNearBottom = opts.preserveScroll ? isNearBottom(chatEl) : true;
+        const animateNew = !!opts.animateNew;
+
         chatEl.innerHTML = '';
         if (!events.length) {
-            chatEl.innerHTML = '<div class="pltrace-timeline-empty">Sin eventos registrados para este lead.</div>';
+            chatEl.innerHTML = '<div class="pltrace-timeline-empty">' + escapeHtml(emptyMessageForFilter(activeTimelineFilter)) + '</div>';
             return;
         }
 
@@ -704,6 +2152,14 @@ $conn->close();
             }
 
             const tipo = ev.tipo || 'default';
+
+            if (tipo === 'chat_mensaje') {
+                const wrap = document.createElement('div');
+                wrap.innerHTML = buildChatBubbleHtml(ev, animateNew);
+                chatEl.appendChild(wrap.firstChild);
+                return;
+            }
+
             const icon = ICONS[tipo] || ICONS.default;
             const estimated = ev.es_estimado ? '<span class="pltrace-estimated-tag">Fecha estimada</span>' : '';
 
@@ -730,7 +2186,164 @@ $conn->close();
             chatEl.appendChild(block);
         });
 
-        chatEl.scrollTop = chatEl.scrollHeight;
+        if (wasNearBottom) {
+            scrollTimelineToBottom();
+        }
+    }
+
+    function mergeChatEvents(newEvents) {
+        if (!newEvents || !newEvents.length) return false;
+
+        const existingIds = {};
+        allEvents.forEach(function (ev) {
+            if (ev.tipo === 'chat_mensaje' && ev.chat && ev.chat.message_id) {
+                existingIds[String(ev.chat.message_id)] = true;
+            }
+        });
+
+        let added = false;
+        newEvents.forEach(function (ev) {
+            const mid = ev.chat && ev.chat.message_id ? String(ev.chat.message_id) : '';
+            if (mid && existingIds[mid]) return;
+            if (mid) existingIds[mid] = true;
+            allEvents.push(ev);
+            added = true;
+        });
+
+        if (!added) return false;
+
+        allEvents = sortEvents(allEvents);
+        const fp = eventFingerprint(allEvents);
+        if (fp === timelineFingerprint) return false;
+        timelineFingerprint = fp;
+
+        lastMessageId = 0;
+        allEvents.forEach(function (ev) {
+            if (ev.tipo === 'chat_mensaje' && ev.chat && ev.chat.message_id) {
+                const mid = parseInt(ev.chat.message_id, 10) || 0;
+                if (mid > lastMessageId) lastMessageId = mid;
+            }
+        });
+
+        refreshTimelineView({ preserveScroll: true, animateNew: true });
+        refreshUnreadBadges();
+        return true;
+    }
+
+    function updateUnreadBadge(traceKey, count) {
+        appRoot.querySelectorAll('.pltrace-lead-card').forEach(function (card) {
+            if ((card.dataset.pltraceKey || '') !== traceKey) return;
+            const badge = card.querySelector('.pltrace-unread-badge');
+            if (!badge) return;
+
+            const n = parseInt(count, 10) || 0;
+            if (n > 0) {
+                badge.textContent = n > 9 ? '9+' : String(n);
+                badge.hidden = false;
+            } else {
+                badge.textContent = '';
+                badge.hidden = true;
+            }
+        });
+    }
+
+    function collectVisibleTraceKeys() {
+        const keys = [];
+        appRoot.querySelectorAll('.pltrace-lead-card').forEach(function (btn) {
+            if (btn.style.display === 'none') return;
+            const key = btn.dataset.pltraceKey || '';
+            if (key) keys.push(key);
+        });
+        return keys;
+    }
+
+    function refreshUnreadBadges() {
+        const keys = collectVisibleTraceKeys();
+        if (!keys.length) return;
+
+        const body = new URLSearchParams();
+        keys.forEach(function (key) {
+            body.append('trace_keys[]', key);
+        });
+
+        fetch(PLTRACE_CHAT_API + '?action=chat_unread_batch', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                const counts = data.counts || {};
+                keys.forEach(function (key) {
+                    updateUnreadBadge(key, counts[key] || 0);
+                });
+            })
+            .catch(function () {});
+    }
+
+    function scheduleMarkRead() {
+        if (!currentLead.tabla || currentLead.origId <= 0) return;
+        if (markReadTimer) clearTimeout(markReadTimer);
+        markReadTimer = setTimeout(function () {
+            const body = new URLSearchParams();
+            body.set('tabla', currentLead.tabla);
+            body.set('orig_id', String(currentLead.origId));
+            fetch(PLTRACE_CHAT_API + '?action=chat_mark_read', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        updateUnreadBadge(currentLead.traceKey, 0);
+                        refreshUnreadBadges();
+                    }
+                })
+                .catch(function () {});
+        }, 600);
+    }
+
+    function stopChatPolling() {
+        if (chatPollTimer) {
+            clearInterval(chatPollTimer);
+            chatPollTimer = null;
+        }
+    }
+
+    function startChatPolling() {
+        stopChatPolling();
+        if (!currentLead.tabla || currentLead.origId <= 0) return;
+
+        chatPollTimer = setInterval(function () {
+            if (!currentLead.tabla || currentLead.origId <= 0) return;
+            const url = PLTRACE_CHAT_API + '?action=chat_poll&tabla=' + encodeURIComponent(currentLead.tabla) +
+                '&orig_id=' + encodeURIComponent(String(currentLead.origId)) +
+                '&since_id=' + encodeURIComponent(String(lastMessageId || 0));
+
+            fetch(url, { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.success) return;
+                    if (typeof data.last_id === 'number' && data.last_id > lastMessageId) {
+                        // lastMessageId updated in renderTrace after merge
+                    }
+                    if (data.events && data.events.length) {
+                        mergeChatEvents(data.events);
+                        scheduleMarkRead();
+                    }
+                })
+                .catch(function () {});
+        }, 2500);
+    }
+
+    function startBadgePolling() {
+        if (badgePollTimer) return;
+        refreshUnreadBadges();
+        badgePollTimer = setInterval(refreshUnreadBadges, 9000);
     }
 
     function setActiveItem(traceKey) {
@@ -747,13 +2360,22 @@ $conn->close();
     }
 
     function loadLeadTrace(tabla, origId, cfId, meta) {
+        closeActionPopover();
+        hideUploadIndicator();
         const traceKey = tabla + '|' + origId;
+        currentLead = { tabla: tabla, origId: origId, cfId: cfId, traceKey: traceKey };
+
         setActiveItem(traceKey);
+        setComposerEnabled(tabla !== '' && origId > 0);
+        stopChatPolling();
+        activeTimelineFilter = (meta && meta.timelineFilter) ? meta.timelineFilter : 'todos';
+        setFilterTabsVisible(false);
+        allEvents = [];
 
         const name = meta && meta.name ? meta.name : ('Lead #' + origId);
         const estatus = meta && meta.estatus ? meta.estatus : '';
         titleEl.textContent = name;
-        subEl.textContent = estatus ? ('Estatus actual: ' + estatus) : 'Historial completo de estatus y fechas';
+        subEl.textContent = estatus ? ('Estatus actual: ' + estatus) : 'Historial completo de estatus, interacciones y mensajes';
 
         chatEl.innerHTML = '<div class="pltrace-timeline-empty">Cargando trazabilidad...</div>';
 
@@ -764,6 +2386,8 @@ $conn->close();
                 if (token !== loadToken) return;
                 if (!data || !data.success) {
                     chatEl.innerHTML = '<div class="pltrace-timeline-empty">' + escapeHtml((data && data.error) || 'No se pudo cargar la trazabilidad') + '</div>';
+                    setComposerEnabled(false);
+                    setFilterTabsVisible(false);
                     return;
                 }
                 if (data.lead && data.lead.nombre) {
@@ -772,11 +2396,22 @@ $conn->close();
                 if (data.lead && data.lead.estatus_actual) {
                     subEl.textContent = 'Estatus actual: ' + data.lead.estatus_actual;
                 }
-                renderTrace(data.events || []);
+                if (data.lead && data.lead.tabla_origen && data.lead.orig_id) {
+                    currentLead.tabla = data.lead.tabla_origen;
+                    currentLead.origId = parseInt(data.lead.orig_id, 10) || currentLead.origId;
+                    currentLead.traceKey = currentLead.tabla + '|' + currentLead.origId;
+                    setComposerEnabled(true);
+                }
+                setFilterTabsVisible(true);
+                setAllEvents(data.events || [], { animateNew: false });
+                scheduleMarkRead();
+                startChatPolling();
             })
             .catch(function () {
                 if (token !== loadToken) return;
                 chatEl.innerHTML = '<div class="pltrace-timeline-empty">Error de comunicación con el servidor.</div>';
+                setComposerEnabled(false);
+                setFilterTabsVisible(false);
             });
 
         const url = new URL(window.location.href);
@@ -788,6 +2423,104 @@ $conn->close();
             url.searchParams.set('cf_id', String(cfId));
         }
         window.history.replaceState({}, '', url.toString());
+    }
+
+    function sendChatMessage() {
+        if (!chatInputEl || !currentLead.tabla || currentLead.origId <= 0 || isSending) return;
+        const text = (chatInputEl.value || '').trim();
+        if (!text) return;
+
+        isSending = true;
+        setComposerEnabled(true);
+
+        const body = new URLSearchParams();
+        body.set('tabla', currentLead.tabla);
+        body.set('orig_id', String(currentLead.origId));
+        body.set('mensaje', text);
+        if (currentLead.cfId > 0) {
+            body.set('cf_id', String(currentLead.cfId));
+        }
+
+        fetch(PLTRACE_CHAT_API + '?action=chat_send', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.success && data.event) {
+                    chatInputEl.value = '';
+                    mergeChatEvents([data.event]);
+                    scrollTimelineToBottom();
+                } else {
+                    alert((data && data.message) ? data.message : 'No se pudo enviar el mensaje');
+                }
+            })
+            .catch(function () {
+                alert('Error de comunicación al enviar el mensaje');
+            })
+            .finally(function () {
+                isSending = false;
+                setComposerEnabled(currentLead.tabla !== '' && currentLead.origId > 0);
+            });
+    }
+
+    function uploadChatFile(file) {
+        if (!file || !currentLead.tabla || currentLead.origId <= 0 || isUploading) return;
+
+        closeActionPopover();
+        isUploading = true;
+        setComposerEnabled(true);
+        showUploadIndicator(file.name, 0);
+
+        const formData = new FormData();
+        formData.append('archivo', file);
+        formData.append('tabla', currentLead.tabla);
+        formData.append('orig_id', String(currentLead.origId));
+        if (currentLead.cfId > 0) {
+            formData.append('cf_id', String(currentLead.cfId));
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', PLTRACE_CHAT_API + '?action=chat_upload', true);
+        xhr.withCredentials = true;
+
+        xhr.upload.addEventListener('progress', function (e) {
+            if (!e.lengthComputable) return;
+            const pct = Math.round((e.loaded / e.total) * 100);
+            updateUploadProgress(pct, file.name);
+        });
+
+        xhr.onload = function () {
+            hideUploadIndicator();
+            let data = null;
+            try {
+                data = JSON.parse(xhr.responseText || '{}');
+            } catch (err) {
+                data = null;
+            }
+
+            if (xhr.status >= 200 && xhr.status < 300 && data && data.success && data.event) {
+                mergeChatEvents([data.event]);
+                scrollTimelineToBottom();
+            } else {
+                const msg = (data && (data.message || data.error)) ? (data.message || data.error) : 'No se pudo cargar el archivo';
+                alert(msg);
+            }
+
+            isUploading = false;
+            setComposerEnabled(currentLead.tabla !== '' && currentLead.origId > 0);
+        };
+
+        xhr.onerror = function () {
+            hideUploadIndicator();
+            alert('Error de comunicación al cargar el archivo');
+            isUploading = false;
+            setComposerEnabled(currentLead.tabla !== '' && currentLead.origId > 0);
+        };
+
+        xhr.send(formData);
     }
 
     appRoot.querySelectorAll('.pltrace-lead-card').forEach(function (btn) {
@@ -811,8 +2544,137 @@ $conn->close();
                 const hay = (btn.dataset.pltraceSearch || '').indexOf(q) !== -1;
                 btn.style.display = hay ? '' : 'none';
             });
+            refreshUnreadBadges();
         });
     }
+
+    if (chatSendEl) {
+        chatSendEl.addEventListener('click', sendChatMessage);
+    }
+    if (chatInputEl) {
+        chatInputEl.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
+
+    if (composerPlusEl) {
+        composerPlusEl.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (composerPlusEl.disabled) return;
+            toggleActionPopover();
+        });
+    }
+    document.addEventListener('click', function (e) {
+        if (!isActionPopoverOpen()) return;
+        const actionsWrap = composerPlusEl ? composerPlusEl.closest('.pltrace-composer-actions') : null;
+        if (actionsWrap && actionsWrap.contains(e.target)) return;
+        closeActionPopover();
+    });
+    if (actionRegisterEl) {
+        actionRegisterEl.addEventListener('click', openInteractionModal);
+    }
+    if (actionUploadEl && fileInputEl) {
+        actionUploadEl.addEventListener('click', function () {
+            closeActionPopover();
+            if (composerPlusEl && composerPlusEl.disabled) return;
+            fileInputEl.value = '';
+            fileInputEl.click();
+        });
+        fileInputEl.addEventListener('change', function () {
+            const file = fileInputEl.files && fileInputEl.files[0] ? fileInputEl.files[0] : null;
+            if (file) uploadChatFile(file);
+        });
+    }
+    if (chatEl) {
+        chatEl.addEventListener('click', function (e) {
+            const imageBtn = e.target.closest('[data-pltrace-image]');
+            if (imageBtn) {
+                e.preventDefault();
+                openImageModal(imageBtn.getAttribute('data-pltrace-image') || '');
+                return;
+            }
+            const pdfBtn = e.target.closest('[data-pltrace-pdf]');
+            if (pdfBtn) {
+                e.preventDefault();
+                openPdfModal(
+                    pdfBtn.getAttribute('data-pltrace-pdf') || '',
+                    pdfBtn.getAttribute('data-pltrace-pdf-name') || 'Documento PDF',
+                    pdfBtn.getAttribute('data-pltrace-pdf-download') || ''
+                );
+            }
+        });
+    }
+    if (imageModalCloseEl) {
+        imageModalCloseEl.addEventListener('click', closeImageModal);
+    }
+    if (imageModalEl) {
+        imageModalEl.addEventListener('click', function (e) {
+            if (e.target === imageModalEl) closeImageModal();
+        });
+    }
+    if (pdfModalCloseEl) {
+        pdfModalCloseEl.addEventListener('click', closePdfModal);
+    }
+    if (pdfModalEl) {
+        pdfModalEl.addEventListener('click', function (e) {
+            if (e.target === pdfModalEl) closePdfModal();
+        });
+    }
+    if (interactionModalCloseEl) {
+        interactionModalCloseEl.addEventListener('click', function () {
+            closeInteractionModal(true);
+        });
+    }
+    if (interactionModalEl) {
+        interactionModalEl.addEventListener('click', function (e) {
+            if (e.target === interactionModalEl) closeInteractionModal(true);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (interactionModalEl && !interactionModalEl.hidden) {
+            closeInteractionModal(true);
+            return;
+        }
+        if (pdfModalEl && !pdfModalEl.hidden) {
+            closePdfModal();
+            return;
+        }
+        if (imageModalEl && !imageModalEl.hidden) {
+            closeImageModal();
+            return;
+        }
+        if (isActionPopoverOpen()) {
+            closeActionPopover();
+        }
+    });
+
+    window.addEventListener('message', function (e) {
+        if (e.origin !== window.location.origin) return;
+        const data = e.data || {};
+        if (data.type === 'pltrace_interaction_close') {
+            closeInteractionModal(true);
+            return;
+        }
+        if (data.type === 'pltrace_interaction_saved') {
+            closeInteractionModal(true);
+            reloadCurrentLeadTrace();
+        }
+    });
+
+    if (filterTabsEl) {
+        filterTabsEl.querySelectorAll('.pltrace-filter-tab').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setTimelineFilter(btn.dataset.filter || 'todos');
+            });
+        });
+    }
+
+    startBadgePolling();
 
     if (INITIAL_TRACE_KEY || INITIAL_CF_ID > 0) {
         let initialBtn = null;

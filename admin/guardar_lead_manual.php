@@ -5,77 +5,6 @@ error_reporting(E_ALL);
 
 include 'conn.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-function ensureLeadInteractionsTable($conn) {
-    $sql = "CREATE TABLE IF NOT EXISTS `lead_interactions` (
-        `id` INT NOT NULL AUTO_INCREMENT,
-        `tabla_origen` VARCHAR(120) NOT NULL,
-        `lead_id` INT NOT NULL,
-        `original_lead_id` INT DEFAULT NULL,
-        `interaction_type` VARCHAR(40) DEFAULT NULL,
-        `interaction_date` DATE DEFAULT NULL,
-        `interaction_time` VARCHAR(20) DEFAULT NULL,
-        `notes` TEXT,
-        `outcome` VARCHAR(40) DEFAULT NULL,
-        `next_action` VARCHAR(255) DEFAULT NULL,
-        `next_action_date` DATE DEFAULT NULL,
-        `created_by` INT DEFAULT NULL,
-        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`),
-        KEY `idx_lead_interactions_lead` (`tabla_origen`, `lead_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    $conn->query($sql);
-}
-
-function saveLeadInternalNote($conn, $leadId, $notes) {
-    $notes = trim((string) $notes);
-    if ($notes === '' || $leadId <= 0) {
-        return;
-    }
-
-    ensureLeadInteractionsTable($conn);
-
-    $tablaOrigen = 'organic_leads';
-    $interactionType = 'Nota interna';
-    $outcome = 'Sin respuesta';
-    $interactionDate = date('Y-m-d');
-    $interactionTime = date('H:i:s');
-    $nextAction = '';
-    $nextActionDate = null;
-    $createdBy = isset($_SESSION['uid']) ? intval($_SESSION['uid']) : null;
-
-    $stmt = $conn->prepare("INSERT INTO lead_interactions
-        (tabla_origen, lead_id, original_lead_id, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, created_by)
-        VALUES (?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?)");
-    if (!$stmt) {
-        throw new Exception('Error al preparar la nota interna: ' . $conn->error);
-    }
-
-    $stmt->bind_param(
-        'siisssssssi',
-        $tablaOrigen,
-        $leadId,
-        $leadId,
-        $interactionType,
-        $interactionDate,
-        $interactionTime,
-        $notes,
-        $outcome,
-        $nextAction,
-        $nextActionDate,
-        $createdBy
-    );
-
-    if (!$stmt->execute()) {
-        $stmt->close();
-        throw new Exception('Error al guardar la nota interna: ' . $stmt->error);
-    }
-    $stmt->close();
-}
-
 function ensureColumnExists($conn, $table, $columnName, $columnDef) {
     $checkSql = "SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . $conn->real_escape_string($table) . "' AND COLUMN_NAME = '" . $conn->real_escape_string($columnName) . "'";
     $res = $conn->query($checkSql);
@@ -141,39 +70,13 @@ try {
     $city = isset($_POST['city']) ? trim($_POST['city']) : '';
     $wedding_location = isset($_POST['wedding_location']) ? trim($_POST['wedding_location']) : '';
     $wedding_date = isset($_POST['wedding_date']) ? trim($_POST['wedding_date']) : '';
-    $wedding_date_not_defined = (isset($_POST['wedding_date_not_defined']) && (string) $_POST['wedding_date_not_defined'] === '1') ? 1 : 0;
     $campaign_name = isset($_POST['campaign_name']) ? trim($_POST['campaign_name']) : '';
     $platform = isset($_POST['platform']) ? trim($_POST['platform']) : '';
     $how_long_known_us = isset($_POST['how_long_known_us']) ? trim($_POST['how_long_known_us']) : '';
-    $how_did_you_meet = isset($_POST['how_did_you_meet']) ? trim($_POST['how_did_you_meet']) : '';
     $first_contact_channel = isset($_POST['first_contact_channel']) ? trim($_POST['first_contact_channel']) : '';
     $tipo_ig = isset($_POST['tipo_ig']) ? trim($_POST['tipo_ig']) : '';
-    $tipo_cliente_raw = isset($_POST['tipo_cliente']) ? trim($_POST['tipo_cliente']) : '';
-    if (empty($tipo_cliente_raw)) {
-        throw new Exception('El tipo de cliente es obligatorio');
-    }
-    $tipo_cliente_permitidos = ['Wedding Planner', 'Cliente Final'];
-    if (!in_array($tipo_cliente_raw, $tipo_cliente_permitidos, true)) {
-        throw new Exception('Valor de tipo de cliente no válido: ' . $tipo_cliente_raw);
-    }
-    $tipo_cliente = ($tipo_cliente_raw === 'Wedding Planner') ? 1 : 0;
     $fecha_registro = isset($_POST['fecha_registro']) ? trim($_POST['fecha_registro']) : '';
     $comentarios = isset($_POST['comentarios']) ? trim($_POST['comentarios']) : '';
-
-    // Auto-asignar how_did_you_meet según tipo_cliente y how_long_known_us (ignorar lo que venga del cliente)
-    if ($tipo_cliente_raw === 'Wedding Planner') {
-        $how_did_you_meet = '1'; // Wedding Planner
-    } elseif ($tipo_cliente_raw === 'Cliente Final') {
-        if ($how_long_known_us === 'Less than 6 months') {
-            $how_did_you_meet = '3'; // New Market
-        } elseif ($how_long_known_us === 'More than 6 months') {
-            $how_did_you_meet = '2'; // Community
-        } else {
-            $how_did_you_meet = ''; // Sin dato si no eligió tiempo
-        }
-    } else {
-        $how_did_you_meet = '';
-    }
 
     // Para IG orgánico, asignar valores por defecto cuando vienen vacíos
     $is_ig_organico = ($first_contact_channel === 'IG' && $tipo_ig === 'organico');
@@ -198,25 +101,27 @@ try {
     if (empty($first_contact_channel)) {
         throw new Exception('First contact channel es obligatorio');
     }
-    if (empty($tipo_cliente)) {
-        throw new Exception('El tipo de cliente es obligatorio');
-    }
-
-    $tipo_cliente_permitidos = ['Wedding Planner', 'Cliente Final'];
-    if (!in_array($tipo_cliente, $tipo_cliente_permitidos, true)) {
-        throw new Exception('Valor de tipo de cliente no válido: ' . $tipo_cliente);
-    }
 
     // Validar que campaign_name sea uno de los valores permitidos
-    $campaign_names_permitidos = ['E10','b1 (USA)', 'b2 (MX)', 'b3 (Mex 2)', 'b4 (Latam)', 'ig organico', 'prospectos', 'wp', 'whatsapp', 'mail', 'phone call', 'tiktok'];
+    $campaign_names_permitidos = ['E10','b1 (USA)', 'b2 (MX)', 'ig organico', 'prospectos', 'wp', 'whatsapp', 'mail', 'phone call', 'tiktok'];
     if (!in_array($campaign_name, $campaign_names_permitidos)) {
         throw new Exception('Valor de origen no válido: ' . $campaign_name);
     }
 
     // Validar que platform sea uno de los valores permitidos
-    $platforms_permitidas = ['ig usa', 'ig mexico', 'ig mex 2', 'ig latam', 'ig', 'prospectos', 'wp', 'fb', 'whatsapp', 'mail', 'phone call', 'tiktok'];
+    $platforms_permitidas = ['ig usa', 'ig mexico', 'ig', 'prospectos', 'wp', 'fb', 'whatsapp', 'mail', 'phone call', 'tiktok'];
     if (!in_array($platform, $platforms_permitidas)) {
         throw new Exception('Valor de medio no válido: ' . $platform);
+    }
+
+    // Valores del formulario web; aceptar también etiquetas legacy del modal anterior
+    $how_long_legacy_map = [
+        'Less than 3 months'           => 'Less than 6 months',
+        'Between 3 months and 1 year'  => 'More than 6 months',
+        'More than 1 year'             => 'More than 6 months',
+    ];
+    if (isset($how_long_legacy_map[$how_long_known_us])) {
+        $how_long_known_us = $how_long_legacy_map[$how_long_known_us];
     }
 
     $how_long_known_us_permitidos = ['Less than 6 months', 'More than 6 months', 'Not asked'];
@@ -250,9 +155,7 @@ try {
         $wedding_location = normalize_text($wedding_location);
     }
 
-    if ($wedding_date_not_defined) {
-        $wedding_date = null;
-    } elseif ($wedding_date !== '') {
+    if ($wedding_date !== '') {
         $weddingDateTs = strtotime($wedding_date);
         if ($weddingDateTs === false) {
             throw new Exception('La fecha del evento no es válida');
@@ -293,14 +196,12 @@ try {
     }
 
     ensureColumnExists($conn, 'organic_leads', 'how_long_known_us', "`how_long_known_us` VARCHAR(100) DEFAULT ''");
-    ensureColumnExists($conn, 'organic_leads', 'how_did_you_meet', "`how_did_you_meet` VARCHAR(10) DEFAULT ''");
     ensureColumnExists($conn, 'organic_leads', 'first_contact_channel', "`first_contact_channel` VARCHAR(100) DEFAULT ''");
     ensureColumnExists($conn, 'organic_leads', 'tipo_ig', "`tipo_ig` VARCHAR(50) DEFAULT ''");
-    ensureColumnExists($conn, 'organic_leads', 'tipo_cliente', "`tipo_cliente` TINYINT(1) NOT NULL DEFAULT 0");
     ensureColumnExists($conn, 'organic_leads', 'city', "`city` VARCHAR(150) DEFAULT ''");
     ensureColumnExists($conn, 'organic_leads', 'wedding_location', "`wedding_location` VARCHAR(255) DEFAULT ''");
     ensureColumnExists($conn, 'organic_leads', 'wedding_date', "`wedding_date` DATE NULL DEFAULT NULL");
-    ensureColumnExists($conn, 'organic_leads', 'wedding_date_not_defined', "`wedding_date_not_defined` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=cliente sin fecha de evento definida'");
+    ensureColumnExists($conn, 'organic_leads', 'registro_notas', "`registro_notas` TEXT NULL DEFAULT NULL");
 
     // Detectar si es una actualización (lead_id presente) o un nuevo registro
     $lead_id = isset($_POST['lead_id']) ? intval($_POST['lead_id']) : 0;
@@ -328,15 +229,13 @@ try {
             city                 = ?,
             wedding_location     = ?,
             wedding_date         = ?,
-            wedding_date_not_defined = ?,
             campaign_name        = ?,
             platform             = ?,
             created_time         = ?,
             how_long_known_us    = ?,
-            how_did_you_meet     = ?,
             first_contact_channel= ?,
             tipo_ig              = ?,
-            tipo_cliente         = ?
+            registro_notas       = ?
         WHERE id = ? AND lead_status = 'manual'";
 
         $stmt = $conn->prepare($sql);
@@ -344,16 +243,12 @@ try {
             throw new Exception('Error al preparar la actualización: ' . $conn->error);
         }
 
-        $stmt->bind_param('ssssssissssssii', $nombre, $correo, $telefono, $city, $wedding_location, $wedding_date, $wedding_date_not_defined, $campaign_name, $platform, $created_time, $how_long_known_us, $how_did_you_meet, $first_contact_channel, $tipo_ig, $tipo_cliente, $lead_id);
+        $stmt->bind_param('sssssssssssssi', $nombre, $correo, $telefono, $city, $wedding_location, $wedding_date, $campaign_name, $platform, $created_time, $how_long_known_us, $first_contact_channel, $tipo_ig, $comentarios, $lead_id);
 
         if (!$stmt->execute()) {
             throw new Exception('Error al actualizar el lead: ' . $stmt->error);
         }
         $stmt->close();
-
-        if ($comentarios !== '') {
-            saveLeadInternalNote($conn, $lead_id, $comentarios);
-        }
 
         $response['success'] = true;
         $response['message'] = 'Lead actualizado correctamente';
@@ -369,29 +264,27 @@ try {
             city,
             wedding_location,
             wedding_date,
-            wedding_date_not_defined,
             campaign_name,
             platform,
             created_time,
             how_long_known_us,
-            how_did_you_meet,
             first_contact_channel,
             tipo_ig,
-            tipo_cliente,
+            registro_notas,
             is_organic,
             lead_status,
             correo_uno_enviado,
             correo_dos_enviado,
             usuario_asignado,
             descartado
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'true', 'manual', 0, 0, 0, 0)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'true', 'manual', 0, 0, 0, 0)";
 
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
             throw new Exception('Error al preparar la consulta: ' . $conn->error);
         }
 
-        $stmt->bind_param('ssssssissssssii', $nombre, $correo, $telefono, $city, $wedding_location, $wedding_date, $wedding_date_not_defined, $campaign_name, $platform, $created_time, $how_long_known_us, $how_did_you_meet, $first_contact_channel, $tipo_ig, $tipo_cliente);
+        $stmt->bind_param('sssssssssssss', $nombre, $correo, $telefono, $city, $wedding_location, $wedding_date, $campaign_name, $platform, $created_time, $how_long_known_us, $first_contact_channel, $tipo_ig, $comentarios);
 
         if (!$stmt->execute()) {
             // Verificar si es error de duplicado de email
@@ -403,10 +296,6 @@ try {
 
         $newId = $conn->insert_id;
         $stmt->close();
-
-        if ($comentarios !== '') {
-            saveLeadInternalNote($conn, $newId, $comentarios);
-        }
 
         $response['success'] = true;
         $response['message'] = 'Lead registrado correctamente';

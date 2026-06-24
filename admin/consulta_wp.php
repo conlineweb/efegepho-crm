@@ -1,4 +1,5 @@
 <?php
+ob_start();
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -12,7 +13,7 @@ $_cwpUserId  = intval($_SESSION['uid'] ?? 0);
 const CWP_WP_VIEW_ADMIN_USER_IDS = [20];
 $_cwpWpViewAsAdmin = in_array($_cwpUserId, CWP_WP_VIEW_ADMIN_USER_IDS, true);
 $_cwpRestrictByVendedor = ($_cwpTipoUsu === 1 && $_cwpUserId > 0 && !$_cwpWpViewAsAdmin);
-$_cwpCanDeleteWp = ($_cwpTipoUsu === 0 || $_cwpUserId === 1);
+$_cwpCanDeleteWp = (usuarioTipoEsAdminLike($_cwpTipoUsu) || $_cwpUserId === 1);
 
 function ensureColumnExists($conn, $table, $columnName, $columnDef)
 {
@@ -948,6 +949,7 @@ $wpProfileIdByEmail = [];
 $wpProfileIdByPhone = [];
 $wpProfileEmailCount = [];
 $wpProfilePhoneCount = [];
+$wpContactByPlanner = [];
 $resWpProfileMap = $conn->query("SELECT id, email, phone, full_name, empresa_wp, campaign_name FROM wedding_planners WHERE (eliminado = 0 OR eliminado IS NULL)");
 if ($resWpProfileMap) {
     while ($wpMap = $resWpProfileMap->fetch_assoc()) {
@@ -955,6 +957,11 @@ if ($resWpProfileMap) {
         if ($wpId <= 0) {
             continue;
         }
+
+        $wpContactByPlanner[$wpId] = [
+            'phone' => trim((string) ($wpMap['phone'] ?? '')),
+            'email' => trim((string) ($wpMap['email'] ?? '')),
+        ];
 
         $emailKey = mb_strtolower(trim((string)($wpMap['email'] ?? '')), 'UTF-8');
         if ($emailKey !== '') {
@@ -1111,6 +1118,135 @@ $stalePlannerPreview = array_slice($stalePlanners, 0, 3);
 
 // Sumar bodas activas solo de los planners visibles en filteredLeads
 $activeWeddingsTotal = array_sum($activeWeddingsByWp);
+
+function cwpNormalizePhoneForExport($phone)
+{
+    $phoneClean = preg_replace('/^\s*p:\s*/i', '', trim((string) $phone));
+    if ($phoneClean === '') {
+        return '';
+    }
+
+    $phoneNoPlus = str_replace('+', '', $phoneClean);
+    return '="' . str_replace('"', '""', $phoneNoPlus) . '"';
+}
+
+function cwpBuildPlannerExportRows(array $filteredLeads, array $wpProfileIdByEmail, array $wpProfileEmailCount, array $wpProfileIdByPhone, array $wpProfilePhoneCount, array $wpVendedorIdByPlanner, array $wpContactByPlanner, array $allCoordinators)
+{
+    $coordinatorNamesByWp = [];
+    foreach ($allCoordinators as $coord) {
+        $wpId = intval($coord['id_wp'] ?? 0);
+        if ($wpId <= 0) {
+            continue;
+        }
+        $coordName = trim((string) ($coord['nombre'] ?? ''));
+        if ($coordName === '') {
+            continue;
+        }
+        if (!isset($coordinatorNamesByWp[$wpId])) {
+            $coordinatorNamesByWp[$wpId] = [];
+        }
+        $coordinatorNamesByWp[$wpId][] = $coordName;
+    }
+
+    $exportRows = [];
+    $seenKeys = [];
+
+    foreach ($filteredLeads as $lead) {
+        $wpEntityId = resolveWpEntityIdFromLead($lead, $wpProfileIdByEmail, $wpProfileEmailCount, $wpProfileIdByPhone, $wpProfilePhoneCount, $wpVendedorIdByPlanner);
+        $exportKey = $wpEntityId > 0
+            ? ('wp:' . $wpEntityId)
+            : (($lead['tabla_origen'] ?? '') . '|' . intval($lead['id'] ?? 0));
+        if (isset($seenKeys[$exportKey])) {
+            continue;
+        }
+        $seenKeys[$exportKey] = true;
+
+        $nombre = getWeddingPlannerDisplayName($lead);
+        $phone = '';
+        $email = '';
+        if ($wpEntityId > 0 && isset($wpContactByPlanner[$wpEntityId])) {
+            $phone = trim((string) ($wpContactByPlanner[$wpEntityId]['phone'] ?? ''));
+            $email = trim((string) ($wpContactByPlanner[$wpEntityId]['email'] ?? ''));
+        }
+        if ($phone === '') {
+            $phone = preg_replace('/^\s*p:\s*/i', '', trim((string) ($lead['phone'] ?? '')));
+        }
+        if ($email === '') {
+            $email = trim((string) ($lead['email'] ?? ''));
+        }
+
+        $coordinadores = '';
+        if ($wpEntityId > 0 && !empty($coordinatorNamesByWp[$wpEntityId])) {
+            $coordinadores = implode('; ', $coordinatorNamesByWp[$wpEntityId]);
+        }
+
+        $exportRows[] = [
+            'nombre' => $nombre,
+            'telefono' => $phone,
+            'correo' => $email,
+            'coordinadores' => $coordinadores,
+        ];
+    }
+
+    return $exportRows;
+}
+
+$exportFormat = isset($_GET['export']) ? strtolower(trim((string) $_GET['export'])) : '';
+if (in_array($exportFormat, ['csv', 'excel'], true)) {
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    $exportRows = cwpBuildPlannerExportRows(
+        $filteredLeads,
+        $wpProfileIdByEmail,
+        $wpProfileEmailCount,
+        $wpProfileIdByPhone,
+        $wpProfilePhoneCount,
+        $wpVendedorIdByPlanner,
+        $wpContactByPlanner,
+        $allCoordinators
+    );
+    $exportFilename = 'planners_wp_' . date('Ymd_His');
+
+    if ($exportFormat === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $exportFilename . '.csv"');
+        $out = fopen('php://output', 'w');
+        fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fputcsv($out, ['Nombre', 'Teléfono', 'Correo', 'Coordinadores']);
+        foreach ($exportRows as $row) {
+            fputcsv($out, [
+                $row['nombre'],
+                cwpNormalizePhoneForExport($row['telefono']),
+                $row['correo'],
+                $row['coordinadores'],
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $exportFilename . '.xls"');
+    echo '<html><head><meta charset="UTF-8"></head><body><table border="1">';
+    echo '<tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Coordinadores</th></tr>';
+    foreach ($exportRows as $row) {
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['telefono'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['correo'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['coordinadores'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</table></body></html>';
+    exit;
+}
+
+$cwpExportQuery = $_GET;
+unset($cwpExportQuery['export']);
+$cwpExportBaseQuery = http_build_query($cwpExportQuery);
+$cwpExportCsvUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExportBaseQuery . '&' : '') . 'export=csv';
+$cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExportBaseQuery . '&' : '') . 'export=excel';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -3058,6 +3194,12 @@ $activeWeddingsTotal = array_sum($activeWeddingsByWp);
                 <p>Directorio completo · Plataforma: <?php echo htmlspecialchars($platformLabel, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
             <div class="wp-accounts-topbar-actions">
+                <a href="<?php echo htmlspecialchars($cwpExportCsvUrl, ENT_QUOTES, 'UTF-8'); ?>" class="wp-accounts-action-btn ghost" title="Descargar listado en CSV">
+                    <i class="fas fa-file-csv"></i> Exportar CSV
+                </a>
+                <a href="<?php echo htmlspecialchars($cwpExportExcelUrl, ENT_QUOTES, 'UTF-8'); ?>" class="wp-accounts-action-btn ghost" title="Descargar listado en Excel">
+                    <i class="fas fa-file-excel"></i> Exportar Excel
+                </a>
                 <button type="button" class="wp-accounts-action-btn primary" data-bs-toggle="modal" data-bs-target="#registroManualWeddingModal">+ Registrar WP</button>
             </div>
         </header>

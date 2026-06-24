@@ -439,27 +439,33 @@ $asunto = ($indexCorreo == 0)? "Tu cita se ha agendado con exito" :"Your appoint
                     }
                     
                   if($indexCorreo == 0){
+                          $advisorName = trim(($vendedor['nombre'] ?? '') . ' ' . ($vendedor['apepat'] ?? ($vendedor['apePat'] ?? '')));
                           echo json_encode([
                             'status' => 'success',
                             'message' => 'Tu cita se ha agendado con exito.',
                             'data' => [
 
-                                'vendedor' => $vendedor['nombre'], 
+                                'vendedor' => $advisorName !== '' ? $advisorName : ($vendedor['nombre'] ?? ''),
+                                'nombre_cliente' => $cliente['names'] ?? '',
                                 'fecha' =>  $cliente['date_appointment'],
                                 'hora' => $cliente['hora_cliente'],
+                                'enlace_meet' => $vendedor['enlace_meet'] ?? '',
                                 'lastMessage' =>"Las indicaciones se enviaron via correo electronico"
                             ]
                         ]);
                     }
                     if($indexCorreo == 3){
+                          $advisorName = trim(($vendedor['nombre'] ?? '') . ' ' . ($vendedor['apepat'] ?? ($vendedor['apePat'] ?? '')));
                           echo json_encode([
                             'status' => 'success',
-                            'message' => 'Your appointment has been successfully scheduled.',
+                            'message' => 'Your session has been successfully scheduled.',
                             'data' => [
 
-                                'vendedor' => $vendedor['nombre'], 
-                                 'fecha' =>  $cliente['date_appointment'],
+                                'vendedor' => $advisorName !== '' ? $advisorName : ($vendedor['nombre'] ?? ''),
+                                'nombre_cliente' => $cliente['names'] ?? '',
+                                'fecha' =>  $cliente['date_appointment'],
                                 'hora' => $cliente['hora_cliente'],
+                                'enlace_meet' => $vendedor['enlace_meet'] ?? '',
                                   'lastMessage' =>"The instructions were sent via email."
 
                             ]

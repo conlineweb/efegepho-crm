@@ -1041,7 +1041,7 @@ $conn->close();
     <div class="modal-dialog modal-lg" type="document">
         <div class="modal-content">
             <div class="modal-header">
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <h5 class="modal-title" id="reagendarModal">Reagendar Cita</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 <?php endif; ?>
@@ -1228,44 +1228,6 @@ $conn->close();
                                 <div class="ecm-section-title">
                                     <div class="ecm-section-number">3</div>
                                     <div class="ecm-section-heading">
-                                        <h5>Confirmar origen del cliente</h5>
-                                        <p>Este es el campo más importante. Pregúntalo directamente en la llamada.</p>
-                                    </div>
-                                </div>
-
-                                <div class="ecm-origin-box">
-                                    <div style="margin-bottom: 14px;">
-                                        <span class="ecm-origin-badge">CAMPO CLAVE</span>
-                                        <span class="ecm-origin-title">¿De dónde nos conocieron?</span>
-                                    </div>
-                                    <div class="ecm-category-btns">
-                                        <button type="button" class="ecm-category-btn" data-cat="1"><span class="ecm-cat-icon">💼</span>Wedding Planner</button>
-                                        <button type="button" class="ecm-category-btn" data-cat="2"><span class="ecm-cat-icon">🤝</span>Community</button>
-                                        <button type="button" class="ecm-category-btn" data-cat="3"><span class="ecm-cat-icon">🚀</span>New Market</button>
-                                    </div>
-
-                                    <div class="ecm-field" id="edit_hear_about_us_wrapper" style="display:none;">
-                                        <label>¿Cómo llegaron exactamente?</label>
-                                        <select id="edit_hear_about_us" name="hear_about_us" class="form-select">
-                                            <option value="">¿Cómo llegaron exactamente?</option>
-                                            <option value="1">Meta Ads — anuncio en Instagram / Facebook</option>
-                                            <option value="2">SEO — buscaron en Google</option>
-                                            <option value="3">Colaboración / Influencer / Famoso</option>
-                                            <option value="4">Publicación / Prensa / Revista</option>
-                                            <option value="5">Otro</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="ecm-how-to-ask">
-                                        Cómo preguntar: <em>"¿Recuerdan cómo nos encontraron? ¿Ya nos conocían de antes, o fue la primera vez que vieron nuestro trabajo?"</em>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="ecm-section">
-                                <div class="ecm-section-title">
-                                    <div class="ecm-section-number">4</div>
-                                    <div class="ecm-section-heading">
                                         <h5>Engagement del cliente</h5>
                                         <p>Tu percepción después de la sesión. Sé honesta.</p>
                                     </div>
@@ -1280,22 +1242,21 @@ $conn->close();
 
                             <div class="ecm-section">
                                 <div class="ecm-section-title">
-                                    <div class="ecm-section-number">5</div>
+                                    <div class="ecm-section-number">4</div>
                                     <div class="ecm-section-heading">
-                                        <h5>¿Desde hace cuánto nos conoce el cliente? (refuerzo)</h5>
-                                        <p>Confirma directamente con el cliente durante la sesión.</p>
+                                        <h5>¿Desde hace cuánto nos conoce el cliente?</h5>
+                                        <p>El origen del cliente se asigna automáticamente según esta respuesta.</p>
                                     </div>
                                 </div>
                                 <div class="ecm-known-us-grid" id="ecm-known-us-grid">
-                                    <button type="button" class="ecm-known-us-btn" data-val="Less than 3 months"><span class="ecmku-title">Menos de 3 meses</span><span class="ecmku-desc">Nos conociste recientemente.</span></button>
-                                    <button type="button" class="ecm-known-us-btn" data-val="Between 3 months and 1 year"><span class="ecmku-title">Entre 3 meses y 1 año</span><span class="ecmku-desc">Ya tenías un tiempo siguiéndonos.</span></button>
-                                    <button type="button" class="ecm-known-us-btn" data-val="More than 1 year"><span class="ecmku-title">Más de 1 año</span><span class="ecmku-desc">Nos conocías desde hace bastante tiempo.</span></button>
+                                    <button type="button" class="ecm-known-us-btn" data-val="Less than 6 months"><span class="ecmku-title">Menos de 6 meses</span><span class="ecmku-desc">Nos conoció recientemente.</span></button>
+                                    <button type="button" class="ecm-known-us-btn" data-val="More than 6 months"><span class="ecmku-title">Más de 6 meses</span><span class="ecmku-desc">Ya nos conocía desde hace tiempo.</span></button>
                                 </div>
                             </div>
 
                             <div class="ecm-section">
                                 <div class="ecm-section-title">
-                                    <div class="ecm-section-number">6</div>
+                                    <div class="ecm-section-number">5</div>
                                     <div class="ecm-section-heading">
                                         <h5>Datos de cierre de venta</h5>
                                         <p>Información del cierre y monto de venta.</p>
@@ -1331,7 +1292,7 @@ $conn->close();
 
                             <div class="ecm-section" style="margin-bottom: 0;">
                                 <div class="ecm-section-title">
-                                    <div class="ecm-section-number">7</div>
+                                    <div class="ecm-section-number">6</div>
                                     <div class="ecm-section-heading">
                                         <h5>Control interno</h5>
                                         <p>Fecha de registro del cliente.</p>
@@ -1581,6 +1542,12 @@ $conn->close();
         return v;
     }
 
+    function editFieldTrim(selector) {
+        var value = $(selector).val();
+        if (value === null || value === undefined) return '';
+        return String(value).trim();
+    }
+
     function getPointsDisplayValue(row) {
         var rawPoints = row && row.puntos !== null && typeof row.puntos !== 'undefined'
             ? String(row.puntos).trim()
@@ -1710,7 +1677,7 @@ $conn->close();
 
         if (response.data && response.data.length > 0) {
 
-            clientes = tipoUsuario == "0" || tipoUsuario == "2" || tipoUsuario == "3"
+            clientes = <?php echo json_encode($isAdminLike); ?> || tipoUsuario == "2" || tipoUsuario == "3"
                 ? response.data.filter(item => item.is_cliente == "1")
                 : response.data.filter(item => item.id_vendedor_asignado == idUsu && item.is_cliente == "1");
 
@@ -2496,8 +2463,6 @@ $conn->close();
                         $('#edit_telephone').val(client.telephone || '');
                         $('#edit_wedding_date').val(toDateInput(client.wedding_date || ''));
                         $('#edit_campaign_name').val(client.campaign_name || '');
-                        $('#edit_how_did_you_meet').val(client.how_did_you_meet || '');
-                        $('#edit_hear_about_us').val(client.hear_about_us || '');
                         try {
                             $('#edit_desde_publicidad').val(typeof client.desde_publicidad !== 'undefined' ? String(client.desde_publicidad) : '0');
                         } catch (e) {}
@@ -2511,27 +2476,17 @@ $conn->close();
                         $('#edit_que_se_les_vendio').val(client.que_se_les_vendio || selectedPack || '');
                         renderEditPackageList(selectedPack || '');
 
-                        $('.ecm-category-btn').removeClass('active');
-                        if (client.how_did_you_meet !== null && typeof client.how_did_you_meet !== 'undefined' && String(client.how_did_you_meet) !== '') {
-                            $('.ecm-category-btn[data-cat="' + String(client.how_did_you_meet) + '"]').addClass('active');
-                        }
-                        if (String(client.how_did_you_meet) === '3') {
-                            $('#edit_hear_about_us_wrapper').show();
-                        } else {
-                            $('#edit_hear_about_us_wrapper').hide();
-                            $('#edit_hear_about_us').val('');
-                        }
-
                         $('#edit_engagement').val(client.engagement || '');
                         $('.ecm-engagement-btn').removeClass('active');
                         if (client.engagement !== null && typeof client.engagement !== 'undefined' && String(client.engagement) !== '') {
                             $('.ecm-engagement-btn[data-eng="' + String(client.engagement) + '"]').addClass('active');
                         }
 
-                        $('#edit_how_long_known_us').val(client.how_long_known_us || '');
+                        var normalizedKnownUs = normalizeEditKnownUsValue(client.how_long_known_us || '');
+                        $('#edit_how_long_known_us').val(normalizedKnownUs);
                         $('.ecm-known-us-btn').removeClass('active');
-                        if (client.how_long_known_us) {
-                            $('.ecm-known-us-btn[data-val="' + String(client.how_long_known_us) + '"]').addClass('active');
+                        if (normalizedKnownUs) {
+                            $('.ecm-known-us-btn[data-val="' + normalizedKnownUs + '"]').addClass('active');
                         }
 
                         $('#edit_tipo_cliente').val(String(client.tipo_cliente !== null && client.tipo_cliente !== undefined ? client.tipo_cliente : ''));
@@ -2539,6 +2494,7 @@ $conn->close();
                         if (client.tipo_cliente !== null && client.tipo_cliente !== undefined && client.tipo_cliente !== '') {
                             $('.ecm-tipo-cliente-btn[data-tipo="' + String(client.tipo_cliente) + '"]').addClass('active');
                         }
+                        updateEditAutoHowDidYouMeet();
 
                         $('#edit_puntos').val(client.puntos || '');
                         $('#edit_monto_venta').val(client.monto_venta || '');
@@ -2567,10 +2523,57 @@ $conn->close();
     }
 }); // fin $.ajax obtener_clientes
 
+        function normalizeEditKnownUsValue(raw) {
+            var value = String(raw || '').trim();
+            if (!value) return '';
+
+            var lower = value.toLowerCase();
+            if (lower === 'less than 6 months' || lower === 'less than 3 months' || lower === 'between 3 months and 1 year') {
+                return 'Less than 6 months';
+            }
+            if (lower === 'more than 6 months' || lower === 'more than 1 year') {
+                return 'More than 6 months';
+            }
+
+            return value;
+        }
+
+        function updateEditAutoHowDidYouMeet() {
+            var tipoCliente = String($('#edit_tipo_cliente').val() || '');
+            var howLong = String($('#edit_how_long_known_us').val() || '');
+            var howDidYouMeet = '';
+
+            if (tipoCliente === '1') {
+                howDidYouMeet = '1';
+            } else if (tipoCliente === '0') {
+                if (howLong === 'Less than 6 months') {
+                    howDidYouMeet = '3';
+                } else if (howLong === 'More than 6 months') {
+                    howDidYouMeet = '2';
+                }
+            }
+
+            $('#edit_how_did_you_meet').val(howDidYouMeet);
+        }
+
         $(document).on('click', '.ecm-tipo-cliente-btn', function () {
             $('.ecm-tipo-cliente-btn').removeClass('active');
             $(this).addClass('active');
             $('#edit_tipo_cliente').val(String($(this).data('tipo')));
+            updateEditAutoHowDidYouMeet();
+        });
+
+        $(document).on('click', '.ecm-known-us-btn', function () {
+            $('.ecm-known-us-btn').removeClass('active');
+            $(this).addClass('active');
+            $('#edit_how_long_known_us').val(String($(this).data('val') || ''));
+            updateEditAutoHowDidYouMeet();
+        });
+
+        $(document).on('click', '.ecm-engagement-btn', function () {
+            $('.ecm-engagement-btn').removeClass('active');
+            $(this).addClass('active');
+            $('#edit_engagement').val(String($(this).data('eng') || ''));
         });
 
         $('#saveEditClientBtn').on('click', function () {
@@ -2580,28 +2583,29 @@ $conn->close();
                 return;
             }
 
+            updateEditAutoHowDidYouMeet();
+
             var fields = {
-                names: $('#edit_name').val().trim(),
-                email_address: $('#edit_email_address').val().trim(),
-                telephone: $('#edit_telephone').val().trim(),
-                wedding_date: fromDateInputToMysql($('#edit_wedding_date').val().trim()),
-                campaign_name: $('#edit_campaign_name').val().trim(),
-                desde_publicidad: $('#edit_desde_publicidad').val().trim(),
-                how_did_you_meet: $('#edit_how_did_you_meet').val().trim(),
-                hear_about_us: $('#edit_hear_about_us').val().trim(),
-                engagement: $('#edit_engagement').val().trim(),
-                how_long_known_us: $('#edit_how_long_known_us').val().trim(),
-                wedding_location: $('#edit_wedding_location').val().trim(),
-                city: $('#edit_city').val().trim(),
-                paquete: $('#edit_paquete').val().trim(),
-                puntos: $('#edit_puntos').val().trim(),
-                monto_venta: $('#edit_monto_venta').val().trim(),
-                que_se_les_vendio: $('#edit_que_se_les_vendio').val().trim(),
-                fecha_cambio_cliente: fromDateInputToMysql($('#edit_fecha_cambio_cliente').val().trim()),
-                submission_date: fromDateTimeInputToMysql($('#edit_submission_date').val().trim()),
-                id_vendedor_asignado: $('#edit_id_vendedor_asignado').val() || '0',
-                first_contact_channel: $('#edit_first_contact_channel').val().trim(),
-                tipo_cliente: $('#edit_tipo_cliente').val()
+                names: editFieldTrim('#edit_name'),
+                email_address: editFieldTrim('#edit_email_address'),
+                telephone: editFieldTrim('#edit_telephone'),
+                wedding_date: fromDateInputToMysql(editFieldTrim('#edit_wedding_date')),
+                campaign_name: editFieldTrim('#edit_campaign_name'),
+                desde_publicidad: editFieldTrim('#edit_desde_publicidad'),
+                how_did_you_meet: editFieldTrim('#edit_how_did_you_meet'),
+                engagement: editFieldTrim('#edit_engagement'),
+                how_long_known_us: editFieldTrim('#edit_how_long_known_us'),
+                wedding_location: editFieldTrim('#edit_wedding_location'),
+                city: editFieldTrim('#edit_city'),
+                paquete: editFieldTrim('#edit_paquete'),
+                puntos: editFieldTrim('#edit_puntos'),
+                monto_venta: editFieldTrim('#edit_monto_venta'),
+                que_se_les_vendio: editFieldTrim('#edit_que_se_les_vendio'),
+                fecha_cambio_cliente: fromDateInputToMysql(editFieldTrim('#edit_fecha_cambio_cliente')),
+                submission_date: fromDateTimeInputToMysql(editFieldTrim('#edit_submission_date')),
+                id_vendedor_asignado: editFieldTrim('#edit_id_vendedor_asignado') || '0',
+                first_contact_channel: editFieldTrim('#edit_first_contact_channel'),
+                tipo_cliente: editFieldTrim('#edit_tipo_cliente')
             };
 
             if (!['1', '2', '3'].includes(fields.how_did_you_meet)) {

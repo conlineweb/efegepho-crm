@@ -18,7 +18,13 @@ if (isset($_POST['dia'], $_POST['idusu']) && (int)$_POST['idusu'] != 0) {
     echo json_encode($res->fetch_all(MYSQLI_ASSOC));
 }
 
-if (isset($_POST['fecha'])){
+if (isset($_POST['fecha'], $_POST['idusu']) && (int)$_POST['idusu'] != 0) {
+    $stmt=$conn->prepare("SELECT hora, idusu FROM `calendario` WHERE fecha = ? AND idusu = ? ORDER BY hora ASC");
+    $stmt->bind_param('ss', $_POST['fecha'], $_POST['idusu']);
+    $stmt->execute();
+    $res=$stmt->get_result();
+    echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+} else if (isset($_POST['fecha'])){
     $stmt=$conn->prepare("SELECT hora ,idusu FROM `calendario` where fecha=? ORDER BY hora ASC;");
     $stmt->bind_param('s',$_POST['fecha']);
     $stmt->execute();

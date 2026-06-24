@@ -1,6 +1,7 @@
 <?php
 ob_start();
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
@@ -124,7 +125,7 @@ try {
     $advisorRow = $advisorRes ? $advisorRes->fetch_assoc() : null;
     $stmt->close();
 
-    if (!$advisorRow || intval($advisorRow['tipoUsu'] ?? 0) !== 1) {
+    if (!$advisorRow || !usuarioTipoPuedeAsignarSesionWp($advisorRow['tipoUsu'] ?? -1)) {
         plannerEditEventJsonResponse(400, ['success' => false, 'message' => 'Asesor inválido.']);
     }
 

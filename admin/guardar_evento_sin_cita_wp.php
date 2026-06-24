@@ -1,6 +1,7 @@
 <?php
 ob_start();
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 require_once __DIR__ . '/evento_wp_post_helper.php';
 
 header('Content-Type: application/json');
@@ -127,7 +128,7 @@ try {
     $advisorRow = $advisorResult ? $advisorResult->fetch_assoc() : null;
     $stmt->close();
 
-    if (!$advisorRow || intval($advisorRow['tipoUsu'] ?? 0) !== 1) {
+    if (!$advisorRow || !usuarioTipoPuedeAsignarSesionWp($advisorRow['tipoUsu'] ?? -1)) {
         throw new Exception('Asesor inválido.');
     }
 

@@ -6,6 +6,10 @@ require_once __DIR__ . '/persistent_login.php';
 
 // If session present, redirect
 if (!empty($_SESSION['uid'])) {
+  if ((int)$_SESSION['uid'] === 27) {
+    header('Location: dashboard_comercial.php?start_date=2026-06-15&end_date=2026-06-16');
+    exit;
+  }
   if (!empty($_SESSION['tus']) && ($_SESSION['tus'] == "2" || $_SESSION['tus'] == "3")) {
     header('Location: consulta-clientes.php');
     exit;
@@ -319,6 +323,17 @@ function login(user, pass) {
                 console.log(data)
                 if(data=="null"){
                     Swal.fire('Usuario o password incorrecto','','error');
+                }
+                else if(data == 27){
+                    Swal.fire({
+                      title:'Bienvenido',
+                      icon:'success',
+                      showConfirmButton:false,
+                      timer:1500,
+                      willClose: () => {
+                      window.location.href="dashboard_comercial.php?start_date=2026-06-15&end_date=2026-06-16";
+                      }
+                    })
                 }
                 else if(data=="1"){
                     Swal.fire({

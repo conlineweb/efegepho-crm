@@ -1,13 +1,14 @@
     <?php
     include 'autoload_session.php';
     include 'conn.php';
+    require_once __DIR__ . '/usuario_roles_helper.php';
     header('Content-Type: application/json');
     ini_set('display_errors', 1);
     error_reporting(E_ALL);
 
     $tipoUsu = intval($_SESSION['tus'] ?? -1);
     $userId = intval($_SESSION['uid'] ?? 0);
-    $canDelete = ($tipoUsu === 0 || $userId === 1);
+    $canDelete = (usuarioTipoEsAdminLike($tipoUsu) || $userId === 1);
 
     if (!$canDelete) {
         http_response_code(403);

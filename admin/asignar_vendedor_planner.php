@@ -1,5 +1,6 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -28,7 +29,7 @@ if ($idVendedor > 0) {
     }
 
     $rowu = $resu->fetch_assoc();
-    if (intval($rowu['tipoUsu'] ?? -1) !== 1) {
+    if (!usuarioTipoPuedeAsignarSesionWp($rowu['tipoUsu'] ?? -1)) {
         echo json_encode(['success' => false, 'message' => 'El usuario seleccionado no es una vendedora válida']);
         exit;
     }

@@ -13,7 +13,7 @@ if (!isset($_SESSION['login']) || $_SESSION['login'] === false) {
  }
  $tipoUsuario = $_SESSION['tus'];
  
- if ($tipoUsuario !== "0") { 
+ if (!usuarioTipoEsAdminLike($tipoUsuario)) { 
     header('Location: index.php');
     exit();
 }

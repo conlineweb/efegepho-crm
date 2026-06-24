@@ -3,8 +3,36 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-include 'menu.php';
+$isEmbed = (($_GET['embed'] ?? $_POST['embed'] ?? '') === '1');
+
+if ($isEmbed) {
+    $duracionSesion = 60 * 60 * 24 * 30;
+    session_set_cookie_params([
+        'lifetime' => $duracionSesion,
+        'path' => '/',
+        'domain' => '.efegepho.com.mx',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    ini_set('session.gc_maxlifetime', $duracionSesion);
+    session_start();
+    if (!isset($_SESSION['login']) || $_SESSION['login'] === false) {
+        http_response_code(401);
+        echo '<!DOCTYPE html><html lang="es"><body style="font-family:sans-serif;padding:24px;">Sesión no válida.</body></html>';
+        exit;
+    }
+    echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    echo '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />';
+    echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">';
+    echo '<style>body{margin:0;background:#f8fafc;}</style></head><body>';
+} else {
+    include 'menu.php';
+}
+
 include 'conn.php';
+date_default_timezone_set('America/Mexico_City');
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
 
 function ensureLeadInteractionsTable($conn)
 {
@@ -320,7 +348,12 @@ $tablaOrigen = resolveOriginTableName($conn, $_GET['tabla_origen'] ?? '');
 $leadId = intval($_GET['id'] ?? 0);
 
 if ($tablaOrigen === '' || $leadId <= 0) {
-    echo '<div style="padding:24px;font-family:Arial,sans-serif;">Parámetros inválidos o tabla de origen no permitida.</div></div></body></html>';
+    $invalidMsg = 'Parámetros inválidos o tabla de origen no permitida.';
+    if ($isEmbed) {
+        echo '<div style="padding:24px;font-family:Arial,sans-serif;">' . htmlspecialchars($invalidMsg, ENT_QUOTES, 'UTF-8') . '</div></body></html>';
+    } else {
+        echo '<div style="padding:24px;font-family:Arial,sans-serif;">' . htmlspecialchars($invalidMsg, ENT_QUOTES, 'UTF-8') . '</div></div></body></html>';
+    }
     exit;
 }
 
@@ -364,7 +397,12 @@ if ($leadStmt) {
 }
 
 if (!$leadExists) {
-    echo '<div style="padding:24px;font-family:Arial,sans-serif;">No existe un registro con ese ID en la tabla de origen seleccionada.</div></div></body></html>';
+    $missingMsg = 'No existe un registro con ese ID en la tabla de origen seleccionada.';
+    if ($isEmbed) {
+        echo '<div style="padding:24px;font-family:Arial,sans-serif;">' . htmlspecialchars($missingMsg, ENT_QUOTES, 'UTF-8') . '</div></body></html>';
+    } else {
+        echo '<div style="padding:24px;font-family:Arial,sans-serif;">' . htmlspecialchars($missingMsg, ENT_QUOTES, 'UTF-8') . '</div></div></body></html>';
+    }
     exit;
 }
 
@@ -409,8 +447,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $saveSuccess = true;
 
-            // PRG: evita reenvio del formulario al recargar la pagina.
             $redirectUrl = 'lead_interaction.php?tabla_origen=' . urlencode($tablaOrigen) . '&id=' . intval($leadId) . '&saved=1';
+            if ($isEmbed) {
+                $redirectUrl .= '&embed=1';
+            }
             if (!headers_sent()) {
                 header('Location: ' . $redirectUrl);
                 exit;
@@ -511,6 +551,10 @@ if ($historyStmt) {
         padding: 12px 20px 36px;
         font-family: 'DM Sans', system-ui, sans-serif;
         color: #1f2937;
+    }
+
+    .li-page--embed {
+        padding: 12px 16px 20px;
     }
 
     .wp-accounts-topbar {
@@ -911,14 +955,16 @@ if ($historyStmt) {
     }
 </style>
 
-<div class="li-page">
+<div class="li-page<?php echo $isEmbed ? ' li-page--embed' : ''; ?>">
     <header class="wp-accounts-topbar">
         <div class="wp-accounts-topbar-left">
             <h1 class="li-header-title">
                 <span class="li-header-lead"><?php echo h($lead['full_name']); ?></span>
+                <?php if (!$isEmbed): ?>
                 <span class="li-header-vendor">Vendedor: <?php echo h($lead['vendor_name']); ?></span>
+                <?php endif; ?>
             </h1>
-            <p>Registrar interacción · <?php echo h($lead['city'] !== '' ? $lead['city'] : 'Sin ciudad'); ?> · Lead #<?php echo intval($leadId); ?> · Origen: <?php echo h($tablaOrigen); ?> · Paquete: <?php echo h($lead['package_name']); ?></p>
+            <p><?php echo $isEmbed ? 'Registrar interacción desde el chat' : 'Registrar interacción'; ?> · <?php echo h($lead['city'] !== '' ? $lead['city'] : 'Sin ciudad'); ?> · Lead #<?php echo intval($leadId); ?> · Origen: <?php echo h($tablaOrigen); ?><?php echo $isEmbed ? '' : (' · Paquete: ' . h($lead['package_name'])); ?></p>
         </div>
     </header>
 
@@ -933,6 +979,9 @@ if ($historyStmt) {
         <?php endif; ?>
 
         <form method="post">
+            <?php if ($isEmbed): ?>
+                <input type="hidden" name="embed" value="1">
+            <?php endif; ?>
             <div class="li-label">Tipo de interacción</div>
             <div class="li-pills" style="margin-bottom:10px;">
                 <?php
@@ -987,12 +1036,17 @@ if ($historyStmt) {
             </div>
 
             <div class="li-actions">
-                <a class="li-btn" href="my_lead_board.php">Cancelar</a>
+                <?php if ($isEmbed): ?>
+                    <button type="button" class="li-btn" id="liEmbedCancelBtn">Cancelar</button>
+                <?php else: ?>
+                    <a class="li-btn" href="my_lead_board.php">Cancelar</a>
+                <?php endif; ?>
                 <button type="submit" class="li-btn primary">Guardar interacción</button>
             </div>
         </form>
     </section>
 
+    <?php if (!$isEmbed): ?>
     <section class="li-panel">
         <h3>Historial de interacciones <span style="font-size:12px;color:#9ca3af;font-weight:600;"><?php echo count($history); ?> registros</span></h3>
 
@@ -1011,6 +1065,7 @@ if ($historyStmt) {
                 }
                 $itemTypeClass = interactionTypeClass($itemType);
                 $itemOutcomeClass = outcomeClass($itemOutcome);
+                $itemCreatedByName = tracerResolveUsuarioNombre($conn, $item['created_by'] ?? 0) ?? '';
                 ?>
                 <article class="li-history-item">
                     <div class="li-history-top">
@@ -1020,6 +1075,9 @@ if ($historyStmt) {
                     <div class="li-note"><?php echo nl2br(h($item['notes'] ?? '')); ?></div>
                     <div class="li-meta">
                         <?php echo h(($item['interaction_date'] ?? '') . ' ' . ($item['interaction_time'] ?? '')); ?>
+                        <?php if ($itemCreatedByName !== ''): ?>
+                            · Registrado por: <?php echo h($itemCreatedByName); ?>
+                        <?php endif; ?>
                         <?php if (!empty($item['next_action'])): ?>
                             · Próxima acción: <?php echo h($item['next_action']); ?>
                             <?php if (!empty($item['next_action_date'])): ?>
@@ -1036,11 +1094,35 @@ if ($historyStmt) {
             <?php endforeach; ?>
         <?php endif; ?>
     </section>
+    <?php endif; ?>
 </div>
 
+<?php if (!$isEmbed): ?>
 </div>
+<?php endif; ?>
 
 <script>
+<?php if ($isEmbed): ?>
+(function () {
+    function notifyParent(type) {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: type }, window.location.origin);
+        }
+    }
+
+    var cancelBtn = document.getElementById('liEmbedCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+            notifyParent('pltrace_interaction_close');
+        });
+    }
+
+    <?php if ($saveSuccess || $showSaved): ?>
+    notifyParent('pltrace_interaction_saved');
+    <?php endif; ?>
+})();
+<?php endif; ?>
+
 document.addEventListener('click', function (e) {
     var btn = e.target.closest('.li-btn-complete');
     if (!btn) return;

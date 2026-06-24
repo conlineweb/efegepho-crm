@@ -79,6 +79,28 @@ if ($resultBloqueoDiasEventos) {
     // Devolver los datos en formato JSON
 
 }
+
+// Vendedoras disponibles para asignación (solo tipoUsu = 1)
+$vendedoras = [];
+$resVendedoras = $conn->query("SELECT id, nombre, apepat, enlace_meet FROM usuarios WHERE tipoUsu = 1 ORDER BY nombre, apepat");
+if ($resVendedoras && $resVendedoras->num_rows > 0) {
+    while ($rowV = $resVendedoras->fetch_assoc()) {
+        $vendedoras[] = $rowV;
+    }
+}
+
+$vendedoras_js = [];
+foreach ($vendedoras as $v) {
+    $vId = intval($v['id'] ?? 0);
+    if ($vId <= 0) {
+        continue;
+    }
+    $vNombre = trim(($v['nombre'] ?? '') . ' ' . ($v['apepat'] ?? ''));
+    $vendedoras_js[$vId] = [
+        'nombre' => $vNombre !== '' ? $vNombre : ('Vendedora #' . $vId),
+        'enlace_meet' => trim((string)($v['enlace_meet'] ?? '')),
+    ];
+}
 ?>
 
 
@@ -689,6 +711,224 @@ if ($resultBloqueoDiasEventos) {
     .hora-cliente-vendedora input.is-invalid {
         border-color: #dc3545 !important;
     }
+
+    /* Selector de vendedora */
+    .vendedora-select-section {
+        max-width: 480px;
+        margin: 0 auto 24px;
+        padding: 0 8px;
+    }
+
+    .vendedora-select-section .form-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .calendar-section-wrapper {
+        position: relative;
+    }
+
+    .calendar-placeholder,
+    .vendor-no-availability {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+        font-size: 1.1rem;
+        background: #fafafa;
+        border: 1px dashed #ddd;
+        border-radius: 6px;
+        margin: 0 auto;
+        max-width: 900px;
+    }
+
+    .vendor-no-availability i {
+        display: block;
+        font-size: 2rem;
+        color: #c47020;
+        margin-bottom: 12px;
+    }
+
+    .calendar-loading-overlay {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.85);
+        z-index: 10;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
+        font-size: 1rem;
+        color: #555;
+    }
+
+    .calendar-loading-overlay.is-visible {
+        display: flex;
+    }
+
+    .calendar-loading-spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e0c898;
+        border-top-color: #8a4a0f;
+        border-radius: 50%;
+        animation: vendor-spin 0.8s linear infinite;
+    }
+
+    @keyframes vendor-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .schedule-loading {
+        text-align: center;
+        padding: 24px;
+        color: #666;
+    }
+
+    .schedule-loading .calendar-loading-spinner {
+        margin: 0 auto 10px;
+    }
+
+    .meet-link-box {
+        margin-top: 16px;
+        padding: 14px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        text-align: left;
+    }
+
+    .meet-link-box label {
+        display: block;
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .meet-link-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .meet-link-url {
+        flex: 1 1 200px;
+        min-width: 0;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        word-break: break-all;
+        color: #0d6efd;
+    }
+
+    .btn-copy-meet {
+        flex: 0 0 auto;
+        padding: 10px 16px;
+        background: #8a4a0f;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: 'Cormorant Garamond', serif;
+        transition: background 0.2s;
+    }
+
+    .btn-copy-meet:hover {
+        background: #6d3a0c;
+    }
+
+    .copy-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        background: #333;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        z-index: 10000;
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .copy-toast.is-visible {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    .vendor-confirm-popup .swal2-html-container {
+        overflow: visible;
+    }
+
+    .vendor-confirm-tabs {
+        margin-bottom: 12px;
+    }
+
+    .vendor-confirm-tabs .nav-link {
+        font-size: 0.95rem;
+        color: #555;
+    }
+
+    .vendor-confirm-tabs .nav-link.active {
+        color: #8a4a0f;
+        font-weight: 600;
+    }
+
+    .vendor-confirm-preview {
+        white-space: pre-wrap;
+        text-align: left;
+        font-size: 0.92rem;
+        line-height: 1.65;
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 14px;
+        max-height: 340px;
+        overflow-y: auto;
+        color: #333;
+    }
+
+    .vendor-confirm-copy-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .btn-copy-confirm-msg {
+        flex: 1 1 220px;
+        padding: 10px 14px;
+        background: #8a4a0f;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: 'Cormorant Garamond', serif;
+        transition: background 0.2s;
+    }
+
+    .btn-copy-confirm-msg:hover {
+        background: #6d3a0c;
+    }
+
+    .btn-copy-confirm-msg.btn-copy-en {
+        background: #5e543f;
+    }
+
+    .btn-copy-confirm-msg.btn-copy-en:hover {
+        background: #4a4332;
+    }
 </style>
 
 <body>
@@ -706,6 +946,7 @@ if ($resultBloqueoDiasEventos) {
     </div>
        <h1 class=" mt-5 text-center">INQUIRE</h1>
         <form id="weddingForm" class="form-wrapper">
+            <input type="hidden" name="from_vendedor_form" value="1">
             <?php if (!empty($lead_data)):
                 $ld = $lead_data;
                 $pref_names = htmlspecialchars($ld['full_name'] ?? '', ENT_QUOTES);
@@ -757,14 +998,14 @@ if ($resultBloqueoDiasEventos) {
             <div class="row mb-4">
                 <div class="col-12 col-md-6 mb-4">
                     <div class="d-flex flex-column h-100 justify-content-end">
-                        <label class="form-label">Email address</label>
-                        <input type="email" name="email" placeholder="email address" value="<?php echo $pref_email ?? ''; ?>" required>
+                        <label class="form-label">Email address <span style="color:#999; font-size:0.75rem;">(optional)</span></label>
+                        <input type="email" name="email" placeholder="email address" value="<?php echo $pref_email ?? ''; ?>">
                     </div>
                 </div>
                 <div class="col-12 col-md-6 mb-4">
                     <div class="d-flex flex-column h-100 justify-content-end">
-                        <label class="form-label">Confirm email address</label>
-                        <input type="email" name="confirm_email" placeholder="confirm email address" required>
+                        <label class="form-label">Confirm email address <span style="color:#999; font-size:0.75rem;">(optional)</span></label>
+                        <input type="email" name="confirm_email" placeholder="confirm email address">
                         <div class="error-message" id="email-error">Los correos electrónicos no coinciden</div>
                     </div>
                 </div>
@@ -815,9 +1056,8 @@ if ($resultBloqueoDiasEventos) {
                     <label class="form-label">How long have you known us?</label>
                     <select name="how_long_known_us" required>
                         <option value="" disabled <?php echo (($pref_how_long_known_us ?? '') === '') ? 'selected' : ''; ?>>Select...</option>
-                        <option value="Less than 3 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 3 months') ? 'selected' : ''; ?>>Less than 3 months</option>
-                        <option value="Between 3 months and 1 year" <?php echo (($pref_how_long_known_us ?? '') === 'Between 3 months and 1 year') ? 'selected' : ''; ?>>Between 3 months and 1 year</option>
-                        <option value="More than 1 year" <?php echo (($pref_how_long_known_us ?? '') === 'More than 1 year') ? 'selected' : ''; ?>>More than 1 year</option>
+                        <option value="Less than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
+                        <option value="More than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
                     </select>
                 </div>
             </div>
@@ -828,7 +1068,36 @@ if ($resultBloqueoDiasEventos) {
 
             <div style="width:100%">
                 <h3 class="text-center m-5">Schedule your personalized event consultation</h3>
-                <div class="mt-1 mb-1" id="meet">
+
+                <div class="vendedora-select-section">
+                    <label class="form-label" for="vendedora_select">Seleccionar vendedora</label>
+                    <select id="vendedora_select" name="vendedora_select" required>
+                        <option value="" disabled selected>Selecciona una vendedora...</option>
+                        <?php foreach ($vendedoras as $v): ?>
+                            <?php
+                            $vNombre = trim(($v['nombre'] ?? '') . ' ' . ($v['apepat'] ?? ''));
+                            $vLabel = $vNombre !== '' ? $vNombre : ('Vendedora #' . intval($v['id']));
+                            ?>
+                            <option value="<?php echo intval($v['id']); ?>"><?php echo htmlspecialchars($vLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div id="calendar-placeholder" class="calendar-placeholder">
+                    Selecciona una vendedora para ver los días y horarios disponibles.
+                </div>
+
+                <div id="vendor-no-availability" class="vendor-no-availability" style="display:none;">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>La vendedora seleccionada no tiene horarios disponibles en las próximas dos semanas.</p>
+                    <p style="font-size:0.95rem; color:#888;">Por favor elige otra vendedora o intenta más tarde.</p>
+                </div>
+
+                <div class="mt-1 mb-1 calendar-section-wrapper" id="meet" style="display:none;">
+                    <div class="calendar-loading-overlay" id="calendar-loading">
+                        <div class="calendar-loading-spinner"></div>
+                        <span>Cargando disponibilidad...</span>
+                    </div>
                     <div class="calendar-container">
                         <div class="left-panel">
                             <div class="calendar-header">
@@ -888,8 +1157,10 @@ if ($resultBloqueoDiasEventos) {
                 </div>
                 <button type="submit" class="btn-submit" id="nextButton">NEXT</button>
             </div>
-        </form> 
+        </form>
     </div>
+
+    <div id="copy-toast" class="copy-toast" role="status" aria-live="polite">Enlace copiado al portapapeles</div>
 
 </body>
 
@@ -904,6 +1175,7 @@ if ($resultBloqueoDiasEventos) {
 <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js'></script>
 <script>
     let lead_data = <?php echo json_encode($lead_data); ?>;
+    const vendedorasById = <?php echo json_encode($vendedoras_js, JSON_UNESCAPED_UNICODE); ?>;
 
     console.log("lead_data desde php", lead_data);
 
@@ -919,11 +1191,188 @@ if ($resultBloqueoDiasEventos) {
 
     console.log('Zona horaria detectada:', timezone);
 
+    let vendorConfirmMessages = { es: '', en: '' };
+
+    function showCopyToast(message) {
+        const $toast = $('#copy-toast');
+        $toast.text(message || 'Copiado al portapapeles');
+        $toast.addClass('is-visible');
+        setTimeout(function () {
+            $toast.removeClass('is-visible');
+        }, 2500);
+    }
+
+    function copyTextToClipboard(text) {
+        if (!text) {
+            return Promise.reject(new Error('empty'));
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                resolve();
+            } catch (err) {
+                document.body.removeChild(textarea);
+                reject(err);
+            }
+        });
+    }
+
+    function escapeHtmlText(text) {
+        return $('<div>').text(text == null ? '' : String(text)).html();
+    }
+
+    function formatSessionTimeDisplay(hora) {
+        const raw = (hora == null ? '' : String(hora)).trim();
+        if (!raw) {
+            return 'N/A';
+        }
+        const fmt = raw.length === 5 ? 'HH:mm' : 'HH:mm:ss';
+        const parsed = moment(raw, fmt, true);
+        return parsed.isValid() ? parsed.format('hh:mm A') : raw;
+    }
+
+    function formatSessionDateSpanish(dateStr) {
+        const raw = (dateStr == null ? '' : String(dateStr)).trim();
+        if (!raw) {
+            return 'N/A';
+        }
+        const parsed = moment(raw, ['YYYY-MM-DD', 'DD-MM-YYYY'], true);
+        if (!parsed.isValid()) {
+            return raw;
+        }
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        return parsed.date() + ' de ' + meses[parsed.month()] + ' de ' + parsed.year();
+    }
+
+    function formatSessionDateEnglish(dateStr) {
+        const raw = (dateStr == null ? '' : String(dateStr)).trim();
+        if (!raw) {
+            return 'N/A';
+        }
+        const parsed = moment(raw, ['YYYY-MM-DD', 'DD-MM-YYYY'], true);
+        return parsed.isValid() ? parsed.format('MMMM D, YYYY') : raw;
+    }
+
+    function buildVendorConfirmMessageEs(data) {
+        return (
+            '✅ Tu sesión se ha agendado con éxito\n\n' +
+            'Nombre del cliente: ' + data.nombreCliente + '\n' +
+            'Día de la sesión: ' + data.fechaEs + '\n' +
+            'Hora de la sesión: ' + data.hora + '\n' +
+            'Asesora asignada: ' + data.vendedor + '\n\n' +
+            'Este es el enlace de tu videollamada:\n\n' +
+            data.meetLinkEs + '\n\n' +
+            'Te esperamos en la fecha y hora programadas. ¡Será un placer atenderte!'
+        );
+    }
+
+    function buildVendorConfirmMessageEn(data) {
+        return (
+            '✅ Your session has been successfully scheduled\n\n' +
+            'Client Name: ' + data.nombreCliente + '\n' +
+            'Session Date: ' + data.fechaEn + '\n' +
+            'Session Time: ' + data.hora + '\n' +
+            'Assigned Advisor: ' + data.vendedor + '\n\n' +
+            'Here is the link for your video call:\n\n' +
+            data.meetLinkEn + '\n\n' +
+            'We look forward to meeting with you at the scheduled date and time. It will be our pleasure to assist you!'
+        );
+    }
+
+    function copyVendorConfirmMessage(lang) {
+        const text = vendorConfirmMessages[lang] || '';
+        if (!text) {
+            return;
+        }
+        copyTextToClipboard(text).then(function () {
+            showCopyToast(lang === 'es' ? 'Mensaje en español copiado' : 'English message copied');
+        }).catch(function () {
+            showCopyToast('No se pudo copiar el mensaje');
+        });
+    }
+
+    function showVendorAppointmentConfirmation(payload) {
+        const meetLinkRaw = (payload.meetLink || '').trim();
+        const messageData = {
+            nombreCliente: payload.nombreCliente || 'N/A',
+            vendedor: payload.vendedor || 'N/A',
+            meetLinkEs: meetLinkRaw || 'No disponible',
+            meetLinkEn: meetLinkRaw || 'Not available',
+            fechaEs: formatSessionDateSpanish(payload.fecha),
+            fechaEn: formatSessionDateEnglish(payload.fecha),
+            hora: formatSessionTimeDisplay(payload.hora)
+        };
+
+        vendorConfirmMessages.es = buildVendorConfirmMessageEs(messageData);
+        vendorConfirmMessages.en = buildVendorConfirmMessageEn(messageData);
+
+        return Swal.fire({
+            icon: 'success',
+            title: 'Sesión agendada',
+            width: '760px',
+            html:
+                '<ul class="nav nav-tabs vendor-confirm-tabs" id="vendorConfirmTabs" role="tablist">' +
+                    '<li class="nav-item" role="presentation">' +
+                        '<button class="nav-link active" id="vendor-confirm-es-tab" data-bs-toggle="tab" data-bs-target="#vendor-confirm-es" type="button" role="tab">Español</button>' +
+                    '</li>' +
+                    '<li class="nav-item" role="presentation">' +
+                        '<button class="nav-link" id="vendor-confirm-en-tab" data-bs-toggle="tab" data-bs-target="#vendor-confirm-en" type="button" role="tab">English</button>' +
+                    '</li>' +
+                '</ul>' +
+                '<div class="tab-content" id="vendorConfirmTabContent">' +
+                    '<div class="tab-pane fade show active" id="vendor-confirm-es" role="tabpanel">' +
+                        '<div class="vendor-confirm-preview">' + escapeHtmlText(vendorConfirmMessages.es) + '</div>' +
+                        '<div class="vendor-confirm-copy-row">' +
+                            '<button type="button" class="btn-copy-confirm-msg" id="copyVendorMsgEs">' +
+                                '<i class="fas fa-copy"></i> Copiar mensaje (Español)' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="tab-pane fade" id="vendor-confirm-en" role="tabpanel">' +
+                        '<div class="vendor-confirm-preview">' + escapeHtmlText(vendorConfirmMessages.en) + '</div>' +
+                        '<div class="vendor-confirm-copy-row">' +
+                            '<button type="button" class="btn-copy-confirm-msg btn-copy-en" id="copyVendorMsgEn">' +
+                                '<i class="fas fa-copy"></i> Copy message (English)' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>',
+            confirmButtonText: 'Cerrar',
+            customClass: {
+                popup: 'swal2-popup-center vendor-confirm-popup'
+            },
+            didOpen: function () {
+                const btnEs = document.getElementById('copyVendorMsgEs');
+                const btnEn = document.getElementById('copyVendorMsgEn');
+                if (btnEs) {
+                    btnEs.addEventListener('click', function () {
+                        copyVendorConfirmMessage('es');
+                    });
+                }
+                if (btnEn) {
+                    btnEn.addEventListener('click', function () {
+                        copyVendorConfirmMessage('en');
+                    });
+                }
+            }
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         // Real-time validation for email confirmation
         $('[name="confirm_email"]').on('input', function () {
-            const email = $('[name="email"]').val();
-            const confirmEmail = $(this).val();
+            const email = ($('[name="email"]').val() || '').trim();
+            const confirmEmail = ($(this).val() || '').trim();
 
             if (confirmEmail && email !== confirmEmail) {
                 $(this).css("border", "1px solid red");
@@ -936,10 +1385,10 @@ if ($resultBloqueoDiasEventos) {
 
         // Also validate when the main email changes
         $('[name="email"]').on('input', function () {
-            const email = $(this).val();
-            const confirmEmail = $('[name="confirm_email"]').val();
+            const email = ($(this).val() || '').trim();
+            const confirmEmail = ($('[name="confirm_email"]').val() || '').trim();
 
-            if (confirmEmail && email !== confirmEmail) {
+            if (email && confirmEmail && email !== confirmEmail) {
                 $('[name="confirm_email"]').css("border", "1px solid red");
                 $('#email-error').show();
             } else {
@@ -1069,21 +1518,149 @@ if ($resultBloqueoDiasEventos) {
             const $scheduleContainer = $('#schedule-container');
             const $scheduleList = $('#schedule-list');
             const $selectedDate = $('#selected-date');
+            const $vendedoraSelect = $('#vendedora_select');
+            const $meetSection = $('#meet');
+            const $calendarPlaceholder = $('#calendar-placeholder');
+            const $vendorNoAvailability = $('#vendor-no-availability');
+            const $calendarLoading = $('#calendar-loading');
 
             let currentDate = new Date();
+            let selectedVendorId = '';
+            let vendorAvailableDays = new Set();
+            let vendorDaysLoading = false;
+
+            function formatDateYMD(dateObj) {
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function setCalendarLoading(isLoading) {
+                if (isLoading) {
+                    $calendarLoading.addClass('is-visible');
+                } else {
+                    $calendarLoading.removeClass('is-visible');
+                }
+            }
+
+            function resetSchedulePanel() {
+                $selectedDate.text('');
+                $scheduleList.empty();
+            }
+
+            function updateCalendarVisibility() {
+                if (!selectedVendorId) {
+                    $calendarPlaceholder.show();
+                    $vendorNoAvailability.hide();
+                    $meetSection.hide();
+                    return;
+                }
+                $calendarPlaceholder.hide();
+                if (vendorAvailableDays.size === 0 && !vendorDaysLoading) {
+                    $vendorNoAvailability.show();
+                    $meetSection.hide();
+                } else {
+                    $vendorNoAvailability.hide();
+                    $meetSection.show();
+                }
+            }
+
+            async function vendorHasAvailableSlots(vendorId, dateStr) {
+                if (diasBloqueados.includes(dateStr) || isBlocked(dateStr)) {
+                    return false;
+                }
+
+                const formData = new FormData();
+                formData.append('dia', dateStr);
+                formData.append('idusu', vendorId);
+
+                try {
+                    const horariosResponse = await fetch('chkDisponible.php', { method: 'POST', body: formData });
+                    const horariosJson = await horariosResponse.json();
+
+                    if (!Array.isArray(horariosJson) || horariosJson.length === 0 || !horariosJson[0].horarios) {
+                        return false;
+                    }
+
+                    const occupiedForm = new FormData();
+                    occupiedForm.append('fecha', dateStr);
+                    occupiedForm.append('idusu', vendorId);
+                    const occupiedResponse = await fetch('chkDisponible.php', { method: 'POST', body: occupiedForm });
+                    const occupiedTimes = await occupiedResponse.json();
+
+                    const vendorHorarios = JSON.parse(horariosJson[0].horarios);
+                    for (let i = 0; i < vendorHorarios.length; i++) {
+                        const horario = vendorHorarios[i];
+                        let isOccupied = false;
+                        if (Array.isArray(occupiedTimes)) {
+                            occupiedTimes.forEach(function (time) {
+                                if (time.hora === horario + ':00') {
+                                    isOccupied = true;
+                                }
+                            });
+                        }
+                        if (!isOccupied) {
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking vendor availability for', dateStr, error);
+                }
+                return false;
+            }
+
+            async function loadVendorAvailableDays(vendorId) {
+                vendorDaysLoading = true;
+                vendorAvailableDays = new Set();
+                setCalendarLoading(true);
+                updateCalendarVisibility();
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const maxDate = new Date(today);
+                maxDate.setDate(today.getDate() + 14);
+
+                const checks = [];
+                for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
+                    const dateStr = formatDateYMD(d);
+                    checks.push(
+                        vendorHasAvailableSlots(vendorId, dateStr).then(function (hasSlots) {
+                            if (hasSlots) {
+                                vendorAvailableDays.add(dateStr);
+                            }
+                        })
+                    );
+                }
+
+                await Promise.all(checks);
+
+                vendorDaysLoading = false;
+                setCalendarLoading(false);
+                updateCalendarVisibility();
+
+                if (vendorAvailableDays.size > 0) {
+                    generateCalendar(currentDate.getMonth(), currentDate.getFullYear());
+                } else {
+                    resetSchedulePanel();
+                }
+            }
 
             function generateCalendar(month, year) {
+                if (!selectedVendorId) {
+                    return;
+                }
+
                 const firstDay = new Date(year, month, 1);
                 const lastDay = new Date(year, month + 1, 0);
                 const daysInMonth = lastDay.getDate();
-                const startDay = firstDay.getDay(); // 0 = Domingo, 1 = Lunes, ...
+                const startDay = firstDay.getDay();
 
-                // Fecha actual
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const minDate = new Date(today); // Fecha mínima (hoy)
+                const minDate = new Date(today);
                 const maxDate = new Date(today);
-                maxDate.setDate(today.getDate() + 14); // Fecha máxima (20 días después)
+                maxDate.setDate(today.getDate() + 14);
                 maxDate.setHours(23, 59, 59, 999);
 
                 let date = 1;
@@ -1097,15 +1674,15 @@ if ($resultBloqueoDiasEventos) {
                         } else if (date > daysInMonth) {
                             html += '<td></td>';
                         } else {
-                            const currentDate = new Date(year, month, date);
-                            currentDate.setHours(0, 0, 0, 0);
-                            const currentDateStr = `${year}-${month + 1 < 10 ? '0' + (month + 1) : month + 1}-${date < 10 ? '0' + date : date}`;
-                            const isBeforeMinDate = currentDate < minDate;
-                            const isAfterMaxDate = currentDate > maxDate;
-                            const isBlocked = diasBloqueados.includes(currentDateStr);
-                            const blockedClass = isBlocked ? 'blocked' : '';
-                            // Deshabilitar días fuera del rango
-                            const disabledClass = isBeforeMinDate || isAfterMaxDate ? 'disabled' : '';
+                            const cellDate = new Date(year, month, date);
+                            cellDate.setHours(0, 0, 0, 0);
+                            const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                            const isBeforeMinDate = cellDate < minDate;
+                            const isAfterMaxDate = cellDate > maxDate;
+                            const isBlockedDay = diasBloqueados.includes(currentDateStr);
+                            const hasVendorAvailability = vendorAvailableDays.has(currentDateStr);
+                            const blockedClass = isBlockedDay ? 'blocked' : '';
+                            const disabledClass = isBeforeMinDate || isAfterMaxDate || !hasVendorAvailability ? 'disabled' : '';
 
                             html += `<td data-day="${date}" data-month="${month}" data-year="${year}" class="${disabledClass} ${blockedClass}">${date}</td>`;
                             date++;
@@ -1117,16 +1694,14 @@ if ($resultBloqueoDiasEventos) {
                 $calendar.find('tbody').html(html);
                 $currentMonth.text(new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
 
-                const $dayCells = $calendar.find('td[data-day]');
+                const $dayCells = $calendar.find('td[data-day]:not(.disabled):not(.blocked)');
                 $dayCells.each(function () {
                     $(this).click(showSchedule);
                 });
 
-                // Resaltar el día actual
                 if (month === today.getMonth() && year === today.getFullYear()) {
-                    const $dayCells = $calendar.find('td[data-day]');
-                    $dayCells.each(function () {
-                        if (parseInt($(this).data('day')) === today.getDate()) {
+                    $calendar.find('td[data-day]').each(function () {
+                        if (parseInt($(this).data('day'), 10) === today.getDate()) {
                             $(this).addClass('current-day');
                         }
                     });
@@ -1135,39 +1710,41 @@ if ($resultBloqueoDiasEventos) {
 
 
             async function showSchedule(event) {
+                if (!selectedVendorId) {
+                    return;
+                }
+
                 const $cell = $(event.target);
                 const day = $cell.data('day');
-                console.log("showSchedule day", day)
                 const month = $cell.data('month');
                 const year = $cell.data('year');
                 const selectedDateStr = `${day}/${month + 1}/${year}`;
 
-                // Mostrar la fecha seleccionada
                 $selectedDate.text(selectedDateStr);
-
-                // Limpiar la clase selected de todos los días antes de agregarla al seleccionado
                 $('#calendar td').removeClass('selected');
-
-                // Añadir la clase selected al día seleccionado
                 $cell.addClass('selected');
 
-                // Llamar a la función que obtiene los horarios para el día seleccionado
+                $scheduleList.html(
+                    '<li class="schedule-loading"><div class="calendar-loading-spinner"></div>Cargando horarios...</li>'
+                );
+
                 const schedule = await getSchedule(year, month, day);
-                console.log("schedule ", schedule);
 
                 $scheduleList.empty();
 
                 if (schedule && schedule.length > 0) {
-                    dif = 0; local = 6;
-                    if (timezone != -6)
+                    let dif = 0;
+                    const local = 6;
+                    if (timezone != -6) {
                         dif = local + timezone;
-                    schedule.forEach(time => {
+                    }
+                    schedule.forEach(function (time) {
                         let custTime = time;
-                        let displayTime = time + " (US Central Time)";
+                        let displayTime = time + ' (US Central Time)';
                         if (timezone != -6) {
-                            tz = time.split(":");
-                            custTime = (parseInt(tz[0]) + dif) + ":" + tz[1];
-                            displayTime = custTime + " (Local Time)";
+                            const tz = time.split(':');
+                            custTime = (parseInt(tz[0], 10) + dif) + ':' + tz[1];
+                            displayTime = custTime + ' (Local Time)';
                         }
                         const $listItem = $(`<li data-hour="${time}" data-hourcust="${custTime}">`).text(displayTime);
                         $scheduleList.append($listItem);
@@ -1178,135 +1755,85 @@ if ($resultBloqueoDiasEventos) {
                         });
                     });
                 } else {
-                    const $listItem = $('<li>').text('There are no schedules for this day.');
-                    $scheduleList.append($listItem);
+                    $scheduleList.append($('<li>').text('No hay horarios disponibles para este día.'));
                 }
             }
 
-            let selecteddate = ""
-
+            let selecteddate = '';
 
             async function getSchedule(year, month, day) {
-                let fixDay = day;
+                if (!selectedVendorId) {
+                    return [];
+                }
 
-                let mes = month + 1;
-                // Asegurarse de que mes y día siempre tengan 2 dígitos
-                let formattedMonth = mes < 10 ? '0' + mes : mes;
-                let formattedDay = fixDay < 10 ? '0' + fixDay : fixDay;
-                // Crear la fecha en formato yyyy-mm-dd
-                let date = `${year}-${formattedMonth}-${formattedDay}`;
-                console.log(date)
+                const fixDay = day;
+                const mes = month + 1;
+                const formattedMonth = mes < 10 ? '0' + mes : mes;
+                const formattedDay = fixDay < 10 ? '0' + fixDay : fixDay;
+                const date = `${year}-${formattedMonth}-${formattedDay}`;
 
                 selecteddate = date;
-                const fechaComoCadena = date + " 00:00:00";
-                const numeroDia = new Date(fechaComoCadena).getDay();
 
-                let inicio = null;
-                let fin = null;
-                let formData = new FormData();
-                console.log("date ", date)
+                const formData = new FormData();
                 formData.append('dia', date);
+                formData.append('idusu', selectedVendorId);
 
-                let horas = [];
+                const horas = [];
 
                 try {
-                    // Primer solicitud Ajax
-                    $.ajax({
-                        url: "chkDisponible.php",
-                        type: "POST",
-                        data: formData,
-                        async: false,
-                        processData: false,  // No proceses los datos del FormData (importante para mantener el tipo FormData)
-                        contentType: false,  // No establezcas un content-type, ya que se manejará automáticamente
-                        success: function (horariosJson) {
-                            console.log("horariosJson ", horariosJson)
-                            // Ahora hacemos otra solicitud con la fecha
-                            let form = new FormData();
-                            form.append('fecha', date);
+                    const horariosResponse = await fetch('chkDisponible.php', { method: 'POST', body: formData });
+                    const horariosJson = await horariosResponse.json();
 
-                            // Segunda solicitud Ajax
-                            $.ajax({
-                                url: "chkDisponible.php",
-                                type: "POST",
-                                data: form,
-                                async: false,
-                                dataType: "json",
-                                processData: false,  // No proceses los datos del FormData (importante para mantener el tipo FormData)
-                                contentType: false,  // No establezcas un content-type, ya que se manejará automáticamente
-                                success: function (times) {
-                                    let hrs = [];
-                                    let horarios = JSON.parse(horariosJson)
-                                    horarios.forEach((vendor) => {
-                                        let vendor_horarios = JSON.parse(vendor.horarios);
-                                        console.log("vendor_horarios ", vendor_horarios)
+                    const occupiedForm = new FormData();
+                    occupiedForm.append('fecha', date);
+                    occupiedForm.append('idusu', selectedVendorId);
+                    const occupiedResponse = await fetch('chkDisponible.php', { method: 'POST', body: occupiedForm });
+                    const times = await occupiedResponse.json();
 
-                                        vendor_horarios.forEach((horario) => {
+                    if (Array.isArray(horariosJson) && horariosJson.length > 0 && horariosJson[0].horarios) {
+                        const vendorHorarios = JSON.parse(horariosJson[0].horarios);
+                        const hrs = [];
 
-                                            if (times.length > 0) {
-                                                let hr = horario
-
-                                                times.forEach((time) => {
-                                                    if (time.hora == `${horario}:00` && time.idusu == vendor.idusu) {
-                                                        console.log(time.hora + " es igual a " + `${horario}:00`)
-                                                        hr = 0;
-                                                    }
-                                                });
-                                                // console.log("hr ",hr)
-                                                // console.log("hrs ",hrs)
-
-                                                if (hr != 0 && !hrs.includes(horario)) {
-                                                    hrs.push(horario);
-                                                }
-
-                                            } else {
-                                                if (!hrs.includes(horario)) {
-                                                    hrs.push(horario);
-                                                }
-                                            }
-                                        })
-
-                                    });
-
-                                    // Ordenamos las horas
-                                    // Función para convertir la hora en formato "HH:MM" a minutos totales
-                                    function convertToMinutes(timeStr) {
-                                        let [hrs, mins] = timeStr.split(":");
-                                        return parseInt(hrs) * 60 + parseInt(mins);
+                        vendorHorarios.forEach(function (horario) {
+                            let hr = horario;
+                            if (Array.isArray(times) && times.length > 0) {
+                                times.forEach(function (time) {
+                                    if (time.hora === `${horario}:00`) {
+                                        hr = 0;
                                     }
+                                });
+                            }
+                            if (hr !== 0 && !hrs.includes(horario)) {
+                                hrs.push(horario);
+                            }
+                        });
 
-                                    // Ordena el array de horas
-                                    hrs.sort(function (a, b) {
-                                        return convertToMinutes(a) - convertToMinutes(b);
-                                    });
-
-
-                                    // Creamos el HTML para las tarjetas
-                                    for (let i = 0; i < hrs.length; i++) {
-                                        horas.push(hrs[i]);
-                                    }
-
-                                    console.log("horas ", horas);
-
-                                },
-                                error: function (xhr, status, error) {
-                                    console.error("Error en la segunda solicitud Ajax:", error);
-                                }
-                            });
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Error en la primera solicitud Ajax:", error);
+                        function convertToMinutes(timeStr) {
+                            const parts = timeStr.split(':');
+                            return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
                         }
-                    });
 
+                        hrs.sort(function (a, b) {
+                            return convertToMinutes(a) - convertToMinutes(b);
+                        });
+
+                        hrs.forEach(function (h) {
+                            horas.push(h);
+                        });
+                    }
                 } catch (error) {
-                    console.error("Error en el proceso:", error);
+                    console.error('Error al obtener horarios:', error);
                 }
+
                 return horas;
             }
 
 
             $prevMonthButton.click(function (e) {
                 e.preventDefault();
+                if (!selectedVendorId) {
+                    return;
+                }
                 let prevMonth = currentDate.getMonth() - 1;
                 let prevYear = currentDate.getFullYear();
                 if (prevMonth < 0) {
@@ -1319,6 +1846,9 @@ if ($resultBloqueoDiasEventos) {
 
             $nextMonthButton.click(function (e) {
                 e.preventDefault();
+                if (!selectedVendorId) {
+                    return;
+                }
                 let nextMonth = currentDate.getMonth() + 1;
                 let nextYear = currentDate.getFullYear();
                 if (nextMonth > 11) {
@@ -1329,7 +1859,23 @@ if ($resultBloqueoDiasEventos) {
                 generateCalendar(nextMonth, nextYear);
             });
 
-            generateCalendar(currentDate.getMonth(), currentDate.getFullYear());
+            $vendedoraSelect.on('change', function () {
+                $(this).css('border-bottom', '');
+                selectedVendorId = ($(this).val() || '').trim();
+                selecteddate = '';
+                resetSchedulePanel();
+                $('#calendar td').removeClass('selected');
+
+                if (!selectedVendorId) {
+                    vendorAvailableDays = new Set();
+                    updateCalendarVisibility();
+                    return;
+                }
+
+                loadVendorAvailableDays(selectedVendorId);
+            });
+
+            updateCalendarVisibility();
 
 
 
@@ -1345,8 +1891,6 @@ if ($resultBloqueoDiasEventos) {
                 event.preventDefault();
                 // Lista de fields que quieres validar (incluye email y confirm_email)
                 const campos = [
-                    'email',
-                    'confirm_email',
                     'country_code',
                     'telephone',
                     'city',
@@ -1383,16 +1927,51 @@ if ($resultBloqueoDiasEventos) {
                     });
                 });
 
-                // Validar que los correos coincidan
-                const email = $('[name="email"]').val();
-                const confirmEmail = $('[name="confirm_email"]').val();
-                if (email !== confirmEmail) {
-                    $('[name="confirm_email"]').css("border", "1px solid red");
-                    $('#email-error').show();
+                // Validar correos solo si el usuario ingresó alguno
+                const email = ($('[name="email"]').val() || '').trim();
+                const confirmEmail = ($('[name="confirm_email"]').val() || '').trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                if ((email && !confirmEmail) || (!email && confirmEmail)) {
+                    $('[name="email"], [name="confirm_email"]').css('border', '1px solid red');
+                    $('#email-error').text('Debes completar ambos campos de correo o dejarlos vacíos.').show();
                     valido = false;
+                } else if (email && confirmEmail && email !== confirmEmail) {
+                    $('[name="confirm_email"]').css('border', '1px solid red');
+                    $('#email-error').text('Los correos electrónicos no coinciden').show();
+                    valido = false;
+                } else if (email && !emailRegex.test(email)) {
+                    $('[name="email"]').css('border', '1px solid red');
+                    $('#email-error').text('Ingresa un correo electrónico válido.').show();
+                    valido = false;
+                } else {
+                    $('[name="email"], [name="confirm_email"]').css('border', '');
+                    $('#email-error').hide();
                 }
 
                 if (!valido) {
+                    return;
+                }
+
+                if (!selectedVendorId) {
+                    $vendedoraSelect.css('border-bottom', '1px solid red');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Selecciona una vendedora',
+                        text: 'Debes elegir una vendedora antes de agendar la cita.',
+                        customClass: { popup: 'swal2-popup-center' }
+                    });
+                    return;
+                }
+
+                var horaScheduleSelected = $('li.selected').data('hour') || '';
+                if (!horaScheduleSelected) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Selecciona un horario',
+                        text: 'Por favor elige un día y horario disponible en el calendario.',
+                        customClass: { popup: 'swal2-popup-center' }
+                    });
                     return;
                 }
 
@@ -1508,6 +2087,7 @@ if ($resultBloqueoDiasEventos) {
                 formData.append('date_appointment_cust', dateCustFormatted);
                 formData.append('desde_publicidad', 0);
                 formData.append('zona_horaria', timezone);
+                formData.append('idusu', selectedVendorId);
                 // Nuevos campos
                 formData.append('wedding_date', $('#wedding_date').val());
                 console.log('Valor de desde_publicidad en FormData:', formData.get('desde_publicidad'));
@@ -1648,8 +2228,23 @@ if ($resultBloqueoDiasEventos) {
                         } else if (data.success) {
                             console.log("data form", data);
 
+                            const clientEmail = ($('[name="email"]').val() || '').trim();
+                            const vendorInfo = vendedorasById[selectedVendorId] || {};
+                            const confirmationPayload = {
+                                vendedor: vendorInfo.nombre || $vendedoraSelect.find('option:selected').text(),
+                                nombreCliente: $('[name="names"]').val() || 'N/A',
+                                fecha: formData.get('date_appointment_cust') || selecteddate,
+                                hora: formData.get('time_appointment_cust') || '',
+                                meetLink: vendorInfo.enlace_meet || ''
+                            };
 
-                            // Segunda solicitud Ajax
+                            if (!clientEmail) {
+                                loadingSwal.close();
+                                showVendorAppointmentConfirmation(confirmationPayload);
+                                return;
+                            }
+
+                            // Segunda solicitud Ajax (solo si hay correo del cliente)
                             $.ajax({
                                 url: 'admin/enviaCorreo.php',
                                 type: 'POST',
@@ -1658,60 +2253,32 @@ if ($resultBloqueoDiasEventos) {
                                     console.log(resu)
                                     loadingSwal.close();
 
-                                    let res = JSON.parse(resu);
+                                    let res = null;
+                                    try {
+                                        res = JSON.parse(resu);
+                                    } catch (parseError) {
+                                        console.error(parseError);
+                                        showVendorAppointmentConfirmation(confirmationPayload);
+                                        return;
+                                    }
                                     console.log(res);
 
-                                    // Verifica si el estado es 'success'
-                                    if (res.status === 'success') {
-                                        // Obtiene la fecha y el nombre del vendedor
-                                        const vendedor = res.data.vendedor;
-                                        const fecha = res.data.fecha;
-                                        const hora = res.data.hora;
-                                        const lastMessage = res.data.lastMessage;
-                                        var formattedDateHora = (hora && hora.trim()) ? moment(hora, 'HH:mm:ss').format('hh:mm a') : "No disponible";
-                                        var formattedDateFecha = (fecha && fecha.trim()) ? moment(fecha).format('DD-MM-YYYY') : "No disponible";
-
-                                        // Muestra un SweetAlert con el mensaje, la fecha y el nombre del vendedor
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: res.message,  // Muestra el mensaje principal
-                                            html: `Vendedor: ${vendedor}<br>Fecha: ${formattedDateFecha}<br>Hora: ${formattedDateHora}<br><br><h3>${lastMessage}</h3>`, // Muestra la fecha, hora, nombre del vendedor y el último mensaje
-                                            confirmButtonText: 'Ir a la página', // Cambia el texto del botón
-
-                                            customClass: {
-                                                popup: 'swal2-popup-center'
-                                            }
-                                        }).then((result) => {
-                                            if (result.isConfirmed) {
-                                                window.open('https://www.efegepho.com/', '_blank');
-
-                                                // Si el usuario da clic en el botón 'Ir a la página', redirige a la URL que quieras
-                                                // window.location.href = 'https://www.efegepho.com/'; // Reemplaza 'tu_pagina.html' por la URL que desees
-                                            }
+                                    if (res.status === 'success' && res.data) {
+                                        showVendorAppointmentConfirmation({
+                                            vendedor: res.data.vendedor || confirmationPayload.vendedor,
+                                            nombreCliente: res.data.nombre_cliente || confirmationPayload.nombreCliente,
+                                            fecha: res.data.fecha || confirmationPayload.fecha,
+                                            hora: res.data.hora || confirmationPayload.hora,
+                                            meetLink: res.data.enlace_meet || confirmationPayload.meetLink
                                         });
-
                                     } else {
-                                        // En caso de que no sea exitoso
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Error',
-                                            text: 'Hubo un problema al procesar la solicitud.',
-                                            customClass: {
-                                                popup: 'swal2-popup-center'
-                                            }
-                                        });
+                                        showVendorAppointmentConfirmation(confirmationPayload);
                                     }
                                 },
                                 error: function (e) {
-                                    // Muestra un mensaje de error en caso de fallo en la solicitud
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error',
-                                        text: 'Hubo un problema al enviar el correo.', customClass: {
-                                            popup: 'swal2-popup-center'
-                                        }
-                                    });
-                                    console.log(e); // Mostrar el error en consola
+                                    loadingSwal.close();
+                                    console.log(e);
+                                    showVendorAppointmentConfirmation(confirmationPayload);
                                 }
                             });
                         } else {

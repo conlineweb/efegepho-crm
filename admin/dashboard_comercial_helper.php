@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/status_badge_helper.php';
 
 if (!function_exists('dashComercialFormatPct')) {
     function dashComercialFormatPct($numerador, $denominador, $decimals = 1)
@@ -436,6 +437,7 @@ if (!function_exists('dashComercialCohortToDisplayRows')) {
                 'vendedora' => $vendorMap[$idusu] ?? ($idusu > 0 ? ('Vendedora #' . $idusu) : '—'),
                 'origen'    => trim((string) $formName) ?: '—',
                 'estatus'   => $estatus !== '' ? ucfirst($estatus) : '—',
+                'estatus_key' => $estatus,
                 'cita'      => dashComercialFormatDisplayDate(trim(($appt['fecha'] ?? '') . ' ' . ($appt['hora'] ?? ''))),
             ];
         }
@@ -773,6 +775,7 @@ if (!function_exists('dashComercialFetchHistorialRecords')) {
 
         $vendorMap = dashComercialBuildVendorMap($conn);
         $labels = [0 => 'Agendado', 1 => 'Atendido', 2 => 'Fantasma', 3 => 'Muerto', 4 => 'Cliente'];
+        $labelKeys = [0 => 'agendado', 1 => 'atendido', 2 => 'fantasma', 3 => 'muerto', 4 => 'cliente'];
 
         $sql = "SELECT
                     h.id_calendario,
@@ -812,6 +815,7 @@ if (!function_exists('dashComercialFetchHistorialRecords')) {
                     'vendedora'     => $vendorMap[$idusu] ?? ($idusu > 0 ? ('Vendedora #' . $idusu) : '—'),
                     'origen'        => trim((string) ($row['tabla_origen'] ?? '')) ?: '—',
                     'estatus'       => $labels[$estatusCode] ?? (string) $estatusCode,
+                    'estatus_key'   => $labelKeys[$estatusCode] ?? normalizeLeadStatusKey($labels[$estatusCode] ?? ''),
                     'cita'          => trim((string) ($row['cita_fecha'] ?? '')) !== ''
                         ? dashComercialFormatDisplayDate(trim($row['cita_fecha'] . ' ' . ($row['cita_hora'] ?? '')))
                         : '—',
@@ -932,7 +936,8 @@ if (!function_exists('dashComercialFetchLeadRecords')) {
                     'fecha_raw' => $createdTime,
                     'vendedora' => '—',
                     'origen'    => $tableName,
-                    'estatus'   => trim((string) ($lead['campaign_name'] ?? '')) ?: 'Lead',
+                    'estatus'   => 'Lead',
+                    'estatus_key' => 'lead',
                     'cita'      => '—',
                 ];
             }

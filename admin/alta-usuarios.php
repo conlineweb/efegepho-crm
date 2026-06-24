@@ -14,7 +14,7 @@ if (!isset($_SESSION['login']) || $_SESSION['login'] === false) {
  }
  $tipoUsuario = $_SESSION['tus'];
  
- if ($tipoUsuario !== "0") { // Comprueba si el tipo de usuario no es "0"
+ if (!usuarioTipoEsAdminLike($tipoUsuario)) {
     header('Location: index.php');
     exit();
 }
@@ -145,6 +145,7 @@ if ($result->num_rows > 0) {
                             <option value="2">Gestor de galer&iacute;a</option>
                             <option value="3">Gestor de pagos</option>
                             <option value="4">Marketing</option>
+                            <option value="5">L&iacute;der de Planners</option>
 
                         </select>
                     </div>
@@ -194,6 +195,7 @@ if ($result->num_rows > 0) {
                             <option value="2">Gestor de galer&iacute;a</option>
                             <option value="3">Gestor de pagos</option>
                             <option value="4">Marketing</option>
+                            <option value="5">L&iacute;der de Planners</option>
 
                         </select>
                     </div>
@@ -233,6 +235,13 @@ include 'footer.php';
 <script>
 // Pasa los datos PHP a JavaScript
 const usuarios = <?php echo json_encode($users); ?>;
+const rolLabels = <?php
+    $labels = [];
+    for ($i = 0; $i <= 5; $i++) {
+        $labels[$i] = usuarioRolLabel($i);
+    }
+    echo json_encode($labels);
+?>;
 console.log(usuarios)
 
 // Llenar la tabla con los datos de usuarios
@@ -253,7 +262,7 @@ $(document).ready(function() {
                 <td>${user.usuario}</td>
                 <td>${user.contrasena}</td>
                 <td>${user.correo}</td>
-                <td>${user.tipoUsu == 0 ? 'Admin' : user.tipoUsu == 1 ? 'Vendedor' : user.tipoUsu == 2 ? 'Gestor de galería' : user.tipoUsu == 3 ? 'Gestor de pagos' : user.tipoUsu == 4 ? 'Marketing' : 'Desconocido'}</td>
+                <td>${rolLabels[user.tipoUsu] || 'Desconocido'}</td>
                 <td>${user.enlace_meet}</td>
                 <td>
                     

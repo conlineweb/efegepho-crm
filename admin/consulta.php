@@ -1584,7 +1584,7 @@ $conn->close();
     <div class="modal-dialog modal-xl modal-dialog-scrollable" type="document">
         <div class="modal-content">
             <div class="modal-header">
-                <?php if ($tipoUsuario == "0"): ?>
+                <?php if ($isAdminLike): ?>
                     <h5 class="modal-title" id="reagendarModal">Reagendar Cita</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 <?php endif; ?>
@@ -1713,7 +1713,7 @@ $conn->close();
 
         var tipoUsuario = "<?php echo $_SESSION['tus']; ?>";
         var idUsu = "<?php echo $_SESSION['uid']; ?>";
-        var isAdminUser = tipoUsuario === '0';
+        var isAdminUser = <?php echo json_encode($isAdminLike); ?>;
         var isMarketingUser = tipoUsuario === '4';
         var canViewAllAppointments = isAdminUser || isMarketingUser;
         var filterStartDate = <?php echo json_encode($startDate); ?>;
@@ -4090,7 +4090,7 @@ $conn->close();
             htmlContent += '<div class="sfm-field"><label>Enlace de llamada</label><div class="sfm-readonly-input">' + (enlace_meet ? '<a href="' + $('<div>').text(enlace_meet).html() + '" target="_blank">' + $('<div>').text(enlace_meet).html() + '</a>' : 'Sin dato') + '</div></div>';
             htmlContent += '</div>';
             htmlContent += '<div class="sfm-field" style="margin-top:12px;"><label>Nota</label><div class="sfm-readonly-input">' + esc(nota) + '</div></div>';
-            if (tipoUsuario == '0') {
+            if (isAdminUser) {
                 htmlContent += '<div class="sfm-readonly-actions"><div class="btn btn-primary btn-reagendar" data-idclie="' + idclie + '" data-id="' + id + '" data-idusu="' + idusu + '" data-fecha="' + fecha + '" data-hora="' + hora + '" data-fecha_cliente="' + fecha_cliente + '" data-hora_cliente="' + hora_cliente + '">Reagendar</div></div>';
             }
             htmlContent += '</div>';

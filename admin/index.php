@@ -146,6 +146,44 @@ function idxDashboardLoadVendorNameMap($conn, array $userIds, array $existingMap
     }
     return $map;
 }
+function idxFilterCalendarioEventsWithValidContact($conn, array $events) {
+    if (empty($events)) {
+        return $events;
+    }
+
+    $leadIdclies = [];
+    foreach ($events as $ev) {
+        if (intval($ev['tipo'] ?? 0) === 1) {
+            continue;
+        }
+        $idclie = intval($ev['idclie'] ?? 0);
+        if ($idclie > 0) {
+            $leadIdclies[$idclie] = true;
+        }
+    }
+
+    $validLeadIds = [];
+    if (!empty($leadIdclies)) {
+        $idList = implode(',', array_map('intval', array_keys($leadIdclies)));
+        $cfRes = $conn->query("SELECT id FROM contact_form WHERE id IN ($idList)");
+        if ($cfRes) {
+            while ($cfRow = $cfRes->fetch_assoc()) {
+                $validLeadIds[intval($cfRow['id'] ?? 0)] = true;
+            }
+        }
+    }
+
+    return array_values(array_filter($events, function ($ev) use ($validLeadIds) {
+        if (intval($ev['tipo'] ?? 0) === 1) {
+            return true;
+        }
+        $idclie = intval($ev['idclie'] ?? 0);
+        if ($idclie <= 0) {
+            return true;
+        }
+        return isset($validLeadIds[$idclie]);
+    }));
+}
 function idxDashboardAssigneeKey($tablaOrigen, $leadId) {
     return strtolower(trim((string) $tablaOrigen)) . '|' . intval($leadId);
 }
@@ -302,8 +340,8 @@ if ($tipoUsu == 1) {
             $events[] = $row; // Guarda los eventos en un array
         }
     }
-} elseif ($tipoUsu == 0) {
-    // ADMIN
+} elseif (usuarioTipoEsAdminLike($tipoUsu)) {
+    // ADMIN / Líder de Planners
 
     // obtener todos los datos del calendario
     $sql = "SELECT * FROM calendario";
@@ -334,6 +372,8 @@ if ($tipoUsu == 1) {
         }
     }
 }
+
+$events = idxFilterCalendarioEventsWithValidContact($conn, $events);
 
 // En este punto, siempre tendrás los arrays $events y $users, aunque estén vacíos.
 
@@ -1127,7 +1167,7 @@ $liSql = "SELECT li.id, li.next_action, li.next_action_date, li.next_action_comp
     LEFT JOIN usuarios u ON u.id = li.created_by
     WHERE li.next_action_date IS NOT NULL
       AND (li.next_action_completed IS NULL OR li.next_action_completed = 0)";
-$idxSeeAllPendingInteractions = ($tipoUsu == 0 || intval($userid) === 20);
+$idxSeeAllPendingInteractions = (usuarioTipoEsAdminLike($tipoUsu) || intval($userid) === 20);
 if (!$idxSeeAllPendingInteractions) {
     $liSafeUserId = intval($userid);
     $liSql .= " AND (li.created_by = $liSafeUserId OR li.created_by IS NULL)";
@@ -2735,7 +2775,7 @@ table td.disabled {
                     </div>
                 </div>
 
-                <?php if ($tipoUsu == 0): ?>
+                <?php if (usuarioTipoEsAdminLike($tipoUsu)): ?>
                 <div class="calendar-user-filter">
                     <label for="userFilter">Filtrar por usuario:</label>
                     <select id="userFilter">
@@ -2780,7 +2820,7 @@ table td.disabled {
                                                       <label for="eventTime" class="form-label">Hora</label>
                             <input type="time" class="form-control" id="eventTime" name="time" required>
                                                  </div>
-                                                  <?php if ($tipoUsu == 0): ?>
+                                                  <?php if (usuarioTipoEsAdminLike($tipoUsu)): ?>
                         <div class="form-group">
                             <label for="userSelect">Seleccionar usuario</label>
                             <select class="form-control" id="userSelect" name="userSelect" required>
@@ -2823,7 +2863,7 @@ table td.disabled {
                                                       <label for="eventTime" class="form-label">Hora</label>
                             <input type="time" class="form-control" id="eventTime-2" name="time" required>
                                                  </div>
-                                                  <?php if ($tipoUsu == 0): ?>
+                                                  <?php if (usuarioTipoEsAdminLike($tipoUsu)): ?>
                         <div class="form-group">
                             <label for="userSelect">Seleccionar usuario</label>
                             <select class="form-control" id="userSelect" name="userSelect" required>

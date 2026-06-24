@@ -506,6 +506,7 @@ foreach ($allLeads as $lead) {
 
     $rows[] = [
         'id'            => $leadId,
+        'cf_id'         => $cfId,
         'tabla_origen'  => $tableName,
         'name'          => $name,
         'created_date'  => $createdDate,
@@ -587,6 +588,8 @@ foreach ($rowsForView as $row) {
 $displayCount = count($displayRows);
 $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
 ?>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
     :root {
@@ -978,11 +981,19 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         text-align: center;
     }
 
+    .actions-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
     .action-btn {
-        min-width: 44px;
+        width: 34px;
         height: 34px;
-        padding: 0 8px;
-        border-radius: 9999px;
+        padding: 0;
+        border-radius: 8px;
         border: 1px solid #d9dde5;
         background: #fff;
         color: #6b7280;
@@ -991,18 +1002,9 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         justify-content: center;
         text-decoration: none;
         transition: all 0.15s ease;
-    }
-
-    .action-btn-icon {
-        width: 22px;
-        height: 22px;
-        border-radius: 9999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #eef2f7;
-        color: #4b5563;
-        transition: all 0.15s ease;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
     }
 
     .eng {
@@ -1033,11 +1035,6 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         border-color: #bfc6d3;
         color: #374151;
         background: #f9fafb;
-    }
-
-    .action-btn:hover .action-btn-icon {
-        background: #e5ebf4;
-        color: #1f2937;
     }
 
     @media (max-width: 768px) {
@@ -1201,9 +1198,28 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
                                     </span>
                                 </td>
                                 <td class="actions-col">
-                                    <a class="action-btn" title="Registrar interacción" href="lead_interaction.php?tabla_origen=<?php echo urlencode((string) $row['tabla_origen']); ?>&id=<?php echo intval($row['id']); ?>">
-                                        <span class="action-btn-icon"><i class="fas fa-envelope"></i></span>
-                                    </a>
+                                    <?php
+                                        $traceParams = [];
+                                        $traceTabla = trim((string) ($row['tabla_origen'] ?? ''));
+                                        $traceOrigId = (int) ($row['id'] ?? 0);
+                                        if ($traceTabla !== '' && $traceOrigId > 0) {
+                                            $traceParams['tabla'] = $traceTabla;
+                                            $traceParams['orig_id'] = $traceOrigId;
+                                        }
+                                        $cfIdForTrace = (int) ($row['cf_id'] ?? 0);
+                                        if ($cfIdForTrace > 0) {
+                                            $traceParams['cf_id'] = $cfIdForTrace;
+                                        }
+                                        $traceUrl = 'consulta_post_leads_trazabilidad.php?' . http_build_query($traceParams);
+                                    ?>
+                                    <div class="actions-group">
+                                        <a class="action-btn" title="Chat" href="<?php echo htmlspecialchars($traceUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <i class="fas fa-message"></i>
+                                        </a>
+                                        <a class="action-btn" title="Registrar interacción" href="lead_interaction.php?tabla_origen=<?php echo urlencode((string) $row['tabla_origen']); ?>&id=<?php echo intval($row['id']); ?>">
+                                            <i class="fas fa-comments"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

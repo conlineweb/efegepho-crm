@@ -12,6 +12,8 @@ include 'menu.php';
 include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 require_once __DIR__ . '/evento_wp_post_helper.php';
 require_once __DIR__ . '/campaign_badge_helper.php';
+require_once __DIR__ . '/lead_field_badge_helper.php';
+require_once __DIR__ . '/lead_origin_helper.php';
 
 function postLeadResolveEngagementValue(array $lead, array $appointmentsByClient, array $wpEngagementByEventId)
 {
@@ -330,15 +332,8 @@ if (!empty($appointmentIds)) {
                 continue;
             }
 
-            // Auto-fill how_did_you_meet desde how_long_known_us cuando está vacío
-            if (trim((string)($merged['how_did_you_meet'] ?? '')) === '') {
-                $_knownUs = mb_strtolower(trim((string)($merged['how_long_known_us'] ?? '')), 'UTF-8');
-                if (in_array($_knownUs, ['less than 6 months', 'less than 3 months', 'between 3 months and 1 year'], true)) {
-                    $merged['how_did_you_meet'] = '3'; // New Audience
-                } elseif (in_array($_knownUs, ['more than 6 months', 'more than 1 year'], true)) {
-                    $merged['how_did_you_meet'] = '2'; // Community
-                }
-            }
+            // Resolver how_did_you_meet: how_long_known_us prevalece en registro manual / website
+            applyResolvedHowDidYouMeetToLead($merged);
 
             $allLeads[] = $merged;
         }
@@ -499,7 +494,11 @@ if (!function_exists('getDondeNosConocioLabel')) {
 
 if (!function_exists('getOrigenCategoriaLabel')) {
     function getOrigenCategoriaLabel($lead) {
-        $howRaw = trim((string)($lead['how_did_you_meet'] ?? ''));
+        $howRaw = resolveHowDidYouMeetCode(
+            $lead['how_did_you_meet'] ?? '',
+            $lead['how_long_known_us'] ?? '',
+            $lead
+        );
         $tablaOrigen = strtolower(trim((string)($lead['tabla_origen'] ?? '')));
         $howMap = [
             '1' => 'Wedding Planner',
@@ -1819,7 +1818,9 @@ $conn->close();
             .badge-neutral, .ch-badge { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
             .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
             .known { background: rgba(197,160,40,0.1); color: var(--gold); }
-            .badge-campaign {
+            .badge-campaign,
+            .badge-contact-method,
+            .badge-tipo-cliente {
                 display: inline-flex;
                 align-items: center;
                 padding: 4px 10px;
@@ -2292,10 +2293,10 @@ $conn->close();
                                 </td>
 
                                 <!-- Método de contacto -->
-                                <td data-column="metodo_contacto"><span class="ch-badge"><?php echo htmlspecialchars($contactChannelBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                <td data-column="metodo_contacto"><?php echo renderContactMethodBadge($contactMethodLabel, $contactChannelBadgeLabel); ?></td>
 
                                 <!-- Tipo de cliente -->
-                                <td data-column="tipo_cliente"><span class="td-inline-muted"><?php echo htmlspecialchars($tipoClienteLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                <td data-column="tipo_cliente"><?php echo renderTipoClienteBadge($tipoClienteLabel); ?></td>
 
                                 <!-- Origen -->
                                 <td data-column="origen_cliente">
@@ -2409,9 +2410,24 @@ $conn->close();
 
                                 <?php if ($tipoUsuario != 4): ?>
                                     <td>
-                                        <button class="efege-btn" type="button" onclick="verComentarios(<?php echo intval($lead['id']); ?>)">
-                                            <i class="fas fa-comment-dots"></i> Comentarios
-                                        </button>
+                                        <div class="action-stack">
+                                            <?php
+                                            $traceParams = ['cf_id' => (int) ($lead['id'] ?? 0)];
+                                            $traceTabla = trim((string) ($lead['tabla_origen'] ?? ''));
+                                            $traceOrigId = (int) ($lead['original_lead_id'] ?? 0);
+                                            if ($traceTabla !== '' && $traceOrigId > 0) {
+                                                $traceParams['tabla'] = $traceTabla;
+                                                $traceParams['orig_id'] = $traceOrigId;
+                                            }
+                                            $traceUrl = 'consulta_post_leads_trazabilidad.php?' . http_build_query($traceParams);
+                                            ?>
+                                            <a href="<?php echo htmlspecialchars($traceUrl, ENT_QUOTES, 'UTF-8'); ?>" class="efege-btn" style="text-decoration:none;" title="Trazabilidad">
+                                                <i class="fas fa-message"></i>
+                                            </a>
+                                            <button class="efege-btn" type="button" onclick="verComentarios(<?php echo intval($lead['id']); ?>)">
+                                                <i class="fas fa-comment-dots"></i> Comentarios
+                                            </button>
+                                        </div>
                                     </td>
                                 <?php endif; ?>
 

@@ -2,6 +2,7 @@
 // Incluir conexión
 include 'conn.php';
 require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 
 // Asegurar sesión para identificar al usuario que ejecuta el cambio (uid)
 if (session_status() === PHP_SESSION_NONE) {
@@ -298,7 +299,7 @@ $vendedores = obtenerDatos($conn, 'usuarios');
 $admins = []; // Inicializamos un array vacío para almacenar a todos los administradores
 
 foreach ($usuarios as $usuario) {
-  if ($usuario['tipoUsu'] == 0) {  // Verifica si es administrador
+  if (usuarioTipoEsAdminLike($usuario['tipoUsu'])) {
     $admins[] = $usuario; // Añade el administrador al array de administradores
   }
 }

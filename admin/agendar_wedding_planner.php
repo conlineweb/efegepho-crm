@@ -1,5 +1,6 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 require_once __DIR__ . '/wp_citas_leads_helper.php';
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
@@ -129,7 +130,7 @@ if ($override_vendedor > 0) {
         exit;
     }
     $rowv = $resv->fetch_assoc();
-    if (intval($rowv['tipoUsu']) !== 1) {
+    if (!usuarioTipoPuedeAsignarSesionWp($rowv['tipoUsu'] ?? -1)) {
         echo json_encode(['success' => false, 'message' => 'El usuario seleccionado no es un asesor válido.']);
         exit;
     }

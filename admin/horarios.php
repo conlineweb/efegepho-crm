@@ -11,7 +11,7 @@ $tipoUsuario = $_SESSION['tus'];
 
 
 
-if($tipoUsuario == "0"){
+if ($isAdminLike) {
     
 // Consulta los usuarios de la tabla "usuarios"
 $sqlUsuarios = "SELECT * FROM usuarios where tipoUsu = 1;"; // Aquí puedes seleccionar los campos que necesites

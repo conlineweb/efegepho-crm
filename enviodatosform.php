@@ -4,6 +4,7 @@ ob_start();
 ini_set('display_errors', 0); // No mostrar errores en pantalla
 error_reporting(E_ALL);
 include 'conn.php';
+require_once __DIR__ . '/admin/lead_origin_helper.php';
 
 function normalizeAppointmentTime($time) {
     $time = trim((string)$time);
@@ -249,6 +250,28 @@ if (count($vendedores) > 0) {
     $names = trim($_POST['names'] ?? '');
     $telephone = trim($_POST['telephone'] ?? '');
     $email_address = trim($_POST['email'] ?? '');
+    $from_vendedor_form = !empty($_POST['from_vendedor_form']);
+
+    if ($email_address !== '' && !filter_var($email_address, FILTER_VALIDATE_EMAIL)) {
+        $response['success'] = false;
+        $response['error'] = 'El correo electrónico ingresado no es válido.';
+        $response['icon'] = 'warning';
+        ob_end_clean();
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+
+    if (!$from_vendedor_form && $email_address === '') {
+        $response['success'] = false;
+        $response['error'] = 'El correo electrónico es obligatorio.';
+        $response['icon'] = 'warning';
+        ob_end_clean();
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+
     $wedding_date = trim($_POST['wedding_date'] ?? '');
     $wedding_location = trim($_POST['wedding_location'] ?? '');
     $wedding_planner = trim($_POST['wedding_planner'] ?? '');
@@ -337,6 +360,15 @@ if (count($vendedores) > 0) {
         if (in_array($tabla_origen_normalized, ['wedding_planners', 'eventos_wp', 'wp_eventos_afianzados'], true)) {
             $how_did_you_meet = '1'; // Wedding Planner
         }
+    }
+
+    $resolvedHowDidYouMeet = deriveHowDidYouMeetFromKnownUsAtSave(
+        $how_did_you_meet,
+        $how_long_known_us,
+        $first_contact_channel
+    );
+    if ($resolvedHowDidYouMeet !== '') {
+        $how_did_you_meet = $resolvedHowDidYouMeet;
     }
 
     // Validación de fecha_cliente: si está vacía, usar la misma fecha de date_appointment

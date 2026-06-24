@@ -1,5 +1,6 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
 
@@ -781,7 +782,7 @@ if (!$res2 || $res2->num_rows === 0) {
     exit;
 }
 $rowu = $res2->fetch_assoc();
-if (intval($rowu['tipoUsu']) !== 1) {
+if (!usuarioTipoPuedeAsignarSesionWp($rowu['tipoUsu'] ?? -1)) {
     echo json_encode(['success' => false, 'message' => 'El usuario seleccionado no es un asesor válido.']);
     exit;
 }

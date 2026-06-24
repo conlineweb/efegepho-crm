@@ -5,6 +5,7 @@ error_reporting(E_ALL);
 
 include 'menu.php';
 include 'conn.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
 
 function plannerProfileFormatDate($dateString)
 {
@@ -43,6 +44,12 @@ function plannerProfileDisplayName(array $planner)
     }
 
     return 'WP #' . intval($planner['id'] ?? 0);
+}
+
+function plannerProfileAgentOptionLabel(array $agent)
+{
+    $agentName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? '')));
+    return $agentName !== '' ? $agentName : ('Usuario #' . intval($agent['id'] ?? 0));
 }
 
 function plannerProfileFirstNonEmpty(...$values)
@@ -469,7 +476,7 @@ if ($plannerId > 0) {
         $interactionTypes .= 'i';
       }
 
-      $interactionSql = "SELECT id, tabla_origen, lead_id, original_lead_id, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, next_action_completed, created_at\n        FROM lead_interactions\n        WHERE " . implode(' OR ', $interactionWhereParts) . "\n        ORDER BY COALESCE(interaction_date, DATE(created_at)) DESC, COALESCE(interaction_time, TIME(created_at)) DESC, id DESC\n        LIMIT 100";
+      $interactionSql = "SELECT id, tabla_origen, lead_id, original_lead_id, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, next_action_completed, created_by, created_at\n        FROM lead_interactions\n        WHERE " . implode(' OR ', $interactionWhereParts) . "\n        ORDER BY COALESCE(interaction_date, DATE(created_at)) DESC, COALESCE(interaction_time, TIME(created_at)) DESC, id DESC\n        LIMIT 100";
       $stmt = $conn->prepare($interactionSql);
       if ($stmt) {
         $bindArgs = [$interactionTypes];
@@ -486,6 +493,11 @@ if ($plannerId > 0) {
         }
         $stmt->close();
       }
+
+      foreach ($interactions as &$interactionRow) {
+        $interactionRow['created_by_name'] = tracerResolveUsuarioNombre($conn, $interactionRow['created_by'] ?? 0) ?? '';
+      }
+      unset($interactionRow);
 
       foreach ($interactions as $interaction) {
         $interactionType = trim((string) ($interaction['interaction_type'] ?? ''));
@@ -621,7 +633,7 @@ if ($plannerId > 0) {
       }
 }
 
-    $resultAgents = $conn->query("SELECT id, nombre, apepat FROM usuarios WHERE tipoUsu = 1 ORDER BY nombre, apepat");
+    $resultAgents = $conn->query('SELECT id, nombre, apepat, tipoUsu FROM usuarios WHERE tipoUsu IN (' . usuarioSqlInTiposAsignacionSesionWp() . ') ORDER BY nombre, apepat');
     if ($resultAgents) {
       while ($row = $resultAgents->fetch_assoc()) {
         $agents[] = $row;
@@ -661,6 +673,18 @@ if ($plannerVendedorId > 0) {
     if (intval($agent['id'] ?? 0) === $plannerVendedorId) {
       $plannerVendedorName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? '')));
       break;
+    }
+  }
+  if ($plannerVendedorName === '') {
+    $stmtVendedor = $conn->prepare('SELECT nombre, apepat FROM usuarios WHERE id = ? LIMIT 1');
+    if ($stmtVendedor) {
+      $stmtVendedor->bind_param('i', $plannerVendedorId);
+      $stmtVendedor->execute();
+      $resVendedor = $stmtVendedor->get_result();
+      if ($resVendedor && ($rowVendedor = $resVendedor->fetch_assoc())) {
+        $plannerVendedorName = trim((string) (($rowVendedor['nombre'] ?? '') . ' ' . ($rowVendedor['apepat'] ?? '')));
+      }
+      $stmtVendedor->close();
     }
   }
 }
@@ -1892,7 +1916,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                       </span>
                     <?php endif; ?>
                   </div>
-                  <div class="appointment-meta"><?php echo htmlspecialchars(plannerProfileInteractionDateTime($interaction['interaction_date'] ?? '', $interaction['interaction_time'] ?? '', $interaction['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                  <div class="appointment-meta"><?php echo htmlspecialchars(plannerProfileInteractionDateTime($interaction['interaction_date'] ?? '', $interaction['interaction_time'] ?? '', $interaction['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($interaction['created_by_name'])): ?> · Registrado por: <?php echo htmlspecialchars($interaction['created_by_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></div>
                   <?php if ($interactionNotes !== ''): ?>
                     <div class="interaction-note"><?php echo nl2br(htmlspecialchars($interactionNotes, ENT_QUOTES, 'UTF-8')); ?></div>
                   <?php endif; ?>
@@ -2106,8 +2130,8 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
             <select id="plannerEditVendor" name="id_vendedor_asignado">
               <option value="0">Sin asignar</option>
               <?php foreach ($agents as $agent): ?>
-                <?php $agentName = trim((string)(($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? ''))); ?>
-                <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName !== '' ? $agentName : ('Usuario #' . intval($agent['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
+                <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
             <div style="font-size:0.8rem;color:#6b7280;margin-top:4px;">Solo actualiza el vendedor del planner. No modifica los vendedores de sus citas.</div>
@@ -2240,12 +2264,12 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
       <div class="modal-body">
         <form id="plannerAppointmentForm">
           <div class="schedule-field">
-            <label for="plannerAssignedVendor">Vendedor <span style="color:#b45309;">*</span></label>
+            <label for="plannerAssignedVendor">L&iacute;der de Planners <span style="color:#b45309;">*</span></label>
             <select id="plannerAssignedVendor" name="override_vendedor_id">
               <option value="">Seleccionar...</option>
               <?php foreach ($agents as $agent): ?>
-                <?php $agentName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? ''))); ?>
-                <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName !== '' ? $agentName : ('Usuario #' . intval($agent['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
+                <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -2445,8 +2469,8 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               <select id="eventoSinCitaAsesor" name="id_asesor">
                 <option value="">Seleccionar asesor...</option>
                 <?php foreach ($agents as $agent): ?>
-                  <?php $agentName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? ''))); ?>
-                  <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName !== '' ? $agentName : ('Usuario #' . intval($agent['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
+                  <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
               </select>
               <div class="invalid-feedback">Selecciona un asesor</div>
@@ -2552,8 +2576,8 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               <select id="plannerEditEventAsesor" name="id_asesor">
                 <option value="">Seleccionar asesor...</option>
                 <?php foreach ($agents as $agent): ?>
-                  <?php $agentName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? ''))); ?>
-                  <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName !== '' ? $agentName : ('Usuario #' . intval($agent['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
+                  <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
               </select>
               <div class="invalid-feedback">Selecciona un asesor</div>
@@ -3592,7 +3616,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
         if (!vendorId) {
           if (vendor) vendor.classList.add('is-invalid');
-          plannerShowAlert('Selecciona un vendedor', 'warning');
+          plannerShowAlert('Selecciona un líder de planners', 'warning');
           return;
         }
 
