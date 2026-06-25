@@ -2,8 +2,9 @@
 /**
  * Métricas del Dashboard Comercial.
  *
- * Agendas / Atendidos: cohorte post-leads (created_time del lead).
- * Clientes: cierres dentro de esa cohorte.
+ * Agendas: cohorte agendados (consulta_agendados_leads.php, created_time del lead).
+ * Atendidos: cohorte post-leads (consulta_post_leads.php + historial estatus 1).
+ * Clientes: cierres dentro de la cohorte post-leads.
  * Tabla historial: referencia por fecha_cambio.
  */
 
@@ -337,6 +338,65 @@ if (!function_exists('dashComercialLeadPassesPostLeadsFilters')) {
     }
 }
 
+if (!function_exists('dashComercialBuildAgendadosCohort')) {
+    /**
+     * Cohorte agendados (misma lógica que consulta_agendados_leads.php):
+     * contact_form con cita válida, fecha del lead en el periodo, todos los estatus.
+     *
+     * @return array<int, array{cf: array, appt: array, estatus: string, created_time: string}>
+     */
+    function dashComercialBuildAgendadosCohort($conn, $startDate, $endDate, $idVendedora = null)
+    {
+        $appointmentsByClient = dashComercialGetAppointmentsByClient($conn);
+        if (empty($appointmentsByClient)) {
+            return [];
+        }
+
+        $idsList = implode(',', array_map('intval', array_keys($appointmentsByClient)));
+        $result = $conn->query("SELECT * FROM contact_form WHERE id IN ($idsList)");
+        if (!$result) {
+            return [];
+        }
+
+        $cohort = [];
+        while ($cf = $result->fetch_assoc()) {
+            $cid = (int) ($cf['id'] ?? 0);
+            if ($cid <= 0 || !isset($appointmentsByClient[$cid])) {
+                continue;
+            }
+
+            $appt = $appointmentsByClient[$cid];
+            $estatus = dashComercialResolveLeadStatus($cf, $appt);
+            if (!dashComercialLeadPassesAgendadosFilters($cf, $appt, $estatus)) {
+                continue;
+            }
+
+            if ($idVendedora !== null) {
+                $idusu = (int) ($appt['idusu'] ?? $appt['id_vendedor_asignado'] ?? 0);
+                if ($idusu !== (int) $idVendedora) {
+                    continue;
+                }
+            }
+
+            $formName = $cf['tabla_origen'] ?? '';
+            $origId = (int) ($cf['original_lead_id'] ?? 0);
+            $createdTime = dashComercialResolveLeadCreatedTime($conn, $cf, $formName, $origId);
+            if (!dashComercialLeadInDateRange($createdTime, $startDate, $endDate)) {
+                continue;
+            }
+
+            $cohort[$cid] = [
+                'cf'           => $cf,
+                'appt'         => $appt,
+                'estatus'      => $estatus,
+                'created_time' => $createdTime,
+            ];
+        }
+
+        return $cohort;
+    }
+}
+
 if (!function_exists('dashComercialBuildPostLeadsCohort')) {
     /**
      * Cohorte post-calificada (misma secuencia que consulta_post_leads.php):
@@ -413,6 +473,103 @@ if (!function_exists('dashComercialBuildPostLeadsCohort')) {
     }
 }
 
+if (!function_exists('dashComercialResolveLeadFechaCambio')) {
+    /**
+     * Resuelve fecha_cambio_cliente (contact_form, fallback al lead original) — igual que clientes.php.
+     */
+    function dashComercialResolveLeadFechaCambio($conn, array $cf, $formName, $origId)
+    {
+        $fechaCambio = trim((string) ($cf['fecha_cambio_cliente'] ?? ''));
+        if ($formName !== '' && $origId > 0) {
+            $escapedForm = $conn->real_escape_string($formName);
+            $checkTable = $conn->query("SHOW TABLES LIKE '$escapedForm'");
+            if ($checkTable && $checkTable->num_rows > 0) {
+                $leadRes = $conn->query("SELECT * FROM `$escapedForm` WHERE id = $origId LIMIT 1");
+                if ($leadRes && $leadRes->num_rows > 0) {
+                    $leadRow = $leadRes->fetch_assoc();
+                    if (!empty($leadRow['fecha_cambio_cliente'])) {
+                        $fechaCambio = trim((string) $leadRow['fecha_cambio_cliente']);
+                    }
+                }
+            }
+        }
+        return $fechaCambio;
+    }
+}
+
+if (!function_exists('dashComercialBuildClientesCohort')) {
+    /**
+     * Cohorte de clientes cerrados (misma lógica que clientes.php / cierres de consulta_agendados):
+     * contact_form con cliente = 1, excl. WP, filtrada por fecha_cambio_cliente en el periodo.
+     *
+     * @return array<int, array{cf: array, appt: array, estatus: string, created_time: string}>
+     */
+    function dashComercialBuildClientesCohort($conn, $startDate, $endDate, $idVendedora = null)
+    {
+        $appointmentsByClient = dashComercialGetAppointmentsByClient($conn);
+
+        $result = $conn->query(
+            "SELECT * FROM contact_form
+             WHERE cliente = 1
+               AND LOWER(COALESCE(tabla_origen, '')) NOT IN ('wedding_planners','wedding_planner')"
+        );
+        if (!$result) {
+            return [];
+        }
+
+        $sd = $startDate !== '' ? date('Y-m-d', strtotime($startDate)) : null;
+        $ed = $endDate !== '' ? date('Y-m-d', strtotime($endDate)) : null;
+        $hasDateFilter = ($sd !== null || $ed !== null);
+
+        $cohort = [];
+        while ($cf = $result->fetch_assoc()) {
+            $cid = (int) ($cf['id'] ?? 0);
+            if ($cid <= 0) {
+                continue;
+            }
+
+            $formName = $cf['tabla_origen'] ?? '';
+            $origId = (int) ($cf['original_lead_id'] ?? 0);
+            $fechaCambio = dashComercialResolveLeadFechaCambio($conn, $cf, $formName, $origId);
+
+            if ($hasDateFilter) {
+                if ($fechaCambio === '') {
+                    continue;
+                }
+                $fcts = strtotime($fechaCambio);
+                if ($fcts === false) {
+                    continue;
+                }
+                $fd = date('Y-m-d', $fcts);
+                if ($sd && $fd < $sd) {
+                    continue;
+                }
+                if ($ed && $fd > $ed) {
+                    continue;
+                }
+            }
+
+            $appt = $appointmentsByClient[$cid] ?? null;
+
+            if ($idVendedora !== null) {
+                $idusu = $appt ? (int) ($appt['idusu'] ?? $appt['id_vendedor_asignado'] ?? 0) : 0;
+                if ($idusu !== (int) $idVendedora) {
+                    continue;
+                }
+            }
+
+            $cohort[$cid] = [
+                'cf'           => $cf,
+                'appt'         => $appt ?? [],
+                'estatus'      => 'cliente',
+                'created_time' => $fechaCambio !== '' ? $fechaCambio : ($cf['created_time'] ?? $cf['submission_date'] ?? ''),
+            ];
+        }
+
+        return $cohort;
+    }
+}
+
 if (!function_exists('dashComercialCohortToDisplayRows')) {
     function dashComercialCohortToDisplayRows($conn, array $cohort)
     {
@@ -452,38 +609,31 @@ if (!function_exists('dashComercialCohortToDisplayRows')) {
 
 if (!function_exists('dashComercialCountAgendas')) {
     /**
-     * Sesiones post-calificadas (consulta_post_leads.php / leadsCountFiltered).
+     * Sesiones agendadas (consulta_agendados_leads.php / leadsCountFiltered).
      */
     function dashComercialCountAgendas($conn, $startDate, $endDate, $idVendedora = null)
     {
-        return count(dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora));
+        return count(dashComercialBuildAgendadosCohort($conn, $startDate, $endDate, $idVendedora));
     }
 }
 
 if (!function_exists('dashComercialCountAtendidos')) {
     /**
-     * Misma cohorte que post-leads: ya requiere historial de atendido.
+     * Sesiones atendidas (consulta_post_leads.php): excluye agendado y requiere historial estatus 1.
      */
     function dashComercialCountAtendidos($conn, $startDate, $endDate, $idVendedora = null)
     {
-        return dashComercialCountAgendas($conn, $startDate, $endDate, $idVendedora);
+        return count(dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora));
     }
 }
 
 if (!function_exists('dashComercialCountClientes')) {
     /**
-     * Cierres dentro de la cohorte post-leads (estatus cliente / cliente = 1).
+     * Clientes cerrados (clientes.php): cliente = 1 filtrado por fecha_cambio_cliente.
      */
     function dashComercialCountClientes($conn, $startDate, $endDate, $idVendedora = null)
     {
-        $count = 0;
-        foreach (dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora) as $item) {
-            $estatus = mb_strtolower(trim((string) ($item['estatus'] ?? '')), 'UTF-8');
-            if ($estatus === 'cliente' || (int) ($item['cf']['cliente'] ?? 0) === 1) {
-                $count++;
-            }
-        }
-        return $count;
+        return count(dashComercialBuildClientesCohort($conn, $startDate, $endDate, $idVendedora));
     }
 }
 
@@ -831,7 +981,7 @@ if (!function_exists('dashComercialFetchAgendaRecords')) {
     {
         return dashComercialCohortToDisplayRows(
             $conn,
-            dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora)
+            dashComercialBuildAgendadosCohort($conn, $startDate, $endDate, $idVendedora)
         );
     }
 }
@@ -839,22 +989,20 @@ if (!function_exists('dashComercialFetchAgendaRecords')) {
 if (!function_exists('dashComercialFetchAtendidoRecords')) {
     function dashComercialFetchAtendidoRecords($conn, $startDate, $endDate, $idVendedora = null)
     {
-        return dashComercialFetchAgendaRecords($conn, $startDate, $endDate, $idVendedora);
+        return dashComercialCohortToDisplayRows(
+            $conn,
+            dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora)
+        );
     }
 }
 
 if (!function_exists('dashComercialFetchClienteRecords')) {
     function dashComercialFetchClienteRecords($conn, $startDate, $endDate, $idVendedora = null)
     {
-        $cohort = dashComercialBuildPostLeadsCohort($conn, $startDate, $endDate, $idVendedora);
-        $clientes = [];
-        foreach ($cohort as $cid => $item) {
-            $estatus = mb_strtolower(trim((string) ($item['estatus'] ?? '')), 'UTF-8');
-            if ($estatus === 'cliente' || (int) ($item['cf']['cliente'] ?? 0) === 1) {
-                $clientes[$cid] = $item;
-            }
-        }
-        return dashComercialCohortToDisplayRows($conn, $clientes);
+        return dashComercialCohortToDisplayRows(
+            $conn,
+            dashComercialBuildClientesCohort($conn, $startDate, $endDate, $idVendedora)
+        );
     }
 }
 

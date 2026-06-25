@@ -165,6 +165,28 @@ if ($action === 'chat_poll') {
     exit;
 }
 
+if ($action === 'lead_profile') {
+    require_once __DIR__ . '/pltrace_leads_helper.php';
+
+    $contactFormId = isset($_GET['cf_id']) ? (int) $_GET['cf_id'] : (isset($_GET['id']) ? (int) $_GET['id'] : 0);
+    $tablaOrigen   = isset($_GET['tabla']) ? trim((string) $_GET['tabla']) : '';
+    $origId        = isset($_GET['orig_id']) ? (int) $_GET['orig_id'] : 0;
+
+    if ($contactFormId <= 0 && ($tablaOrigen === '' || $origId <= 0)) {
+        pltrace_tracer_json_fail(400, 'Parámetros inválidos');
+    }
+
+    $result = pltraceFetchLeadProfile($conn, $tablaOrigen, $origId, $contactFormId);
+    $conn->close();
+
+    if (empty($result['success'])) {
+        pltrace_tracer_json_fail(404, $result['error'] ?? 'No se pudo cargar el perfil');
+    }
+
+    echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 $contactFormId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $tablaOrigen   = isset($_GET['tabla']) ? trim((string) $_GET['tabla']) : '';
 $origId        = isset($_GET['orig_id']) ? (int) $_GET['orig_id'] : 0;

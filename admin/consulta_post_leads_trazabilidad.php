@@ -122,6 +122,24 @@ if ($selectedKey === '' && !empty($traceLeads) && !$hasExplicitSelection) {
     $selectedKey = (string) ($traceLeads[0]['trace_key'] ?? '');
 }
 
+$initialDetailName = 'Selecciona un lead';
+$initialDetailEstatus = '';
+$initialDetailVendedora = '';
+$initialDetailHasLead = false;
+if ($selectedKey !== '') {
+    foreach ($allTraceLeads as $leadRowMeta) {
+        if ((string) ($leadRowMeta['trace_key'] ?? '') === $selectedKey) {
+            $initialDetailName = trim((string) ($leadRowMeta['nombre'] ?? $initialDetailName));
+            $initialDetailEstatus = trim((string) ($leadRowMeta['estatus'] ?? ''));
+            $initialDetailVendedora = trim((string) ($leadRowMeta['vendedora'] ?? ''));
+            $initialDetailHasLead = true;
+            break;
+        }
+    }
+}
+$initialDetailVendedoraInitial = pltraceVendedorInitial($initialDetailVendedora);
+$initialDetailVendedoraColor = pltraceVendedorColor($initialDetailVendedora);
+
 $reportRangeLabel = 'Todos los registros';
 if ($startDate !== '' || $endDate !== '') {
     $reportRangeStart = $startDate !== '' ? date('d/m/Y', strtotime($startDate)) : '...';
@@ -510,6 +528,99 @@ $conn->close();
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
+        }
+
+        #pltraceApp .pltrace-detail-identity {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex: 1;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 4px 6px;
+            margin: -4px -6px;
+            transition: background 0.15s;
+        }
+
+        #pltraceApp .pltrace-detail-identity:hover {
+            background: var(--pltrace-bg);
+        }
+
+        #pltraceApp .pltrace-detail-identity.pltrace-detail-identity--disabled {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        #pltraceApp .pltrace-detail-identity.pltrace-detail-identity--disabled:hover {
+            background: transparent;
+        }
+
+        #pltraceApp .pltrace-detail-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--pltrace-gold-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7a5c00;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        #pltraceApp .pltrace-detail-avatar[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-detail-text {
+            min-width: 0;
+        }
+
+        #pltraceApp .pltrace-detail-head-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        #pltraceApp .pltrace-detail-vendedora {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.84rem;
+            color: var(--pltrace-ink);
+        }
+
+        #pltraceApp .pltrace-detail-vendedora[hidden] {
+            display: none;
+        }
+
+        #pltraceApp .pltrace-detail-vendedora-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        #pltraceApp .pltrace-detail-vendedora-name {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #pltraceApp .pltrace-detail-vendedora-label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 500;
+            color: var(--pltrace-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         #pltraceApp .pltrace-detail-title {
@@ -1346,6 +1457,337 @@ $conn->close();
             background: var(--pltrace-gold-soft);
         }
 
+        .pltrace-modal--profile {
+            --pf-bg: #ffffff;
+            --pf-surface: #f8fafc;
+            --pf-surface-hover: #f1f5f9;
+            --pf-border: #e8e5df;
+            --pf-text: #1e293b;
+            --pf-muted: #64748b;
+            --pf-accent: #c5a028;
+            --pf-accent-soft: #f5edd6;
+            --pf-blue: #3b82f6;
+            --pf-blue-soft: #eff6ff;
+
+            width: min(480px, calc(100vw - 24px));
+            max-height: calc(100vh - 32px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+            border: 1px solid var(--pf-border);
+            background: #ffffff;
+        }
+
+        .pltrace-profile-card {
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 32px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            background: #ffffff;
+            color: var(--pf-text);
+        }
+
+        .pltrace-profile-layout {
+            position: relative;
+            min-width: 0;
+            background: #ffffff;
+        }
+
+        .pltrace-profile-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: var(--pf-surface);
+            color: var(--pf-muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            z-index: 3;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .pltrace-profile-close:hover {
+            background: var(--pf-surface-hover);
+            color: var(--pf-text);
+        }
+
+        .pltrace-profile-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 20px 52px 16px 20px;
+            background: var(--pf-bg);
+            border-bottom: 1px solid var(--pf-border);
+        }
+
+        .pltrace-profile-header-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pltrace-profile-avatar {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: linear-gradient(145deg, #f5edd6, #e8d9a8);
+            color: #7a5c00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+        }
+
+        .pltrace-profile-name {
+            margin: 0 0 4px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--pf-text);
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+
+        .pltrace-profile-handle {
+            margin: 0 0 6px;
+            font-size: 0.78rem;
+            color: var(--pf-muted);
+            word-break: break-all;
+        }
+
+        .pltrace-profile-subline {
+            margin: 0 0 10px;
+            font-size: 0.76rem;
+            color: var(--pf-muted);
+        }
+
+        .pltrace-profile-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pltrace-profile-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--pf-surface);
+            color: var(--pf-muted);
+            font-size: 0.68rem;
+            font-weight: 600;
+            border: 1px solid var(--pf-border);
+        }
+
+        .pltrace-profile-tag--estatus {
+            background: var(--pf-accent-soft);
+            color: #7a5c00;
+            border-color: #e8d9a8;
+        }
+
+        .pltrace-profile-body {
+            padding: 0 20px 20px;
+        }
+
+        .pltrace-profile-section {
+            margin-bottom: 20px;
+        }
+
+        .pltrace-profile-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .pltrace-profile-section-title {
+            margin: 0 0 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--pf-muted);
+        }
+
+        .pltrace-profile-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pltrace-profile-field-label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--pf-muted);
+            margin-bottom: 3px;
+        }
+
+        .pltrace-profile-field-value {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--pf-text);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .pltrace-profile-visit {
+            display: flex;
+            gap: 0;
+            background: var(--pf-surface);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            border: 1px solid var(--pf-border);
+        }
+
+        .pltrace-profile-visit-accent {
+            width: 4px;
+            flex-shrink: 0;
+            background: var(--pf-blue);
+        }
+
+        .pltrace-profile-visit-body {
+            flex: 1;
+            padding: 12px 14px;
+            min-width: 0;
+        }
+
+        .pltrace-profile-visit-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .pltrace-profile-visit-head span:first-child {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--pf-muted);
+        }
+
+        .pltrace-profile-visit-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--pf-blue-soft);
+            color: #1d4ed8;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .pltrace-profile-visit-date {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--pf-text);
+            margin-bottom: 2px;
+        }
+
+        .pltrace-profile-visit-sub {
+            font-size: 0.76rem;
+            color: var(--pf-muted);
+        }
+
+        .pltrace-profile-agent {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--pf-surface);
+            border-radius: 10px;
+            border: 1px solid var(--pf-border);
+            margin-bottom: 14px;
+        }
+
+        .pltrace-profile-agent-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .pltrace-profile-agent-label {
+            display: block;
+            font-size: 0.62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--pf-muted);
+            margin-bottom: 2px;
+        }
+
+        .pltrace-profile-agent-name {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--pf-text);
+        }
+
+        .pltrace-profile-note {
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--pf-accent-soft);
+            border: 1px solid #e8d9a8;
+            border-left: 3px solid var(--pf-accent);
+        }
+
+        .pltrace-profile-note-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--pf-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .pltrace-profile-note-text {
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--pf-text);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .pltrace-profile-loading,
+        .pltrace-profile-error {
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--pf-muted);
+            font-size: 0.9rem;
+            background: var(--pf-bg);
+        }
+
+        .pltrace-profile-loading i {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--pf-accent);
+        }
+
+        @media (max-width: 520px) {
+            .pltrace-modal--profile {
+                width: calc(100vw - 16px);
+            }
+        }
+
         .pltrace-pdf-frame {
             width: 100%;
             height: min(78vh, 820px);
@@ -1472,6 +1914,7 @@ $conn->close();
                     elseif ($statusRaw === 'agendado') $badgeClass = 'pltrace-badge--agendado';
                     $pendingBadge = $pltracePendingBadgesMap[$traceKey] ?? null;
                     $isWeddingPlanner = !empty($lead['is_wedding_planner']);
+                    $vendedoraNombre = trim((string) ($lead['vendedora'] ?? ''));
                     ?>
                     <button type="button"
                         class="pltrace-lead-card<?php echo $traceKey === $selectedKey ? ' pltrace-selected' : ''; ?>"
@@ -1481,8 +1924,9 @@ $conn->close();
                         data-pltrace-cf-id="<?php echo (int) $cfId; ?>"
                         data-pltrace-name="<?php echo htmlspecialchars($lead['nombre'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                         data-pltrace-estatus="<?php echo htmlspecialchars($lead['estatus'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                        data-pltrace-vendedora="<?php echo htmlspecialchars($vendedoraNombre, ENT_QUOTES, 'UTF-8'); ?>"
                         data-pltrace-is-wp="<?php echo $isWeddingPlanner ? '1' : '0'; ?>"
-                        data-pltrace-search="<?php echo htmlspecialchars(mb_strtolower(($lead['nombre'] ?? '') . ' ' . ($lead['email'] ?? '') . ' ' . ($lead['telefono'] ?? ''), 'UTF-8'), ENT_QUOTES, 'UTF-8'); ?>">
+                        data-pltrace-search="<?php echo htmlspecialchars(mb_strtolower(($lead['nombre'] ?? '') . ' ' . ($lead['email'] ?? '') . ' ' . ($lead['telefono'] ?? '') . ' ' . $vendedoraNombre, 'UTF-8'), ENT_QUOTES, 'UTF-8'); ?>">
                         <span class="pltrace-unread-badge" hidden aria-label="Mensajes no leídos"></span>
                         <div class="pltrace-lead-avatar"><i class="fas fa-user"></i></div>
                         <div class="pltrace-lead-body">
@@ -1528,11 +1972,38 @@ $conn->close();
 
     <section class="pltrace-detail-panel">
         <header class="pltrace-detail-head">
-            <div>
-                <h2 class="pltrace-detail-title" id="pltraceDetailTitle">Selecciona un lead</h2>
-                <p class="pltrace-detail-sub" id="pltraceDetailSub">Historial completo de estatus y fechas</p>
+            <div class="pltrace-detail-identity<?php echo $initialDetailHasLead ? '' : ' pltrace-detail-identity--disabled'; ?>"
+                id="pltraceDetailIdentity"
+                role="button"
+                tabindex="<?php echo $initialDetailHasLead ? '0' : '-1'; ?>"
+                aria-label="Ver información del lead"
+                title="<?php echo $initialDetailHasLead ? 'Ver información del lead' : ''; ?>">
+                <span class="pltrace-detail-avatar" id="pltraceDetailAvatar"<?php echo $initialDetailHasLead ? '' : ' hidden'; ?> aria-hidden="true">
+                    <i class="fas fa-user"></i>
+                </span>
+                <div class="pltrace-detail-text">
+                    <h2 class="pltrace-detail-title" id="pltraceDetailTitle"><?php echo htmlspecialchars($initialDetailName, ENT_QUOTES, 'UTF-8'); ?></h2>
+                    <p class="pltrace-detail-sub" id="pltraceDetailSub">
+                        <?php if ($initialDetailHasLead && $initialDetailEstatus !== ''): ?>
+                            Estatus actual: <?php echo htmlspecialchars($initialDetailEstatus, ENT_QUOTES, 'UTF-8'); ?>
+                        <?php else: ?>
+                            Historial completo de estatus y fechas
+                        <?php endif; ?>
+                    </p>
+                </div>
             </div>
-            <div class="pltrace-period-chip"><i class="far fa-calendar"></i> <?php echo htmlspecialchars($reportRangeLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+            <div class="pltrace-detail-head-right">
+                <div class="pltrace-detail-vendedora" id="pltraceDetailVendedora"<?php echo $initialDetailVendedora === '' ? ' hidden' : ''; ?>>
+                    <span class="pltrace-detail-vendedora-circle" id="pltraceDetailVendedoraCircle" style="background-color: <?php echo htmlspecialchars($initialDetailVendedoraColor, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo htmlspecialchars($initialDetailVendedoraInitial, ENT_QUOTES, 'UTF-8'); ?>
+                    </span>
+                    <span>
+                        <span class="pltrace-detail-vendedora-label">Vendedora</span>
+                        <span class="pltrace-detail-vendedora-name" id="pltraceDetailVendedoraName"><?php echo htmlspecialchars($initialDetailVendedora, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </span>
+                </div>
+                <div class="pltrace-period-chip"><i class="far fa-calendar"></i> <?php echo htmlspecialchars($reportRangeLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+            </div>
         </header>
 
         <div class="pltrace-filter-tabs" id="pltraceFilterTabs" hidden>
@@ -1594,6 +2065,14 @@ $conn->close();
 </div>
 </div>
 
+<div class="pltrace-modal-overlay" id="pltraceProfileModal" hidden aria-hidden="true">
+    <div class="pltrace-modal pltrace-modal--profile" role="dialog" aria-modal="true" aria-labelledby="pltraceProfileModalName">
+        <div class="pltrace-profile-card" id="pltraceProfileModalBody">
+            <div class="pltrace-profile-loading"><i class="fas fa-circle-notch fa-spin"></i>Selecciona un lead para ver su información.</div>
+        </div>
+    </div>
+</div>
+
 <div class="pltrace-modal-overlay" id="pltraceInteractionModal" hidden aria-hidden="true">
     <div class="pltrace-modal pltrace-modal--lg" role="dialog" aria-modal="true" aria-labelledby="pltraceInteractionModalTitle">
         <header class="pltrace-modal-head">
@@ -1642,6 +2121,10 @@ $conn->close();
     const INITIAL_TABLA = <?php echo json_encode($selectedTabla, JSON_UNESCAPED_UNICODE); ?>;
     const INITIAL_ORIG_ID = <?php echo (int) $selectedOrigId; ?>;
     const INITIAL_CF_ID = <?php echo (int) $selectedCfId; ?>;
+    const INITIAL_DETAIL_NAME = <?php echo json_encode($initialDetailName, JSON_UNESCAPED_UNICODE); ?>;
+    const INITIAL_DETAIL_ESTATUS = <?php echo json_encode($initialDetailEstatus, JSON_UNESCAPED_UNICODE); ?>;
+    const INITIAL_DETAIL_VENDEDORA = <?php echo json_encode($initialDetailVendedora, JSON_UNESCAPED_UNICODE); ?>;
+    const INITIAL_DETAIL_HAS_LEAD = <?php echo $initialDetailHasLead ? 'true' : 'false'; ?>;
     const CURRENT_USER_ID = <?php echo (int) ($_SESSION['uid'] ?? 0); ?>;
     const PLTRACE_CHAT_API = 'post_lead_tracer.php';
     const ICONS = {
@@ -1661,6 +2144,10 @@ $conn->close();
     const chatEl = document.getElementById('pltraceTimelineScroll');
     const titleEl = document.getElementById('pltraceDetailTitle');
     const subEl = document.getElementById('pltraceDetailSub');
+    const avatarEl = document.getElementById('pltraceDetailAvatar');
+    const vendedoraEl = document.getElementById('pltraceDetailVendedora');
+    const vendedoraCircleEl = document.getElementById('pltraceDetailVendedoraCircle');
+    const vendedoraNameEl = document.getElementById('pltraceDetailVendedoraName');
     const searchEl = document.getElementById('pltraceSearchInput');
     const chatInputEl = document.getElementById('pltraceChatInput');
     const chatSendEl = document.getElementById('pltraceChatSend');
@@ -1684,6 +2171,9 @@ $conn->close();
     const interactionModalEl = document.getElementById('pltraceInteractionModal');
     const interactionModalCloseEl = document.getElementById('pltraceInteractionModalClose');
     const interactionFrameEl = document.getElementById('pltraceInteractionFrame');
+    const profileModalEl = document.getElementById('pltraceProfileModal');
+    const profileModalBodyEl = document.getElementById('pltraceProfileModalBody');
+    const detailIdentityEl = document.getElementById('pltraceDetailIdentity');
     const filterTabsEl = document.getElementById('pltraceFilterTabs');
 
     let loadToken = 0;
@@ -1697,6 +2187,296 @@ $conn->close();
     let isSending = false;
     let isUploading = false;
     let timelineFingerprint = '';
+
+    function vendedorInitialFromName(name) {
+        const trimmed = String(name || '').trim();
+        if (!trimmed) return 'S';
+        return trimmed.charAt(0).toUpperCase();
+    }
+
+    function vendedorColorFromName(name) {
+        const colors = {
+            B: '#3B82F6',
+            A: '#10B981',
+            E: '#8B5CF6',
+            L: '#F59E0B',
+            M: '#EC4899',
+            C: '#06B6D4',
+            D: '#EF4444'
+        };
+        return colors[vendedorInitialFromName(name)] || '#64748B';
+    }
+
+    function updateDetailHeader(options) {
+        const name = options && options.name ? String(options.name) : 'Selecciona un lead';
+        const estatus = options && options.estatus ? String(options.estatus) : '';
+        const vendedora = options && options.vendedora ? String(options.vendedora).trim() : '';
+        const hasLead = !!(options && options.hasLead);
+
+        if (titleEl) titleEl.textContent = name;
+        if (subEl) {
+            subEl.textContent = estatus
+                ? ('Estatus actual: ' + estatus)
+                : (hasLead ? 'Historial completo de estatus, interacciones y mensajes' : 'Historial completo de estatus y fechas');
+        }
+        if (avatarEl) avatarEl.hidden = !hasLead;
+        if (vendedoraEl) {
+            if (vendedora) {
+                vendedoraEl.hidden = false;
+                if (vendedoraCircleEl) {
+                    vendedoraCircleEl.textContent = vendedorInitialFromName(vendedora);
+                    vendedoraCircleEl.style.backgroundColor = vendedorColorFromName(vendedora);
+                }
+                if (vendedoraNameEl) vendedoraNameEl.textContent = vendedora;
+            } else {
+                vendedoraEl.hidden = true;
+            }
+        }
+        if (detailIdentityEl) {
+            const canOpenProfile = hasLead && (
+                (currentLead.tabla && currentLead.origId > 0) || currentLead.cfId > 0
+            );
+            detailIdentityEl.classList.toggle('pltrace-detail-identity--disabled', !canOpenProfile);
+            detailIdentityEl.tabIndex = canOpenProfile ? 0 : -1;
+            detailIdentityEl.title = canOpenProfile ? 'Ver información del lead' : '';
+        }
+    }
+
+    function buildProfileUrl(tabla, origId, cfId) {
+        const params = new URLSearchParams();
+        params.set('action', 'lead_profile');
+        if (cfId > 0) {
+            params.set('cf_id', String(cfId));
+        }
+        if (tabla) {
+            params.set('tabla', tabla);
+        }
+        if (origId > 0) {
+            params.set('orig_id', String(origId));
+        }
+        return PLTRACE_CHAT_API + '?' + params.toString();
+    }
+
+    function isProfileEmptyValue(value) {
+        const v = String(value || '').trim();
+        return v === '' || v === '—';
+    }
+
+    function buildProfileFieldHtml(field) {
+        const value = field.value || '';
+        if (isProfileEmptyValue(value)) return '';
+        return '<div class="pltrace-profile-field">' +
+            '<span class="pltrace-profile-field-label">' + escapeHtml(field.label || '') + '</span>' +
+            '<span class="pltrace-profile-field-value">' + escapeHtml(value) + '</span>' +
+        '</div>';
+    }
+
+    function collectProfileFields(sections, titles, skipLabels) {
+        const fields = [];
+        const skip = skipLabels || [];
+        sections.forEach(function (section) {
+            if (titles.indexOf(section.title) === -1) return;
+            (section.fields || []).forEach(function (field) {
+                if (field.multiline) return;
+                if (skip.indexOf(field.label) !== -1) return;
+                fields.push(field);
+            });
+        });
+        return fields;
+    }
+
+    function findProfileField(fields, label) {
+        for (let i = 0; i < fields.length; i++) {
+            if (fields[i].label === label) return fields[i];
+        }
+        return null;
+    }
+
+    function renderProfileSection(title, fields, excludeLabels) {
+        const exclude = excludeLabels || [];
+        const visible = fields.filter(function (field) {
+            return exclude.indexOf(field.label) === -1 && !isProfileEmptyValue(field.value);
+        });
+        if (!visible.length) return '';
+
+        let html = '<section class="pltrace-profile-section">';
+        html += '<h3 class="pltrace-profile-section-title">' + escapeHtml(title) + '</h3>';
+        html += '<div class="pltrace-profile-fields">';
+        visible.forEach(function (field) {
+            html += buildProfileFieldHtml(field);
+        });
+        html += '</div></section>';
+        return html;
+    }
+
+    function renderLeadProfile(profile) {
+        if (!profileModalBodyEl) return;
+        const sections = Array.isArray(profile.sections) ? profile.sections : [];
+        if (!sections.length) {
+            profileModalBodyEl.innerHTML = '<div class="pltrace-profile-error">No hay información disponible para este lead.</div>';
+            return;
+        }
+
+        const hero = profile.hero || {};
+        const nombre = hero.nombre || profile.nombre || 'Lead';
+        const email = hero.email || '—';
+        const city = hero.city || '—';
+        const estatus = hero.estatus || '—';
+        const vendedora = hero.vendedora || '—';
+        const handle = !isProfileEmptyValue(email) ? email : ('Lead #' + (profile.orig_id || ''));
+
+        const skipInGrid = ['Nombre completo', 'Correo electrónico'];
+        const contactFields = collectProfileFields(sections, ['Datos de contacto'], skipInGrid);
+        const originFields = collectProfileFields(sections, [
+            'Tipo de cliente',
+            'Primer contacto',
+            'Conocimiento',
+            'Fecha de registro'
+        ]);
+        const followFields = collectProfileFields(sections, ['Asignación y seguimiento']);
+
+        const proximaSesion = findProfileField(followFields, 'Próxima sesión');
+        const estatusActual = findProfileField(followFields, 'Estatus actual');
+        const estatusSesion = findProfileField(followFields, 'Estatus de la sesión');
+        const vendedoraField = findProfileField(followFields, 'Vendedora asignada');
+        const vendedoraNombre = vendedoraField && !isProfileEmptyValue(vendedoraField.value)
+            ? vendedoraField.value
+            : (!isProfileEmptyValue(vendedora) ? vendedora : '');
+
+        const followExclude = [
+            'Próxima sesión',
+            'Estatus actual',
+            'Estatus de la sesión',
+            'Vendedora asignada'
+        ];
+
+        let html = '<div class="pltrace-profile-layout">';
+        html += '<button type="button" class="pltrace-profile-close" id="pltraceProfileInlineClose" title="Cerrar" aria-label="Cerrar"><i class="fas fa-times"></i></button>';
+        html += '<header class="pltrace-profile-header">';
+        html += '<div class="pltrace-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>';
+        html += '<div class="pltrace-profile-header-main">';
+        html += '<h2 class="pltrace-profile-name" id="pltraceProfileModalName">' + escapeHtml(nombre) + '</h2>';
+        html += '<p class="pltrace-profile-handle">' + escapeHtml(handle) + '</p>';
+        if (!isProfileEmptyValue(city)) {
+            html += '<p class="pltrace-profile-subline">' + escapeHtml(city) + '</p>';
+        }
+        const tags = Array.isArray(profile.tags) ? profile.tags : [];
+        if (tags.length) {
+            html += '<div class="pltrace-profile-tags">';
+            tags.forEach(function (tag) {
+                const tagClass = (tag === estatus)
+                    ? 'pltrace-profile-tag pltrace-profile-tag--estatus'
+                    : 'pltrace-profile-tag';
+                html += '<span class="' + tagClass + '">' + escapeHtml(tag) + '</span>';
+            });
+            html += '</div>';
+        }
+        html += '</div></header>';
+
+        html += '<div class="pltrace-profile-body">';
+        html += renderProfileSection('Datos de contacto', contactFields);
+        html += renderProfileSection('Origen y perfil', originFields);
+
+        const hasFollowBlock = followFields.some(function (f) {
+            return !isProfileEmptyValue(f.value);
+        });
+        if (hasFollowBlock) {
+            html += '<section class="pltrace-profile-section">';
+            html += '<h3 class="pltrace-profile-section-title">Seguimiento</h3>';
+
+            const visitDate = proximaSesion && !isProfileEmptyValue(proximaSesion.value) ? proximaSesion.value : '';
+            const visitBadge = estatusActual && !isProfileEmptyValue(estatusActual.value)
+                ? estatusActual.value
+                : (estatusSesion && !isProfileEmptyValue(estatusSesion.value) ? estatusSesion.value : estatus);
+            if (visitDate || (!isProfileEmptyValue(visitBadge) && visitBadge !== '—')) {
+                html += '<div class="pltrace-profile-visit">';
+                html += '<div class="pltrace-profile-visit-accent"></div>';
+                html += '<div class="pltrace-profile-visit-body">';
+                html += '<div class="pltrace-profile-visit-head">';
+                html += '<span>' + (visitDate ? 'Próxima sesión' : 'Estatus') + '</span>';
+                if (!isProfileEmptyValue(visitBadge)) {
+                    html += '<span class="pltrace-profile-visit-badge">' + escapeHtml(visitBadge) + '</span>';
+                }
+                html += '</div>';
+                if (visitDate) {
+                    html += '<div class="pltrace-profile-visit-date">' + escapeHtml(visitDate) + '</div>';
+                }
+                if (estatusSesion && !isProfileEmptyValue(estatusSesion.value)) {
+                    html += '<div class="pltrace-profile-visit-sub">Sesión: ' + escapeHtml(estatusSesion.value) + '</div>';
+                }
+                html += '</div></div>';
+            }
+
+            if (vendedoraNombre) {
+                const vInitial = vendedorInitialFromName(vendedoraNombre);
+                const vColor = vendedorColorFromName(vendedoraNombre);
+                html += '<div class="pltrace-profile-agent">';
+                html += '<div class="pltrace-profile-agent-avatar" style="background-color:' + escapeAttr(vColor) + '">' + escapeHtml(vInitial) + '</div>';
+                html += '<div><span class="pltrace-profile-agent-label">Vendedora asignada</span>';
+                html += '<span class="pltrace-profile-agent-name">' + escapeHtml(vendedoraNombre) + '</span></div>';
+                html += '</div>';
+            }
+
+            const followRest = followFields.filter(function (field) {
+                return followExclude.indexOf(field.label) === -1 && !isProfileEmptyValue(field.value);
+            });
+            if (followRest.length) {
+                html += '<div class="pltrace-profile-fields">';
+                followRest.forEach(function (field) {
+                    html += buildProfileFieldHtml(field);
+                });
+                html += '</div>';
+            }
+            html += '</section>';
+        }
+
+        const bio = String(profile.bio || '').trim();
+        if (bio) {
+            html += '<section class="pltrace-profile-section">';
+            html += '<h3 class="pltrace-profile-section-title">Notas del cliente</h3>';
+            html += '<div class="pltrace-profile-note">';
+            html += '<div class="pltrace-profile-note-text">' + escapeHtml(bio) + '</div>';
+            html += '</div></section>';
+        }
+        html += '</div></div>';
+
+        profileModalBodyEl.innerHTML = html;
+        const inlineClose = document.getElementById('pltraceProfileInlineClose');
+        if (inlineClose) {
+            inlineClose.addEventListener('click', closeLeadProfileModal);
+        }
+    }
+
+    function closeLeadProfileModal() {
+        closeModal(profileModalEl);
+    }
+
+    function openLeadProfileModal() {
+        if ((!currentLead.tabla || currentLead.origId <= 0) && currentLead.cfId <= 0) return;
+        if (profileModalBodyEl) {
+            profileModalBodyEl.innerHTML = '<div class="pltrace-profile-loading"><i class="fas fa-circle-notch fa-spin"></i>Cargando información del lead...</div>';
+        }
+        openModal(profileModalEl);
+
+        fetch(buildProfileUrl(currentLead.tabla, currentLead.origId, currentLead.cfId), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success || !data.profile) {
+                    if (profileModalBodyEl) {
+                        profileModalBodyEl.innerHTML = '<div class="pltrace-profile-error">' +
+                            escapeHtml((data && (data.error || data.message)) || 'No se pudo cargar la información') +
+                            '</div>';
+                    }
+                    return;
+                }
+                renderLeadProfile(data.profile);
+            })
+            .catch(function () {
+                if (profileModalBodyEl) {
+                    profileModalBodyEl.innerHTML = '<div class="pltrace-profile-error">Error de comunicación con el servidor.</div>';
+                }
+            });
+    }
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -2016,6 +2796,8 @@ $conn->close();
                 estatus: (subEl && subEl.textContent.indexOf('Estatus actual: ') === 0)
                     ? subEl.textContent.replace('Estatus actual: ', '')
                     : '',
+                vendedora: vendedoraNameEl ? vendedoraNameEl.textContent : '',
+                hasLead: true,
                 timelineFilter: activeTimelineFilter
             }
         );
@@ -2372,10 +3154,19 @@ $conn->close();
         setFilterTabsVisible(false);
         allEvents = [];
 
-        const name = meta && meta.name ? meta.name : ('Lead #' + origId);
-        const estatus = meta && meta.estatus ? meta.estatus : '';
-        titleEl.textContent = name;
-        subEl.textContent = estatus ? ('Estatus actual: ' + estatus) : 'Historial completo de estatus, interacciones y mensajes';
+        const name = (meta && meta.name)
+            ? meta.name
+            : ((INITIAL_DETAIL_HAS_LEAD && INITIAL_DETAIL_NAME !== 'Selecciona un lead')
+                ? INITIAL_DETAIL_NAME
+                : ('Lead #' + origId));
+        const estatus = (meta && meta.estatus) ? meta.estatus : (INITIAL_DETAIL_ESTATUS || '');
+        const vendedora = (meta && meta.vendedora) ? meta.vendedora : (INITIAL_DETAIL_VENDEDORA || '');
+        updateDetailHeader({
+            name: name,
+            estatus: estatus,
+            vendedora: vendedora,
+            hasLead: true
+        });
 
         chatEl.innerHTML = '<div class="pltrace-timeline-empty">Cargando trazabilidad...</div>';
 
@@ -2390,18 +3181,18 @@ $conn->close();
                     setFilterTabsVisible(false);
                     return;
                 }
-                if (data.lead && data.lead.nombre) {
-                    titleEl.textContent = data.lead.nombre;
-                }
-                if (data.lead && data.lead.estatus_actual) {
-                    subEl.textContent = 'Estatus actual: ' + data.lead.estatus_actual;
-                }
                 if (data.lead && data.lead.tabla_origen && data.lead.orig_id) {
                     currentLead.tabla = data.lead.tabla_origen;
                     currentLead.origId = parseInt(data.lead.orig_id, 10) || currentLead.origId;
                     currentLead.traceKey = currentLead.tabla + '|' + currentLead.origId;
                     setComposerEnabled(true);
                 }
+                updateDetailHeader({
+                    name: (data.lead && data.lead.nombre) ? data.lead.nombre : name,
+                    estatus: (data.lead && data.lead.estatus_actual) ? data.lead.estatus_actual : estatus,
+                    vendedora: (data.lead && data.lead.vendedora) ? data.lead.vendedora : vendedora,
+                    hasLead: true
+                });
                 setFilterTabsVisible(true);
                 setAllEvents(data.events || [], { animateNew: false });
                 scheduleMarkRead();
@@ -2531,7 +3322,8 @@ $conn->close();
                 parseInt(btn.dataset.pltraceCfId, 10) || 0,
                 {
                     name: btn.dataset.pltraceName || '',
-                    estatus: btn.dataset.pltraceEstatus || ''
+                    estatus: btn.dataset.pltraceEstatus || '',
+                    vendedora: btn.dataset.pltraceVendedora || ''
                 }
             );
         });
@@ -2633,9 +3425,27 @@ $conn->close();
             if (e.target === interactionModalEl) closeInteractionModal(true);
         });
     }
+    if (profileModalEl) {
+        profileModalEl.addEventListener('click', function (e) {
+            if (e.target === profileModalEl) closeLeadProfileModal();
+        });
+    }
+    if (detailIdentityEl) {
+        detailIdentityEl.addEventListener('click', openLeadProfileModal);
+        detailIdentityEl.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openLeadProfileModal();
+            }
+        });
+    }
 
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
+        if (profileModalEl && !profileModalEl.hidden) {
+            closeLeadProfileModal();
+            return;
+        }
         if (interactionModalEl && !interactionModalEl.hidden) {
             closeInteractionModal(true);
             return;
@@ -2690,13 +3500,22 @@ $conn->close();
                 parseInt(initialBtn.dataset.pltraceCfId, 10) || 0,
                 {
                     name: initialBtn.dataset.pltraceName || '',
-                    estatus: initialBtn.dataset.pltraceEstatus || ''
+                    estatus: initialBtn.dataset.pltraceEstatus || '',
+                    vendedora: initialBtn.dataset.pltraceVendedora || ''
                 }
             );
         } else if (INITIAL_TABLA && INITIAL_ORIG_ID > 0) {
-            loadLeadTrace(INITIAL_TABLA, INITIAL_ORIG_ID, INITIAL_CF_ID, {});
+            loadLeadTrace(INITIAL_TABLA, INITIAL_ORIG_ID, INITIAL_CF_ID, {
+                name: INITIAL_DETAIL_NAME,
+                estatus: INITIAL_DETAIL_ESTATUS,
+                vendedora: INITIAL_DETAIL_VENDEDORA
+            });
         } else if (INITIAL_CF_ID > 0) {
-            loadLeadTrace('', 0, INITIAL_CF_ID, {});
+            loadLeadTrace('', 0, INITIAL_CF_ID, {
+                name: INITIAL_DETAIL_NAME,
+                estatus: INITIAL_DETAIL_ESTATUS,
+                vendedora: INITIAL_DETAIL_VENDEDORA
+            });
         }
     }
 })();

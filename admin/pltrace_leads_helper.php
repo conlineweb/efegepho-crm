@@ -202,8 +202,10 @@ if (!function_exists('pltraceMergeClientesIntoTraceList')) {
         $tablaTipoMap = pltraceGetTablaTipoMap($conn);
         $appointmentsByCFId = dashComercialGetAppointmentsByClient($conn);
 
+        $vendorMap = dashComercialBuildVendorMap($conn);
+
         $sql = "SELECT id, tabla_origen, original_lead_id, cliente, how_did_you_meet, tipo_cliente,
-                       names, email_address, fecha_cambio_cliente, submission_date, created_time, campaign_name
+                       id_vendedor_asignado, names, email_address, fecha_cambio_cliente, submission_date, created_time, campaign_name
                 FROM contact_form
                 WHERE cliente = 1
                   AND LOWER(COALESCE(tabla_origen, '')) NOT IN ('wedding_planners', 'wedding_planner')";
@@ -225,10 +227,11 @@ if (!function_exists('pltraceMergeClientesIntoTraceList')) {
 
             $key = $tabla . '|' . $origId;
             $cfPayload = [
-                'cf_id'            => (int) ($cfRow['id'] ?? 0),
-                'cliente'          => 1,
-                'how_did_you_meet' => $cfRow['how_did_you_meet'] ?? null,
-                'tipo_cliente'     => $cfRow['tipo_cliente'] ?? null,
+                'cf_id'                 => (int) ($cfRow['id'] ?? 0),
+                'cliente'               => 1,
+                'how_did_you_meet'      => $cfRow['how_did_you_meet'] ?? null,
+                'tipo_cliente'          => $cfRow['tipo_cliente'] ?? null,
+                'id_vendedor_asignado'  => (int) ($cfRow['id_vendedor_asignado'] ?? 0),
             ];
 
             if (isset($existingKeys[$key])) {
@@ -236,6 +239,15 @@ if (!function_exists('pltraceMergeClientesIntoTraceList')) {
                 $rows[$existingKeys[$key]]['cf_id'] = (int) ($cfRow['id'] ?? 0);
                 $rows[$existingKeys[$key]]['estatus'] = 'Cliente';
                 $rows[$existingKeys[$key]]['estatus_raw'] = 'cliente';
+                if (empty($rows[$existingKeys[$key]]['vendedora'])) {
+                    $cfIdExisting = (int) ($cfRow['id'] ?? 0);
+                    $apptExisting = ($cfIdExisting > 0 && isset($appointmentsByCFId[$cfIdExisting]))
+                        ? $appointmentsByCFId[$cfIdExisting]
+                        : null;
+                    $vendedorId = pltraceResolveLeadVendedorId($cfPayload, $apptExisting, null);
+                    $rows[$existingKeys[$key]]['vendedor_id'] = $vendedorId;
+                    $rows[$existingKeys[$key]]['vendedora'] = pltraceResolveLeadVendedora($vendedorId, $vendorMap);
+                }
                 continue;
             }
 
@@ -261,6 +273,7 @@ if (!function_exists('pltraceMergeClientesIntoTraceList')) {
             $appointment = ($cfId > 0 && isset($appointmentsByCFId[$cfId])) ? $appointmentsByCFId[$cfId] : null;
             $fechaCambio = trim((string) ($cfRow['fecha_cambio_cliente'] ?? ''));
             $sortDate = $fechaCambio !== '' ? $fechaCambio : ($leadRow['created_time'] ?? '');
+            $vendedorId = pltraceResolveLeadVendedorId($cfPayload, $appointment, $leadRow);
 
             $rows[] = [
                 'trace_key'          => $key,
@@ -276,6 +289,8 @@ if (!function_exists('pltraceMergeClientesIntoTraceList')) {
                 'fecha_raw'          => $sortDate,
                 'is_wedding_planner' => 0,
                 'is_cliente'         => 1,
+                'vendedor_id'        => $vendedorId,
+                'vendedora'          => pltraceResolveLeadVendedora($vendedorId, $vendorMap),
             ];
             $existingKeys[$key] = count($rows) - 1;
         }
@@ -347,6 +362,68 @@ if (!function_exists('pltraceGetLeadTables')) {
             }
         }
         return $tablas;
+    }
+}
+
+if (!function_exists('pltraceResolveLeadVendedorId')) {
+    function pltraceResolveLeadVendedorId($cf, $appointment, $leadRow = null)
+    {
+        if (is_array($cf) && (int) ($cf['id_vendedor_asignado'] ?? 0) > 0) {
+            return (int) $cf['id_vendedor_asignado'];
+        }
+        if (is_array($leadRow)) {
+            foreach (['id_vendedor_asignado', 'usuario_asignado'] as $key) {
+                if ((int) ($leadRow[$key] ?? 0) > 0) {
+                    return (int) $leadRow[$key];
+                }
+            }
+        }
+        if (is_array($appointment)) {
+            foreach (['idusu', 'id_vendedor_asignado'] as $key) {
+                if ((int) ($appointment[$key] ?? 0) > 0) {
+                    return (int) $appointment[$key];
+                }
+            }
+        }
+        return 0;
+    }
+}
+
+if (!function_exists('pltraceResolveLeadVendedora')) {
+    function pltraceResolveLeadVendedora($vendedorId, array $vendorMap)
+    {
+        $vendedorId = (int) $vendedorId;
+        if ($vendedorId <= 0) {
+            return '';
+        }
+        return $vendorMap[$vendedorId] ?? ('Vendedora #' . $vendedorId);
+    }
+}
+
+if (!function_exists('pltraceVendedorInitial')) {
+    function pltraceVendedorInitial($nombre)
+    {
+        $nombre = trim((string) $nombre);
+        if ($nombre === '') {
+            return 'S';
+        }
+        return mb_strtoupper(mb_substr($nombre, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+}
+
+if (!function_exists('pltraceVendedorColor')) {
+    function pltraceVendedorColor($nombre)
+    {
+        $colors = [
+            'B' => '#3B82F6',
+            'A' => '#10B981',
+            'E' => '#8B5CF6',
+            'L' => '#F59E0B',
+            'M' => '#EC4899',
+            'C' => '#06B6D4',
+            'D' => '#EF4444',
+        ];
+        return $colors[pltraceVendedorInitial($nombre)] ?? '#64748B';
     }
 }
 
@@ -453,7 +530,7 @@ if (!function_exists('pltraceFetchConsultaLeadsList')) {
             if ($idsList === '') {
                 continue;
             }
-            $sql = "SELECT id, original_lead_id, cliente, how_did_you_meet, tipo_cliente
+            $sql = "SELECT id, original_lead_id, cliente, how_did_you_meet, tipo_cliente, id_vendedor_asignado
                     FROM contact_form
                     WHERE LOWER(tabla_origen) = LOWER('$safeTable')
                       AND original_lead_id IN ($idsList)";
@@ -462,10 +539,11 @@ if (!function_exists('pltraceFetchConsultaLeadsList')) {
                 while ($row = $resCf->fetch_assoc()) {
                     $key = $t . '|' . (int) $row['original_lead_id'];
                     $contactFormByLead[$key] = [
-                        'cf_id'            => (int) $row['id'],
-                        'cliente'          => (int) ($row['cliente'] ?? 0),
-                        'how_did_you_meet' => $row['how_did_you_meet'] ?? null,
-                        'tipo_cliente'     => $row['tipo_cliente'] ?? null,
+                        'cf_id'                => (int) $row['id'],
+                        'cliente'              => (int) ($row['cliente'] ?? 0),
+                        'how_did_you_meet'     => $row['how_did_you_meet'] ?? null,
+                        'tipo_cliente'         => $row['tipo_cliente'] ?? null,
+                        'id_vendedor_asignado' => (int) ($row['id_vendedor_asignado'] ?? 0),
                     ];
                     $cfIds[] = (int) $row['id'];
                 }
@@ -481,6 +559,7 @@ if (!function_exists('pltraceFetchConsultaLeadsList')) {
             }
         }
 
+        $vendorMap = dashComercialBuildVendorMap($conn);
         $rows = [];
         foreach ($filteredLeads as $lead) {
             $tabla = (string) ($lead['tabla_origen'] ?? '');
@@ -497,6 +576,7 @@ if (!function_exists('pltraceFetchConsultaLeadsList')) {
             $createdTime = $lead['created_time'] ?? '';
             $isWeddingPlanner = pltraceIsWeddingPlannerLead($tabla, $lead, $cf);
             $isCliente = pltraceIsClienteLead($tabla, $cf);
+            $vendedorId = pltraceResolveLeadVendedorId($cf, $appointment, $lead);
 
             $rows[] = [
                 'trace_key'          => $key,
@@ -512,6 +592,8 @@ if (!function_exists('pltraceFetchConsultaLeadsList')) {
                 'fecha_raw'          => $createdTime,
                 'is_wedding_planner' => $isWeddingPlanner ? 1 : 0,
                 'is_cliente'         => $isCliente ? 1 : 0,
+                'vendedor_id'        => $vendedorId,
+                'vendedora'          => pltraceResolveLeadVendedora($vendedorId, $vendorMap),
             ];
         }
 
@@ -830,5 +912,410 @@ if (!function_exists('pltraceFetchLeadPendingBadgesMap')) {
         }
 
         return $badgesMap;
+    }
+}
+
+if (!function_exists('pltraceFormatProfileDisplay')) {
+    function pltraceFormatProfileDisplay($value)
+    {
+        $value = trim((string) $value);
+        return $value !== '' ? $value : '—';
+    }
+}
+
+if (!function_exists('pltraceFormatHowLongKnownUsLabel')) {
+    function pltraceFormatHowLongKnownUsLabel($raw)
+    {
+        $value = trim((string) $raw);
+        $map = [
+            'Less than 6 months'           => 'Menos de 6 meses',
+            'More than 6 months'           => 'Más de 6 meses',
+            'Not asked'                    => 'Todavía no sabemos',
+            'Less than 3 months'           => 'Menos de 6 meses',
+            'Between 3 months and 1 year'  => 'Más de 6 meses',
+            'More than 1 year'             => 'Más de 6 meses',
+        ];
+        return $map[$value] ?? pltraceFormatProfileDisplay($value);
+    }
+}
+
+if (!function_exists('pltracePickLeadField')) {
+    function pltracePickLeadField(array $keys, ?array $leadRow, ?array $cfRow = null)
+    {
+        foreach ($keys as $key) {
+            if (is_array($cfRow)) {
+                $val = trim((string) ($cfRow[$key] ?? ''));
+                if ($val !== '') {
+                    return $val;
+                }
+            }
+            if (is_array($leadRow)) {
+                $val = trim((string) ($leadRow[$key] ?? ''));
+                if ($val !== '') {
+                    return $val;
+                }
+            }
+        }
+        return '';
+    }
+}
+
+if (!function_exists('pltraceFormatProfileDate')) {
+    function pltraceFormatProfileDate($raw, $includeTime = false)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '' || strpos($raw, '0000-00-00') === 0) {
+            return '—';
+        }
+        $ts = strtotime($raw);
+        if ($ts === false || $ts <= 0) {
+            return '—';
+        }
+        return $includeTime ? date('d/m/Y h:i a', $ts) : date('d/m/Y', $ts);
+    }
+}
+
+if (!function_exists('pltraceResolveProfileTipoCliente')) {
+    function pltraceResolveProfileTipoCliente(?array $leadRow, ?array $cfRow, $tablaOrigen = '')
+    {
+        if (is_array($cfRow)) {
+            $mapped = pltraceMapTipoClienteValue($cfRow['tipo_cliente'] ?? '');
+            if ($mapped !== '') {
+                return $mapped;
+            }
+        }
+        if (is_array($leadRow)) {
+            $mapped = pltraceMapTipoClienteValue($leadRow['tipo_cliente'] ?? '');
+            if ($mapped !== '') {
+                return $mapped;
+            }
+        }
+        if (pltraceIsWeddingPlannerLead($tablaOrigen, is_array($leadRow) ? $leadRow : [], is_array($cfRow) ? $cfRow : null)) {
+            return 'Wedding Planner';
+        }
+        $how = pltracePickLeadField(['how_did_you_meet'], $leadRow, $cfRow);
+        if ($how === '1') {
+            return 'Wedding Planner';
+        }
+        if ($how === '0' || $how !== '') {
+            return 'Cliente Final';
+        }
+        return '—';
+    }
+}
+
+if (!function_exists('pltraceFetchLeadProfile')) {
+    /**
+     * Perfil completo del lead para modal de detalle (registro manual / contact_form).
+     *
+     * @return array{success:bool,error?:string,profile?:array<string,mixed>}
+     */
+    function pltraceFetchLeadProfile($conn, $tablaOrigen, $origId, $cfId = 0)
+    {
+        if (!($conn instanceof mysqli)) {
+            return ['success' => false, 'error' => 'Conexión inválida'];
+        }
+
+        require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+
+        $tablaOrigen = trim((string) $tablaOrigen);
+        $origId = (int) $origId;
+        $cfId = (int) $cfId;
+
+        if ($cfId <= 0 && $tablaOrigen !== '' && $origId > 0) {
+            $cfId = pltraceFindContactFormId($conn, $tablaOrigen, $origId);
+        }
+
+        $cfRow = null;
+        if ($cfId > 0) {
+            $stmt = $conn->prepare('SELECT * FROM contact_form WHERE id = ? LIMIT 1');
+            if ($stmt) {
+                $stmt->bind_param('i', $cfId);
+                if ($stmt->execute()) {
+                    $res = $stmt->get_result();
+                    $cfRow = $res ? $res->fetch_assoc() : null;
+                }
+                $stmt->close();
+            }
+            if (is_array($cfRow)) {
+                if ($tablaOrigen === '') {
+                    $tablaOrigen = trim((string) ($cfRow['tabla_origen'] ?? ''));
+                }
+                if ($origId <= 0) {
+                    $origId = (int) ($cfRow['original_lead_id'] ?? 0);
+                }
+            }
+        }
+
+        $leadRow = null;
+        if ($tablaOrigen !== '' && $origId > 0) {
+            $escapedTable = $conn->real_escape_string($tablaOrigen);
+            $checkTable = $conn->query("SHOW TABLES LIKE '$escapedTable'");
+            if ($checkTable && $checkTable->num_rows > 0) {
+                $leadRes = $conn->query("SELECT * FROM `$escapedTable` WHERE id = $origId LIMIT 1");
+                if ($leadRes && $leadRes->num_rows > 0) {
+                    $leadRow = $leadRes->fetch_assoc();
+                }
+            }
+        }
+
+        if (!is_array($cfRow) && !is_array($leadRow)) {
+            return ['success' => false, 'error' => 'Lead no encontrado'];
+        }
+
+        $appointmentsByCFId = dashComercialGetAppointmentsByClient($conn);
+        $appointment = ($cfId > 0 && isset($appointmentsByCFId[$cfId])) ? $appointmentsByCFId[$cfId] : null;
+
+        $cfPayload = is_array($cfRow) ? ['id_vendedor_asignado' => (int) ($cfRow['id_vendedor_asignado'] ?? 0)] : null;
+        $vendedorId = pltraceResolveLeadVendedorId($cfPayload, $appointment, $leadRow);
+        $vendedora = pltraceResolveLeadVendedora($vendedorId, dashComercialBuildVendorMap($conn));
+
+        $nombre = dashComercialResolveLeadName(is_array($leadRow) ? $leadRow : (is_array($cfRow) ? $cfRow : []));
+        if ($nombre === 'Sin nombre' && is_array($cfRow)) {
+            $nombre = trim((string) ($cfRow['names'] ?? ''));
+        }
+
+        $email = pltracePickLeadField(['email_address', 'email'], $leadRow, $cfRow);
+        if ($email === '' && is_array($leadRow)) {
+            $email = dashComercialResolveLeadEmail($leadRow);
+        }
+        if ($email === '—') {
+            $email = '';
+        }
+
+        $telefono = pltracePickLeadField(['telephone', 'phone', 'telefono', 'contacto_celular', 'celular'], $leadRow, $cfRow);
+        if ($telefono === '' && is_array($leadRow)) {
+            $telefono = dashComercialResolveLeadPhone($leadRow);
+        }
+        if ($telefono === '—') {
+            $telefono = '';
+        }
+
+        $countryCode = pltracePickLeadField(['country_code'], $leadRow, $cfRow);
+        if ($countryCode !== '' && $telefono !== '' && strpos($telefono, $countryCode) !== 0) {
+            $countryDigits = preg_replace('/\D/', '', $countryCode);
+            if ($countryDigits !== '' && strpos(preg_replace('/\D/', '', $telefono), $countryDigits) === 0) {
+                $telefonoDisplay = '+' . preg_replace('/\D/', '', $telefono);
+            } else {
+                $telefonoDisplay = trim($countryCode . ' ' . $telefono);
+            }
+        } else {
+            $telefonoDisplay = $telefono;
+        }
+
+        $city = pltracePickLeadField(['city'], $leadRow, $cfRow);
+        $weddingLocation = pltracePickLeadField(
+            ['wedding_location', 'where_are_you_getting_married_', 'where_is_your_marriage_taking_place_'],
+            $leadRow,
+            $cfRow
+        );
+
+        $weddingDateNotDefined = pltracePickLeadField(['wedding_date_not_defined'], $leadRow, $cfRow);
+        $weddingDateRaw = pltracePickLeadField(['wedding_date', 'when_are_you_getting_married_'], $leadRow, $cfRow);
+        if ($weddingDateNotDefined === '1' || $weddingDateRaw === 'not defined' || strcasecmp($weddingDateRaw, 'not defined') === 0) {
+            $weddingDateLabel = 'El cliente no ha definido aún';
+        } elseif ($weddingDateRaw !== '') {
+            $weddingDateLabel = pltraceFormatProfileDate($weddingDateRaw, false);
+        } else {
+            $weddingDateLabel = '—';
+        }
+
+        $tipoCliente = pltraceResolveProfileTipoCliente($leadRow, $cfRow, $tablaOrigen);
+        $firstContact = pltracePickLeadField(['first_contact_channel'], $leadRow, $cfRow);
+        $tipoIg = pltracePickLeadField(['tipo_ig'], $leadRow, $cfRow);
+        if ($firstContact === 'IG' && $tipoIg === 'organico') {
+            $firstContact = 'IG (Orgánico)';
+        } elseif ($firstContact === 'IG' && $tipoIg === 'campana') {
+            $firstContact = 'IG (Campaña)';
+        }
+        $campaignName = pltracePickLeadField(['campaign_name'], $leadRow, $cfRow);
+        $platform = pltracePickLeadField(['platform'], $leadRow, $cfRow);
+        $howLongKnown = pltraceFormatHowLongKnownUsLabel(
+            pltracePickLeadField(['how_long_known_us'], $leadRow, $cfRow)
+        );
+
+        $createdRaw = pltracePickLeadField(['created_time', 'created_at', 'submission_date'], $leadRow, $cfRow);
+        if ($createdRaw === '' && is_array($cfRow)) {
+            $createdRaw = trim((string) ($cfRow['submission_date'] ?? ''));
+        }
+        $fechaRegistro = pltraceFormatProfileDate($createdRaw, true);
+        if ($fechaRegistro === '—' && function_exists('tracerFormatStoredDateTime')) {
+            $normalized = tracerNormalizeDateTime($createdRaw);
+            if ($normalized !== null) {
+                $fechaRegistro = tracerFormatStoredDateTime($normalized);
+            }
+        }
+
+        $comentarios = '';
+        if (function_exists('tracerResolvePreLeadRegistroNotas')) {
+            $comentarios = tracerResolvePreLeadRegistroNotas(
+                is_array($leadRow) ? $leadRow : [],
+                is_array($cfRow) ? $cfRow : null
+            );
+        }
+
+        $status = pltraceResolveLeadStatus($tablaOrigen, is_array($cfRow) ? $cfRow : null, $appointment, $leadRow);
+        $estatusLabel = ucfirst((string) $status);
+        if ((int) (is_array($cfRow) ? ($cfRow['cliente'] ?? 0) : 0) === 1) {
+            $estatusLabel = 'Cliente';
+        } elseif (is_array($appointment) && isset($appointment['estatus']) && function_exists('calendarioEstatusHistorialLabel')) {
+            $estatusLabel = calendarioEstatusHistorialLabel((int) $appointment['estatus']);
+        }
+
+        $citaFecha = '';
+        $citaHora = '';
+        $citaEstatus = '';
+        $proximaSesion = '—';
+        if (is_array($appointment)) {
+            $citaFecha = trim((string) ($appointment['fecha'] ?? ''));
+            $citaHora = trim((string) ($appointment['hora'] ?? ''));
+            if ($citaFecha !== '' && $citaFecha !== '0000-00-00') {
+                $citaTs = strtotime($citaFecha . ' ' . ($citaHora !== '' ? $citaHora : '00:00:00'));
+                $citaDisplay = pltraceFormatProfileDate($citaFecha . ' ' . ($citaHora !== '' ? $citaHora : '00:00:00'), true);
+                if ($citaTs !== false && $citaTs >= time() && (int) ($appointment['estatus'] ?? -1) === 0) {
+                    $proximaSesion = $citaDisplay;
+                } elseif ($citaTs !== false && $citaTs >= time()) {
+                    $proximaSesion = $citaDisplay;
+                }
+            }
+            if (isset($appointment['estatus']) && function_exists('calendarioEstatusHistorialLabel')) {
+                $citaEstatus = calendarioEstatusHistorialLabel((int) $appointment['estatus']);
+            }
+        }
+
+        $proximaAccion = '—';
+        if ($tablaOrigen !== '' && $origId > 0) {
+            pltraceEnsureInteractionCompletedColumn($conn);
+            $safeTable = $conn->real_escape_string($tablaOrigen);
+            $sqlNext = "SELECT interaction_type, outcome, next_action, next_action_date
+                        FROM lead_interactions
+                        WHERE LOWER(tabla_origen) = LOWER('$safeTable')
+                          AND lead_id = $origId
+                          AND next_action_date IS NOT NULL
+                          AND (next_action_completed IS NULL OR next_action_completed = 0)
+                        ORDER BY next_action_date ASC, id ASC
+                        LIMIT 1";
+            $resNext = $conn->query($sqlNext);
+            if ($resNext && ($nextRow = $resNext->fetch_assoc())) {
+                $parts = [];
+                $type = trim((string) ($nextRow['interaction_type'] ?? ''));
+                $outcome = trim((string) ($nextRow['outcome'] ?? ''));
+                $action = trim((string) ($nextRow['next_action'] ?? ''));
+                $dateOnly = trim((string) ($nextRow['next_action_date'] ?? ''));
+                if ($type !== '') {
+                    $parts[] = $type;
+                }
+                if ($outcome !== '') {
+                    $parts[] = $outcome;
+                }
+                if ($action !== '') {
+                    $parts[] = $action;
+                }
+                if ($dateOnly !== '') {
+                    $parts[] = pltraceFormatProfileDate($dateOnly, true);
+                }
+                if (!empty($parts)) {
+                    $proximaAccion = implode(' · ', $parts);
+                }
+            }
+        }
+
+        $sections = [
+            [
+                'number'      => 1,
+                'title'       => 'Datos de contacto',
+                'description' => 'Nombre, correo, número de teléfono y datos básicos del evento.',
+                'fields'      => [
+                    ['label' => 'Nombre completo', 'value' => pltraceFormatProfileDisplay($nombre), 'icon' => 'user'],
+                    ['label' => 'Correo electrónico', 'value' => pltraceFormatProfileDisplay($email), 'icon' => 'envelope'],
+                    ['label' => 'WhatsApp / Teléfono', 'value' => pltraceFormatProfileDisplay($telefonoDisplay), 'icon' => 'phone'],
+                    ['label' => 'Lugar del evento', 'value' => pltraceFormatProfileDisplay($weddingLocation), 'icon' => 'map-marker-alt'],
+                    ['label' => 'Fecha del evento', 'value' => $weddingDateLabel, 'icon' => 'heart'],
+                    ['label' => 'Ciudad de origen del cliente', 'value' => pltraceFormatProfileDisplay($city), 'icon' => 'building'],
+                ],
+            ],
+            [
+                'number'      => 2,
+                'title'       => 'Tipo de cliente',
+                'description' => 'Wedding Planner o Cliente Final.',
+                'fields'      => [
+                    ['label' => 'Tipo de cliente', 'value' => pltraceFormatProfileDisplay($tipoCliente), 'icon' => 'user-tag'],
+                ],
+            ],
+            [
+                'number'      => 3,
+                'title'       => 'Primer contacto',
+                'description' => 'Canal inicial, origen y medio.',
+                'fields'      => [
+                    ['label' => 'Primer canal de contacto', 'value' => pltraceFormatProfileDisplay($firstContact), 'icon' => 'comment-dots'],
+                    ['label' => 'Campaña / Origen', 'value' => pltraceFormatProfileDisplay($campaignName), 'icon' => 'bullhorn'],
+                    ['label' => 'Medio', 'value' => pltraceFormatProfileDisplay($platform), 'icon' => 'share-alt'],
+                ],
+            ],
+            [
+                'number'      => 4,
+                'title'       => 'Conocimiento',
+                'description' => 'Antigüedad con la marca.',
+                'fields'      => [
+                    ['label' => '¿Desde hace cuánto nos conoce?', 'value' => $howLongKnown, 'icon' => 'clock'],
+                ],
+            ],
+            [
+                'number'      => 5,
+                'title'       => 'Fecha de registro',
+                'description' => 'Fecha y hora de captura del lead.',
+                'fields'      => [
+                    ['label' => 'Fecha y hora', 'value' => $fechaRegistro, 'icon' => 'calendar-plus'],
+                ],
+            ],
+            [
+                'number'      => 6,
+                'title'       => 'Asignación y seguimiento',
+                'description' => 'Vendedora, estatus y citas.',
+                'fields'      => [
+                    ['label' => 'Vendedora asignada', 'value' => pltraceFormatProfileDisplay($vendedora), 'icon' => 'user-tie'],
+                    ['label' => 'Estatus actual', 'value' => pltraceFormatProfileDisplay($estatusLabel), 'icon' => 'flag'],
+                    ['label' => 'Próxima sesión', 'value' => $proximaSesion, 'icon' => 'calendar-check'],
+                    ['label' => 'Estatus de la sesión', 'value' => pltraceFormatProfileDisplay($citaEstatus), 'icon' => 'clipboard-check'],
+                    ['label' => 'Próxima acción pendiente', 'value' => $proximaAccion, 'icon' => 'tasks'],
+                ],
+            ],
+            [
+                'number'      => 7,
+                'title'       => 'Comentarios',
+                'description' => 'Notas del cliente para conocimiento de la vendedora.',
+                'fields'      => [
+                    ['label' => 'Notas del cliente', 'value' => pltraceFormatProfileDisplay($comentarios), 'multiline' => true, 'icon' => 'sticky-note'],
+                ],
+            ],
+        ];
+
+        return [
+            'success' => true,
+            'profile' => [
+                'nombre'    => $nombre,
+                'hero'      => [
+                    'nombre'          => pltraceFormatProfileDisplay($nombre),
+                    'email'           => pltraceFormatProfileDisplay($email),
+                    'city'            => pltraceFormatProfileDisplay($city),
+                    'estatus'         => pltraceFormatProfileDisplay($estatusLabel),
+                    'vendedora'       => pltraceFormatProfileDisplay($vendedora),
+                    'fecha_registro'  => $fechaRegistro,
+                    'initial'         => pltraceVendedorInitial($nombre),
+                ],
+                'tags'      => array_values(array_filter(array_unique([
+                    $tipoCliente !== '—' ? $tipoCliente : '',
+                    $estatusLabel !== '—' ? $estatusLabel : '',
+                    $firstContact !== '' ? $firstContact : '',
+                    $campaignName !== '' ? $campaignName : '',
+                    $platform !== '' ? $platform : '',
+                ]))),
+                'bio'       => $comentarios !== '' ? $comentarios : '',
+                'sections'  => $sections,
+                'tabla'     => $tablaOrigen,
+                'orig_id'   => $origId,
+                'cf_id'     => $cfId,
+            ],
+        ];
     }
 }

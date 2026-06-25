@@ -102,14 +102,20 @@ try {
         throw new Exception('First contact channel es obligatorio');
     }
 
-    // Validar que campaign_name sea uno de los valores permitidos
-    $campaign_names_permitidos = ['E10','b1 (USA)', 'b2 (MX)', 'ig organico', 'prospectos', 'wp', 'whatsapp', 'mail', 'phone call', 'tiktok'];
-    if (!in_array($campaign_name, $campaign_names_permitidos)) {
+    // Validar que campaign_name sea uno de los valores permitidos (alineado con consulta_leads.php)
+    $campaign_names_permitidos = [
+        'E10', 'b1 (USA)', 'b2 (MX)', 'b3 (Mex 2)', 'b4 (Latam)',
+        'ig organico', 'prospectos', 'wp', 'whatsapp', 'mail', 'phone call', 'tiktok', 'fb',
+    ];
+    if (!in_array($campaign_name, $campaign_names_permitidos, true)) {
         throw new Exception('Valor de origen no válido: ' . $campaign_name);
     }
 
     // Validar que platform sea uno de los valores permitidos
-    $platforms_permitidas = ['ig usa', 'ig mexico', 'ig', 'prospectos', 'wp', 'fb', 'whatsapp', 'mail', 'phone call', 'tiktok'];
+    $platforms_permitidas = [
+        'ig usa', 'ig mexico', 'ig mex 2', 'ig latam', 'ig',
+        'prospectos', 'wp', 'fb', 'whatsapp', 'mail', 'phone call', 'tiktok',
+    ];
     if (!in_array($platform, $platforms_permitidas)) {
         throw new Exception('Valor de medio no válido: ' . $platform);
     }

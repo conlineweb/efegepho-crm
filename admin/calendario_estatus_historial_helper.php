@@ -900,6 +900,12 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
         tracerAdjustPreLeadBeforeInteractions($events);
         $cleanEvents = tracerFinalizeEvents($events);
 
+        require_once __DIR__ . '/pltrace_leads_helper.php';
+        require_once __DIR__ . '/dashboard_comercial_helper.php';
+        $cfPayload = ['id_vendedor_asignado' => (int) ($cf['id_vendedor_asignado'] ?? 0)];
+        $vendedorId = pltraceResolveLeadVendedorId($cfPayload, $latestCal, is_array($leadRow) ? $leadRow : null);
+        $vendedoraNombre = pltraceResolveLeadVendedora($vendedorId, dashComercialBuildVendorMap($conn));
+
         return [
             'success' => true,
             'lead'    => [
@@ -909,6 +915,7 @@ if (!function_exists('obtenerTrazabilidadLeadPorContactForm')) {
                 'tabla_origen' => $tablaOrigen,
                 'orig_id'      => $origId,
                 'estatus_actual' => $estatusActualLabel,
+                'vendedora'    => $vendedoraNombre,
             ],
             'events'  => $cleanEvents,
         ];
@@ -979,6 +986,9 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
         tracerAdjustPreLeadBeforeInteractions($events);
         $cleanEvents = tracerFinalizeEvents($events);
 
+        $vendedorId = pltraceResolveLeadVendedorId(null, null, $leadRow);
+        $vendedoraNombre = pltraceResolveLeadVendedora($vendedorId, dashComercialBuildVendorMap($conn));
+
         return [
             'success' => true,
             'lead'    => [
@@ -988,6 +998,7 @@ if (!function_exists('obtenerTrazabilidadLeadSoloPreCalificacion')) {
                 'tabla_origen'   => $tablaOrigen,
                 'orig_id'        => $origId,
                 'estatus_actual' => ucfirst($status),
+                'vendedora'      => $vendedoraNombre,
             ],
             'events'  => $cleanEvents,
         ];
