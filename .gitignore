@@ -34,7 +34,6 @@ vendor/
 node_modules/
 
 # Admin - librerías y assets pesados
-admin/ckeditor5/
 admin/uploads/
 
 # Sistema operativo
