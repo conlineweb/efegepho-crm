@@ -1,9 +1,9 @@
 <?php
 // Conexión a la base de datos
 $servername = "localhost";
-$username = "efegephocom_sistema";
-$password = "t)sXFfUEN13k";
-$dbname = "efegephocom_sistema";
+$username = "efegephocom_sandbox";
+$password = "hwyesr0egjtlosay";
+$dbname = "efegephocom_sandbox";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
