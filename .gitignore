@@ -35,7 +35,6 @@ node_modules/
 
 # Admin - librerías y assets pesados
 admin/ckeditor5/
-admin/assets/
 admin/uploads/
 
 # Sistema operativo
