@@ -7249,9 +7249,14 @@ body { background: var(--dark, #F8FAFC) !important; }
     var leadsTableDT          = null; // DataTables instance (asignado en document.ready)
 
     // Aplica show/hide a cada fila según los filtros activos (sin side-effects adicionales)
+    function getLeadTableRows() {
+        // Excluir la fila placeholder de DataTables ("No hay datos…") que no tiene data-lead-id
+        return $('#leadsTable tbody tr[data-lead-id]');
+    }
+
     function _applyFilterVisibility() {
         var activeCols = Object.keys(columnFilters);
-        $('#leadsTable tbody tr').each(function () {
+        getLeadTableRows().each(function () {
             var $row    = $(this);
             var visible = true;
             for (var i = 0; i < activeCols.length; i++) {
@@ -7271,7 +7276,7 @@ body { background: var(--dark, #F8FAFC) !important; }
     function getUniqueColumnValues(columnName) {
         var seen   = {};
         var result = [];
-        $('#leadsTable tbody tr').each(function () {
+        getLeadTableRows().each(function () {
             var $cell = $(this).find('td[data-column="' + columnName + '"]');
             if (!$cell.length) { return; }
             var text = $cell.text().trim();
@@ -7568,7 +7573,7 @@ body { background: var(--dark, #F8FAFC) !important; }
     }
 
     function updateDynamicCards() {
-        var $rows = $('#leadsTable tbody tr');
+        var $rows = getLeadTableRows();
         var totalCount = $rows.length;
         var agendadosCount = serverAgendadosCount;
         var pendingCount = 0;

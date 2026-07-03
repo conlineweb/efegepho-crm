@@ -3339,7 +3339,7 @@ $conn->close();
         var wpAfianzadosVisible = 0;
         var packageVisible = 0;
 
-        $('#leadsTable tbody tr:visible').each(function () {
+        getLeadTableRows().filter(':visible').each(function () {
             totalVisible++;
             originKnownVisible += Number($(this).data('origin-known') || 0);
             wpAfianzadosVisible += Number($(this).data('wp-afianzado') || 0);
@@ -3369,9 +3369,14 @@ $conn->close();
     var columnFilters = {};
     var currentFilterDropdown = null;
 
+    function getLeadTableRows() {
+        // Excluir la fila placeholder de DataTables ("No hay datos…")
+        return $('#leadsTable tbody tr[id^="lead-row-"]');
+    }
+
     function getUniqueColumnValues(columnName) {
         var values = new Set();
-        $('#leadsTable tbody tr').each(function () {
+        getLeadTableRows().each(function () {
             var cell = $(this).find('td[data-column="' + columnName + '"]');
             if (cell.length > 0) {
                 var text = cell.text().trim();
@@ -3496,7 +3501,7 @@ $conn->close();
         Object.keys(columnFilters).forEach(function (col) {
             $('.filter-icon[data-column="' + col + '"]').addClass('active');
         });
-        $('#leadsTable tbody tr').each(function () {
+        getLeadTableRows().each(function () {
             var row     = $(this);
             var showRow = true;
             for (var columnName in columnFilters) {
