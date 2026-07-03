@@ -8,6 +8,7 @@ include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 require_once __DIR__ . '/campaign_badge_helper.php';
 require_once __DIR__ . '/lead_field_badge_helper.php';
 require_once __DIR__ . '/lead_origin_helper.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
 
 $__weddingDateNotDefinedCol = $conn->query("SHOW COLUMNS FROM `organic_leads` LIKE 'wedding_date_not_defined'");
 if ($__weddingDateNotDefinedCol && $__weddingDateNotDefinedCol->num_rows === 0) {
@@ -164,7 +165,7 @@ function getDondeNosConocioLabel($lead)
         '3' => 'New Audience'
     ];
 
-    if ($howRaw === '' && $tablaOrigen === 'wedding_planners') {
+    if ($howRaw === '' && isWpPlannerLeadTable($tablaOrigen)) {
         $howRaw = '1';
     }
 
@@ -176,29 +177,7 @@ function getDondeNosConocioLabel($lead)
 
 function getOriginCategoryLabel($lead)
 {
-    $howRaw = resolveHowDidYouMeetCode(
-        $lead['how_did_you_meet'] ?? '',
-        $lead['how_long_known_us'] ?? '',
-        $lead
-    );
-    $tablaOrigen = strtolower(trim((string) ($lead['tabla_origen'] ?? '')));
-    $howMap = [
-        '1' => 'Wedding Planner',
-        '2' => 'Community',
-        '3' => 'New Audience'
-    ];
-
-    if ($howRaw === '' && $tablaOrigen === 'wedding_planners') {
-        $howRaw = '1';
-    }
-
-    if (in_array($tablaOrigen, ['eventos_wp', 'wp_eventos_afianzados', 'wp_citas_leads'], true)) {
-        if ($howRaw === '' || $howRaw === '1') {
-            return 'Community';
-        }
-    }
-
-    return $howMap[$howRaw] ?? 'Origen por confirmar';
+    return getOrigenCategoriaLabel($lead);
 }
 
 function getOriginBadgeClass($label)
@@ -254,30 +233,6 @@ function mapTipoClienteValue($raw)
     }
 
     if ($value === '0' || strcasecmp($value, 'Cliente Final') === 0) {
-        return 'Cliente Final';
-    }
-
-    return '';
-}
-
-function inferTipoClienteFromOriginData($howDidYouMeet, $tablaOrigen)
-{
-    $tabla = strtolower(trim((string) $tablaOrigen));
-
-    if (in_array($tabla, ['eventos_wp', 'wp_eventos_afianzados', 'wp_citas_leads'], true)) {
-        return 'Cliente Final';
-    }
-
-    if ($tabla === 'wedding_planners') {
-        return 'Wedding Planner';
-    }
-
-    $how = trim((string) $howDidYouMeet);
-    if ($how === '1') {
-        return 'Wedding Planner';
-    }
-
-    if (in_array($how, ['2', '3'], true)) {
         return 'Cliente Final';
     }
 
@@ -479,14 +434,35 @@ function resolveLeadStatus($tableName, $contactFormRow, $appointmentRow, $leadRo
         return 'cliente';
     }
 
+    if (strcasecmp((string) $tableName, 'eventos_wp') === 0) {
+        if ($contactFormRow !== null) {
+            global $conn;
+            if (isset($conn)) {
+                $cf = [
+                    'tabla_origen' => 'eventos_wp',
+                    'form_name' => 'eventos_wp',
+                    'original_lead_id' => (int) ($leadRow['id'] ?? 0),
+                    'tipo_cliente' => $contactFormRow['tipo_cliente'] ?? 1,
+                    'cliente' => $contactFormRow['cliente'] ?? 0,
+                ];
+                $cf = wpEventosCfHydratePlannerContactFormFields($conn, $cf);
+                $resolved = wpEventosCfResolvePlannerTipoClienteEstatus($cf);
+                if ($resolved !== null && $resolved !== '') {
+                    return $resolved;
+                }
+            }
+
+            return 'atendido';
+        }
+
+        return 'agendado';
+    }
+
     if ($appointmentRow === null || !isset($appointmentRow['estatus'])) {
         return 'lead';
     }
 
-    if (
-        strcasecmp((string) $tableName, 'wedding_planners') === 0 ||
-        strcasecmp((string) $tableName, 'eventos_wp') === 0
-    ) {
+    if (strcasecmp((string) $tableName, 'wedding_planners') === 0) {
         return 'agendado';
     }
 
@@ -653,6 +629,45 @@ foreach ($tablas as $tableName) {
     }
 }
 
+$wpEventosLeads = wpEventosCfBuildLeadsForConsultaLeads($conn);
+if (!empty($wpEventosLeads)) {
+    $existingKeys = [];
+    foreach ($allLeads as $existingLead) {
+        $existingKeys[($existingLead['tabla_origen'] ?? '') . '|' . (int) ($existingLead['id'] ?? 0)] = true;
+    }
+    foreach ($wpEventosLeads as $wpLead) {
+        $key = ($wpLead['tabla_origen'] ?? '') . '|' . (int) ($wpLead['id'] ?? 0);
+        if (isset($existingKeys[$key])) {
+            continue;
+        }
+
+        if (($startDate !== '' || $endDate !== '') && empty($_GET['show_all'])) {
+            $dateField = trim((string) (
+                $wpLead['fecha_registro'] ?? $wpLead['created_time'] ?? $wpLead['submission_date'] ?? ''
+            ));
+            if ($dateField === '') {
+                continue;
+            }
+            $ts = strtotime($dateField);
+            if ($ts === false) {
+                continue;
+            }
+            $d = date('Y-m-d', $ts);
+            $sd = $startDate !== '' ? date('Y-m-d', strtotime($startDate)) : null;
+            $ed = $endDate !== '' ? date('Y-m-d', strtotime($endDate)) : null;
+            if ($sd && $d < $sd) {
+                continue;
+            }
+            if ($ed && $d > $ed) {
+                continue;
+            }
+        }
+
+        $allLeads[] = $wpLead;
+        $existingKeys[$key] = true;
+    }
+}
+
 // Nota: no cerrar la conexión aquí porque la usaremos más adelante
 // $conn->close();
 
@@ -718,16 +733,7 @@ if ($normalizedSearch !== '') {
     }
     $filteredBySearch = [];
     foreach ($filteredLeads as $lead) {
-        $haystack = trim(
-            ($lead['full_name'] ?? '') . ' ' .
-            ($lead['email'] ?? '') . ' ' .
-            ($lead['phone'] ?? '') . ' ' .
-            ($lead['campaign_name'] ?? '') . ' ' .
-            ($lead['form_name'] ?? '') . ' ' .
-            ($lead['platform'] ?? '') . ' ' .
-            ($lead['tabla_origen'] ?? '')
-        );
-        if ($haystack !== '' && mb_stripos($haystack, $normalizedSearch, 0, 'UTF-8') !== false) {
+        if (wpEventosCfLeadMatchesSearch($lead, $searchQuery)) {
             $filteredBySearch[] = $lead;
         }
     }
@@ -888,6 +894,8 @@ if (!empty($calendarioIds)) {
         }
     }
 }
+
+$appointmentsByEventId = wpEventosCfGetAppointmentsByEventId($conn);
 
 // Build final map of status per lead (tabla|id)
 $leadStatusMap = [];
@@ -1227,7 +1235,7 @@ foreach ($filteredLeads as $lead) {
         isset($contactFormByLead[$_reportRowKey]) ? $contactFormByLead[$_reportRowKey] : null
     );
 
-    $contactLabel = normalizeFirstContactChannelLabel($lead['first_contact_channel'] ?? '');
+    $contactLabel = normalizeFirstContactChannelLabel(resolveFirstContactChannelForLead($lead));
     if (!isset($contactMethodCounts[$contactLabel])) {
         $contactMethodCounts[$contactLabel] = 0;
     }
@@ -1409,8 +1417,17 @@ foreach ($vendedores as $v) {
     $vendedoresById[intval($v['id'])] = $v;
 }
 
-function resolveLeadBoardVendedorId(array $lead, $appointment, array $appointmentsByCalendarioId)
+function resolveLeadBoardVendedorId(array $lead, $appointment, array $appointmentsByCalendarioId, $conn = null, ?array $appointmentsByEventId = null)
 {
+    if ($conn && function_exists('wpEventosCfIsWpEventLead') && wpEventosCfIsWpEventLead($lead)) {
+        return wpEventosCfResolveEventVendedorId(
+            $conn,
+            $lead,
+            is_array($appointment) ? $appointment : null,
+            $appointmentsByEventId
+        );
+    }
+
     if (is_array($appointment)) {
         $fromAppointment = intval($appointment['idusu'] ?? 0);
         if ($fromAppointment > 0) {
@@ -1431,6 +1448,8 @@ function resolveLeadBoardVendedorId(array $lead, $appointment, array $appointmen
 
 function getVendedorAsignadoLabel($usuarioAsignado, array $vendedoresById)
 {
+    global $conn;
+
     $assignedId = intval($usuarioAsignado);
     if ($assignedId === 99) {
         return 'Agente de llamada (IA)';
@@ -1441,6 +1460,12 @@ function getVendedorAsignadoLabel($usuarioAsignado, array $vendedoresById)
     if ($assignedId > 0 && isset($vendedoresById[$assignedId])) {
         $v = $vendedoresById[$assignedId];
         return trim(($v['nombre'] ?? '') . ' ' . ($v['apepat'] ?? ''));
+    }
+    if ($assignedId > 0 && isset($conn) && function_exists('wpEventosCfResolveAsesorDisplayName')) {
+        $label = wpEventosCfResolveAsesorDisplayName($conn, $assignedId);
+        if ($label !== '') {
+            return $label;
+        }
     }
     return '—';
 }
@@ -2303,8 +2328,20 @@ if (($startDate !== '' || $endDate !== '') && empty($_GET['show_all'])) {
 
         /* Select de asignación oculto (se mantiene en DOM para la lógica existente) */
         th.assign-col-hidden,
-        td[data-column="asignado"] {
+        td[data-column="asignado"],
+        th[data-column="fecha_registro"],
+        td[data-column="fecha_registro"] {
             display: none !important;
+        }
+
+        td[data-column="estatus"] .td-sub-fecha-registro {
+            margin-top: 4px;
+            font-size: 10px;
+            line-height: 1.2;
+            white-space: normal;
+            max-width: 140px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         th[data-column="vendedor"],
@@ -3269,8 +3306,9 @@ body { background: var(--dark, #F8FAFC) !important; }
     transition: all 0.18s ease;
     box-shadow: 0 1px 2px rgba(15,23,42,0.04);
 }
-.rlm-choice-card:hover { border-color: #464646; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.08); }
+.rlm-choice-card:hover:not(:disabled) { border-color: #464646; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.08); }
 .rlm-choice-card.active { border-color: #464646; background: #f5f1e8; box-shadow: 0 10px 24px rgba(70,70,70,0.12); }
+.rlm-choice-card:disabled { opacity: 0.45; cursor: not-allowed; background: #f5f5f5; box-shadow: none; transform: none; }
 .rlm-choice-card-title { display: block; font-size: 0.95rem; font-weight: 700; color: #464646; margin-bottom: 6px; }
 .rlm-choice-card-desc { display: block; font-size: 0.8rem; line-height: 1.45; color: #777; }
 .rlm-choice-group.is-invalid .rlm-choice-card { border-color: #e7b7b5; background: #fff8f7; }
@@ -3495,12 +3533,12 @@ body { background: var(--dark, #F8FAFC) !important; }
                                     <th data-column="tipo_cliente"><div class="th-flex-label"><span class="th-compact-label">Tipo de cliente</span><i class="filter-icon bi bi-funnel" data-column="tipo_cliente"></i></div></th>
                                     <th data-column="origen_cliente"><div class="th-flex-label"><span class="th-compact-label">Origen</span><i class="filter-icon bi bi-funnel" data-column="origen_cliente"></i></div></th>
                                     <th data-column="campana"><div class="th-flex-label"><span class="th-compact-label">Campaña</span><i class="filter-icon bi bi-funnel" data-column="campana"></i></div></th>
+                                    <th class="text-center" data-column="estatus">Estatus <i
+                                            class="filter-icon bi bi-funnel" data-column="estatus"></i></th>
                                     <th data-column="ciudad_origen"><span class="th-compact-label">Ciudad novios</span></th>
                                     <th data-column="boda">Destino boda</th>
                                     <th data-column="cuando_se_casa">Fecha boda</th>
                                     <th data-column="desde_conoce"><div class="th-flex-label"><span class="th-compact-label">Nos conocen hace</span><i class="filter-icon bi bi-funnel" data-column="desde_conoce"></i></div></th>
-                                    <th class="text-center" data-column="estatus">Estatus <i
-                                            class="filter-icon bi bi-funnel" data-column="estatus"></i></th>
                                     <?php if ($tipoUsuario != "4"): ?>
                                         <th data-column="vendedor">Vendedor</th>
                                         <th class="assign-col assign-col-hidden" data-column="asignado">Vendedor</th>
@@ -3530,14 +3568,17 @@ body { background: var(--dark, #F8FAFC) !important; }
 
                                     $_leadForTipoCliente = $lead;
                                     $_cfRowForTipoCliente = isset($contactFormByLead[$rowStatusKey]) ? $contactFormByLead[$rowStatusKey] : null;
-                                    $tipoClienteLabel = getTipoClienteLabel($_leadForTipoCliente, $_cfRowForTipoCliente);
 
                                     $_tablaOLower = strtolower((string)($lead['tabla_origen'] ?? ''));
                                     $_fcc         = strtolower(trim($lead['first_contact_channel'] ?? ''));
                                     $_tipoIG      = strtolower(trim($lead['tipo_ig'] ?? ''));
                                     $_campaign    = strtolower(trim($lead['campaign_name'] ?? ''));
                                     $_igOrganico  = ($_tipoIG === 'organico' || $_campaign === 'ig organico');
-                                    if ($_fcc === 'leadform') {
+                                    if (isWpPlannerLeadTable($_tablaOLower)) {
+                                        if (trim((string) ($lead['how_did_you_meet'] ?? '')) === '') {
+                                            $lead['how_did_you_meet'] = '1';
+                                        }
+                                    } elseif ($_fcc === 'leadform') {
                                         $lead['how_did_you_meet'] = '3'; // New Audience
                                     } elseif ($_fcc === 'ig') {
                                         if (!$_igOrganico) {
@@ -3547,14 +3588,14 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         }
                                     } elseif (in_array($_fcc, ['website', 'mail', 'email', 'whatsapp'], true)) {
                                         $lead['how_did_you_meet'] = '';
-                                    } elseif (empty($lead['how_did_you_meet']) && $_tablaOLower === 'wedding_planners') {
-                                        $lead['how_did_you_meet'] = '1'; // Wedding Planner
                                     }
 
                                     applyResolvedHowDidYouMeetToLead(
                                         $lead,
                                         isset($contactFormByLead[$rowStatusKey]) ? $contactFormByLead[$rowStatusKey] : null
                                     );
+
+                                    $tipoClienteLabel = getTipoClienteLabel($lead, $_cfRowForTipoCliente);
 
                                     $weddingLocationDisplay = firstNonEmptyValue(
                                         $lead['wedding_location'] ?? '',
@@ -3572,9 +3613,7 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         $lead['city'] ?? '',
                                         $leadCitiesMap[$rowStatusKey] ?? ''
                                     );
-                                    $contactMethodDisplay = firstNonEmptyValue(
-                                        $lead['first_contact_channel'] ?? ''
-                                    );
+                                    $contactMethodDisplay = resolveFirstContactChannelForLead($lead);
                                     $_hlkuDisp = trim((string)($lead['how_long_known_us'] ?? ''));
                                     if ($_hlkuDisp === '' && isset($contactFormByLead[$rowStatusKey]['how_long_known_us'])) {
                                         $_hlkuDisp = trim((string)($contactFormByLead[$rowStatusKey]['how_long_known_us'] ?? ''));
@@ -3595,11 +3634,12 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         strcasecmp((string) ($lead['tabla_origen'] ?? ''), 'eventos_wp') === 0 &&
                                         intval($eventWpAfianzadosMap[intval($lead['id'] ?? 0)] ?? 0) === 1
                                     ) ? 1 : 0;
-                                    $isManualWP = (isset($lead['tabla_origen']) && $lead['tabla_origen'] === 'wedding_planners'); ?>
+                                    $isManualWP = (isset($lead['tabla_origen']) && $lead['tabla_origen'] === 'wedding_planners');
+                                    $nameDisplay = wpEventosCfResolveLeadNameDisplay($lead); ?>
                                     <tr id="lead-row-<?php echo $lead['id']; ?>-<?php echo htmlspecialchars($lead['tabla_origen'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                         data-lead-id="<?php echo intval($lead['id']); ?>"
                                         data-tabla="<?php echo htmlspecialchars($lead['tabla_origen'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                                        data-full-name="<?php echo htmlspecialchars($lead['full_name'] ?? ''); ?>"
+                                        data-full-name="<?php echo htmlspecialchars($nameDisplay['primary'], ENT_QUOTES, 'UTF-8'); ?>"
                                         data-when-married="<?php echo htmlspecialchars($lead['when_are_you_getting_married_'] ?? ''); ?>"
                                         data-email="<?php echo htmlspecialchars($lead['email'] ?? ''); ?>"
                                         data-campaign-name="<?php echo htmlspecialchars($campaignNameValue, ENT_QUOTES, 'UTF-8'); ?>"
@@ -3608,7 +3648,11 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         data-origin-category="<?php echo htmlspecialchars($originCategoryLabel, ENT_QUOTES, 'UTF-8'); ?>"
                                         data-wp-afianzado="<?php echo $isEventWpAfianzado; ?>"
                                         data-known-us="<?php echo htmlspecialchars($knownUsBadgeLabel, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <td data-column="nombre"><div class="td-name"><?php echo htmlspecialchars($lead['full_name'] ?? ''); ?></div>
+                                        <td data-column="nombre">
+                                        <div class="td-name"><?php echo htmlspecialchars($nameDisplay['primary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php if (!empty($nameDisplay['secondary'])): ?>
+                                        <div class="td-sub"><?php echo htmlspecialchars($nameDisplay['secondary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php endif; ?>
                                         <?php if (!empty($lead['email'])): ?>
                                         <div class="td-sub"><?php echo htmlspecialchars($lead['email']); ?></div>
                                         <?php endif; ?>
@@ -3618,10 +3662,6 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         <td data-column="tipo_cliente"><?php echo renderTipoClienteBadge($tipoClienteLabel); ?></td>
                                         <td data-column="origen_cliente"><span class="<?php echo htmlspecialchars($originBadgeClass, ENT_QUOTES, 'UTF-8'); ?>"><span class="badge-dot"></span><?php echo htmlspecialchars($originCategoryLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <td data-column="campana"><?php echo renderCampaignBadge($campaignDisplayLabel); ?></td>
-                                        <td data-column="ciudad_origen"><span class="td-inline-muted"><?php echo htmlspecialchars($leadCityDisplay !== '' ? $leadCityDisplay : '—', ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td data-column="boda"><span class="td-emphasis"><?php echo htmlspecialchars($weddingLocationDisplay !== '' ? $weddingLocationDisplay : '—', ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td data-column="cuando_se_casa"><span class="td-inline-muted"><?php echo htmlspecialchars(formatLeadDate($weddingDateDisplay, $weddingDateNotDefined), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td data-column="desde_conoce"><span class="known"><?php echo htmlspecialchars($knownUsBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <?php
                                         // Normalize and prepare display for estatus like in consulta_post_leads.php
                                         $statusRaw = isset($lead['estatus']) ? trim((string) $lead['estatus']) : '';
@@ -3638,10 +3678,19 @@ body { background: var(--dark, #F8FAFC) !important; }
                                         } elseif ($statusLower === 'muerto' || $statusLower === 'fantasma') {
                                             $statusClass = 'status status-pending';
                                         }
+                                        $fechaRegistroDisplay = formatCreatedTime($lead['created_time'] ?? '');
+                                        if ($fechaRegistroDisplay === '') {
+                                            $fechaRegistroDisplay = '—';
+                                        }
                                         ?>
-                                        <td class="text-center align-middle" data-column="estatus"><span
-                                                class="<?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusDisplay ?: 'Lead'); ?></span>
+                                        <td class="text-center align-middle" data-column="estatus">
+                                            <span class="<?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusDisplay ?: 'Lead'); ?></span>
+                                            <div class="td-sub td-sub-fecha-registro"><?php echo htmlspecialchars($fechaRegistroDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
                                         </td>
+                                        <td data-column="ciudad_origen"><span class="td-inline-muted"><?php echo htmlspecialchars($leadCityDisplay !== '' ? $leadCityDisplay : '—', ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-column="boda"><span class="td-emphasis"><?php echo htmlspecialchars($weddingLocationDisplay !== '' ? $weddingLocationDisplay : '—', ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-column="cuando_se_casa"><span class="td-inline-muted"><?php echo htmlspecialchars(formatLeadDate($weddingDateDisplay, $weddingDateNotDefined), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-column="desde_conoce"><span class="known"><?php echo htmlspecialchars($knownUsBadgeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <?php if ($tipoUsuario != "4"): ?>
                                             <?php
                                             $cfForVendedor = isset($contactFormByLead[$rowStatusKey]) ? $contactFormByLead[$rowStatusKey] : null;
@@ -3655,7 +3704,16 @@ body { background: var(--dark, #F8FAFC) !important; }
                                                     $appointmentForVendedor = $appointmentsByCalendarioId[$calendarioIdForRow];
                                                 }
                                             }
-                                            $assignedUserId = resolveLeadBoardVendedorId($lead, $appointmentForVendedor, $appointmentsByCalendarioId);
+                                            if (
+                                                !$appointmentForVendedor
+                                                && wpEventosCfIsWpEventLead($lead)
+                                            ) {
+                                                $eventIdForVendor = wpEventosCfResolveEventIdFromLead($lead);
+                                                if ($eventIdForVendor > 0 && isset($appointmentsByEventId[$eventIdForVendor])) {
+                                                    $appointmentForVendedor = $appointmentsByEventId[$eventIdForVendor];
+                                                }
+                                            }
+                                            $assignedUserId = resolveLeadBoardVendedorId($lead, $appointmentForVendedor, $appointmentsByCalendarioId, $conn, $appointmentsByEventId);
                                             $vendedorDisplayLabel = getVendedorAsignadoLabel($assignedUserId, $vendedoresById);
                                             $sessionInfo = buildLeadSessionInfo($lead, $cfForVendedor, $appointmentForVendedor, $assignedUserId, $vendedoresById);
                                             ?>
@@ -4043,14 +4101,14 @@ body { background: var(--dark, #F8FAFC) !important; }
                                 </div>
                             </div>
 
-                            <input type="hidden" id="leadTipoCliente" name="tipo_cliente" required>
+                            <input type="hidden" id="leadTipoCliente" name="tipo_cliente" value="Cliente Final" required>
                             <div class="rlm-choice-group" id="leadTipoClienteGroup">
                                 <div class="rlm-choice-grid" style="grid-template-columns: repeat(2, minmax(0,1fr));">
-                                    <button type="button" class="rlm-choice-card" data-target="#leadTipoCliente" data-value="Wedding Planner">
+                                    <button type="button" class="rlm-choice-card" data-target="#leadTipoCliente" data-value="Wedding Planner" disabled>
                                         <span class="rlm-choice-card-title">Wedding Planner</span>
                                         <span class="rlm-choice-card-desc">El lead es un wedding planner o coordinador de bodas.</span>
                                     </button>
-                                    <button type="button" class="rlm-choice-card" data-target="#leadTipoCliente" data-value="Cliente Final">
+                                    <button type="button" class="rlm-choice-card active" data-target="#leadTipoCliente" data-value="Cliente Final" aria-pressed="true">
                                         <span class="rlm-choice-card-title">Cliente Final</span>
                                         <span class="rlm-choice-card-desc">El lead es la pareja o cliente directo.</span>
                                     </button>
@@ -6930,7 +6988,9 @@ body { background: var(--dark, #F8FAFC) !important; }
                             }
                             if ($row.length) {
                                 $row.find('td[data-column="nombre"] .td-name').text(nombre);
-                                $row.find('td[data-column="fecha_registro"]').text(jsFormatCreatedTime(updatedCreatedTime));
+                                var updatedFechaRegistro = jsFormatCreatedTime(updatedCreatedTime) || '—';
+                                $row.find('td[data-column="fecha_registro"]').text(updatedFechaRegistro);
+                                $row.find('td[data-column="estatus"] .td-sub-fecha-registro').text(updatedFechaRegistro);
                                 $row.find('td[data-column="campana"]').html(jsRenderCampaignBadge(jsFormatCampaignDisplay(origen || '')));
                                 $row.find('td[data-column="boda"]').text(updatedWeddingLoc || '—');
                                 $row.find('td[data-column="cuando_se_casa"]').text(jsFormatLeadDate(updatedWeddingDate, updatedWeddingDateNotDefined));
@@ -7080,6 +7140,9 @@ body { background: var(--dark, #F8FAFC) !important; }
         });
 
         $(document).off('click.manualLeadChoiceCard').on('click.manualLeadChoiceCard', '.rlm-choice-card', function () {
+            if ($(this).prop('disabled')) {
+                return;
+            }
             var targetSelector = $(this).data('target');
             var value = $(this).data('value');
             if (!targetSelector) {
@@ -7196,6 +7259,7 @@ body { background: var(--dark, #F8FAFC) !important; }
                 var $cell = $row.find('td[data-column="' + col + '"]');
                 if (!$cell.length) { continue; }
                 var val = $cell.text().trim();
+                if (col === 'estatus') { val = $cell.find('.status').first().text().trim(); }
                 if (col === 'metodo_contacto') { val = jsNormalizeContactChannel(val); }
                 if (columnFilters[col].indexOf(val) === -1) { visible = false; break; }
             }
@@ -7211,6 +7275,7 @@ body { background: var(--dark, #F8FAFC) !important; }
             var $cell = $(this).find('td[data-column="' + columnName + '"]');
             if (!$cell.length) { return; }
             var text = $cell.text().trim();
+            if (columnName === 'estatus') { text = $cell.find('.status').first().text().trim(); }
             if (!text || text === '—') { return; }
             if (columnName === 'metodo_contacto') { text = jsNormalizeContactChannel(text); }
             if (!seen[text]) { seen[text] = true; result.push(text); }

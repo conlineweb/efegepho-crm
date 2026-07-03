@@ -8,7 +8,8 @@ include 'menu.php';
 include 'conn.php'; // Incluye el archivo de conexi贸n a la base de datos
 
 $tipoUsuario = $_SESSION['tus'];
-$idUsu = $_SESSION['uid'];
+$idUsu = intval($_SESSION['uid'] ?? 0);
+$canViewAllClientes = $isAdminLike || usuarioEsAdminVistaConsultaWp($idUsu);
 
 $datos_cuentas = [];
 $sqlCuentas = "SELECT id, nombre_titular, nombre_banco FROM datos_transferencia ORDER BY id ASC";
@@ -341,6 +342,15 @@ $conn->close();
     .clie-td-name {
         font-weight: 600;
         font-size: 13px;
+        color: #0f172a;
+        line-height: 1.35;
+    }
+
+    .clie-td-sub {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 2px;
+        line-height: 1.35;
     }
 
     #editClientModal .modal-dialog {
@@ -519,8 +529,9 @@ $conn->close();
         font-size: 0.85rem; font-weight: 600; color: #444; transition: all 0.15s;
     }
     .ecm-tipo-cliente-btn .ecm-cat-icon { font-size: 1.5rem; display: block; margin-bottom: 6px; }
-    .ecm-tipo-cliente-btn:hover { border-color: #464646; }
+    .ecm-tipo-cliente-btn:hover:not(:disabled) { border-color: #464646; }
     .ecm-tipo-cliente-btn.active { border-color: #464646; background: #464646; color: #eee8dc; }
+    .ecm-tipo-cliente-btn:disabled { opacity: 0.45; cursor: not-allowed; background: #f5f5f5; }
 
     .ecm-how-to-ask {
         margin-top: 12px;
@@ -978,6 +989,7 @@ $conn->close();
                                 <th>¿Cuándo se casa?</th>
                                 <th>Ciudad de origen del cliente</th>
                                 <th>¿Cuándo llegó?</th>
+                                <th>Fecha que se atendió</th>
                                 <th>Fecha que se cerró</th>
                                 <th>Monto de la venta</th>
                                 <th>Puntos</th>
@@ -1041,7 +1053,7 @@ $conn->close();
     <div class="modal-dialog modal-lg" type="document">
         <div class="modal-content">
             <div class="modal-header">
-                <?php if ($isAdminLike): ?>
+                <?php if ($canViewAllClientes): ?>
                     <h5 class="modal-title" id="reagendarModal">Reagendar Cita</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 <?php endif; ?>
@@ -1133,7 +1145,7 @@ $conn->close();
                     <div class="tab-pane fade show active" id="edit-client-data-pane" role="tabpanel" aria-labelledby="edit-client-data-tab">
                         <form id="editClientForm">
                             <input type="hidden" id="editClientId" name="id" value="">
-                            <input type="hidden" id="edit_tipo_cliente" name="tipo_cliente" value="">
+                            <input type="hidden" id="edit_tipo_cliente" name="tipo_cliente" value="0">
                             <input type="hidden" id="edit_how_did_you_meet" name="how_did_you_meet" value="">
                             <input type="hidden" id="edit_engagement" name="engagement" value="">
                             <input type="hidden" id="edit_how_long_known_us" name="how_long_known_us" value="">
@@ -1219,8 +1231,8 @@ $conn->close();
                                     </div>
                                 </div>
                                 <div class="ecm-category-btns">
-                                    <button type="button" class="ecm-tipo-cliente-btn" data-tipo="1"><span class="ecm-cat-icon">💼</span>Wedding Planner</button>
-                                    <button type="button" class="ecm-tipo-cliente-btn" data-tipo="0"><span class="ecm-cat-icon">👤</span>Cliente Final</button>
+                                    <button type="button" class="ecm-tipo-cliente-btn" data-tipo="1" disabled><span class="ecm-cat-icon">💼</span>Wedding Planner</button>
+                                    <button type="button" class="ecm-tipo-cliente-btn active" data-tipo="0"><span class="ecm-cat-icon">👤</span>Cliente Final</button>
                                 </div>
                             </div>
 
@@ -1315,6 +1327,30 @@ $conn->close();
             <div class="modal-footer">
                 <button type="button" class="ecm-btn-cancel" data-bs-dismiss="modal">Cerrar</button>
                 <button id="saveEditClientBtn" type="button" class="ecm-btn-submit">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar Fecha que se atendió -->
+<div class="modal fade" id="editAttendanceDateModal" tabindex="-1" aria-labelledby="editAttendanceDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAttendanceDateModalLabel">Editar Fecha que se atendió</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editAttendanceDateId" value="">
+                <input type="hidden" id="editAttendanceCalendarioId" value="">
+                <div class="mb-3">
+                    <label for="editAttendanceDateInput" class="form-label">Fecha de atención</label>
+                    <input type="date" id="editAttendanceDateInput" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveAttendanceDateBtn">Guardar</button>
             </div>
         </div>
     </div>
@@ -1469,6 +1505,7 @@ $conn->close();
 <!-- Bootstrap JS y Popper.js -->
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
     const blockedDates = <?php echo json_encode($dias_bloqueados); ?>;
     let wcuentas = <? echo json_encode($numerosWhatsapp) ?>;
@@ -1511,6 +1548,19 @@ $conn->close();
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function buildClienteNameCell(data, type) {
+        var primary = (data.name_primary || data.cliente_names || '').toString().trim();
+        var secondary = (data.name_secondary || '').toString().trim();
+        if (type === 'display') {
+            var html = '<div class="clie-td-name">' + escapeHtml(primary || '—') + '</div>';
+            if (secondary && secondary.toLowerCase() !== primary.toLowerCase()) {
+                html += '<div class="clie-td-sub">' + escapeHtml(secondary) + '</div>';
+            }
+            return html;
+        }
+        return secondary ? (primary + ' ' + secondary) : primary;
     }
 
     function toDateInput(mysqlDate) {
@@ -1677,7 +1727,7 @@ $conn->close();
 
         if (response.data && response.data.length > 0) {
 
-            clientes = <?php echo json_encode($isAdminLike); ?> || tipoUsuario == "2" || tipoUsuario == "3"
+            clientes = <?php echo json_encode($canViewAllClientes); ?> || tipoUsuario == "2" || tipoUsuario == "3"
                 ? response.data.filter(item => item.is_cliente == "1")
                 : response.data.filter(item => item.id_vendedor_asignado == idUsu && item.is_cliente == "1");
 
@@ -1841,10 +1891,7 @@ $conn->close();
                         data: null,
                         title: 'Nombre',
                         render: function (data, type) {
-                            var name = data.cliente_names || '';
-                            return type === 'display'
-                                ? '<div class="clie-td-name">' + escapeHtml(name) + '</div>'
-                                : name;
+                            return buildClienteNameCell(data, type);
                         }
                     },
                     {
@@ -1883,6 +1930,20 @@ $conn->close();
                             var ts = raw ? moment(raw).valueOf() : 0;
                             if (type === 'sort' || type === 'type') return ts || 0;
                             return escapeHtml(formatCreatedTime(raw));
+                        }
+                    },
+                    {
+                        data: null,
+                        title: 'Fecha que se atendió',
+                        render: function (data, type) {
+                            var raw = data.fecha_atencion || '';
+                            var ts = raw ? moment(raw).valueOf() : 0;
+                            if (type === 'sort' || type === 'type') return ts || 0;
+                            if (!raw) {
+                                return '<button type="button" class="btn btn-link p-0 editar-fecha-atencion" data-id="' + escapeHtml(data.id || '') + '" data-calendario-id="' + escapeHtml(data.calendario_id || '') + '" data-fecha="">—</button>';
+                            }
+                            var dateValue = moment(raw).isValid() ? moment(raw).format('YYYY-MM-DD') : raw;
+                            return '<button type="button" class="btn btn-link p-0 editar-fecha-atencion" data-id="' + escapeHtml(data.id || '') + '" data-calendario-id="' + escapeHtml(data.calendario_id || '') + '" data-fecha="' + escapeHtml(dateValue) + '">' + escapeHtml(formatCreatedTime(raw)) + '</button>';
                         }
                     },
                     {
@@ -2270,6 +2331,57 @@ $conn->close();
             // ── Modales ──────────────────────────────────────────────────────────
 
             var editCloseDateModal = new bootstrap.Modal(document.getElementById('editCloseDateModal'));
+            var editAttendanceDateModal = new bootstrap.Modal(document.getElementById('editAttendanceDateModal'));
+
+            $(document).off('click', '.editar-fecha-atencion').on('click', '.editar-fecha-atencion', function (e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                var fecha = $(this).data('fecha') || '';
+                var calendarioId = $(this).data('calendario-id') || '';
+                $('#editAttendanceDateId').val(id);
+                $('#editAttendanceCalendarioId').val(calendarioId);
+                $('#editAttendanceDateInput').val(fecha);
+                editAttendanceDateModal.show();
+            });
+
+            $(document).off('click', '#saveAttendanceDateBtn').on('click', '#saveAttendanceDateBtn', function (e) {
+                e.preventDefault();
+                var id = $('#editAttendanceDateId').val();
+                var calendarioId = $('#editAttendanceCalendarioId').val();
+                var fecha = $('#editAttendanceDateInput').val().trim();
+                if (!id) { Swal.fire('Error', 'ID de cliente no encontrado.', 'error'); return; }
+                if (!fecha) { Swal.fire('Error', 'Selecciona una fecha de atención.', 'error'); return; }
+                $.ajax({
+                    url: 'actualizar_datos_cliente.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        idclie: id,
+                        calendario_id: calendarioId,
+                        updatedData: { fecha_atencion: fecha }
+                    },
+                    success: function (response) {
+                        if (response && response.success) {
+                            Swal.fire('Guardado', response.message || 'Fecha que se atendió actualizada.', 'success');
+                            editAttendanceDateModal.hide();
+                            var table = $('#clientesTable').DataTable();
+                            var row = table.row($('#clientesTable').find('.editar-fecha-atencion[data-id="' + id + '"]').closest('tr'));
+                            if (row.node()) {
+                                var rowData = row.data();
+                                rowData.fecha_atencion = response.fecha_atencion || fecha;
+                                row.data(rowData).invalidate().draw(false);
+                            }
+                            var clienteIdx = clientes.findIndex(function (item) { return String(item.id) === String(id); });
+                            if (clienteIdx >= 0) {
+                                clientes[clienteIdx].fecha_atencion = response.fecha_atencion || fecha;
+                            }
+                        } else {
+                            Swal.fire('Error', response.message || 'No se pudo actualizar la fecha.', 'error');
+                        }
+                    },
+                    error: function () { Swal.fire('Error', 'Error en la petición AJAX.', 'error'); }
+                });
+            });
 
             $(document).off('click', '.editar-fecha-cierre').on('click', '.editar-fecha-cierre', function (e) {
                 e.preventDefault();
@@ -2489,11 +2601,11 @@ $conn->close();
                             $('.ecm-known-us-btn[data-val="' + normalizedKnownUs + '"]').addClass('active');
                         }
 
-                        $('#edit_tipo_cliente').val(String(client.tipo_cliente !== null && client.tipo_cliente !== undefined ? client.tipo_cliente : ''));
+                        var tipoClienteVal = (client.tipo_cliente !== null && client.tipo_cliente !== undefined && client.tipo_cliente !== '')
+                            ? String(client.tipo_cliente) : '0';
+                        $('#edit_tipo_cliente').val(tipoClienteVal);
                         $('.ecm-tipo-cliente-btn').removeClass('active');
-                        if (client.tipo_cliente !== null && client.tipo_cliente !== undefined && client.tipo_cliente !== '') {
-                            $('.ecm-tipo-cliente-btn[data-tipo="' + String(client.tipo_cliente) + '"]').addClass('active');
-                        }
+                        $('.ecm-tipo-cliente-btn[data-tipo="' + tipoClienteVal + '"]').addClass('active');
                         updateEditAutoHowDidYouMeet();
 
                         $('#edit_puntos').val(client.puntos || '');
@@ -2557,6 +2669,9 @@ $conn->close();
         }
 
         $(document).on('click', '.ecm-tipo-cliente-btn', function () {
+            if ($(this).prop('disabled')) {
+                return;
+            }
             $('.ecm-tipo-cliente-btn').removeClass('active');
             $(this).addClass('active');
             $('#edit_tipo_cliente').val(String($(this).data('tipo')));
@@ -3281,8 +3396,11 @@ $conn->close();
         </select>
 
         <!-- Botón de enviar -->
-        <button class="btn btn-outline-secondary" type="button" id="mandarCuestionario" data-idcuestionario="0" data-enviado="0">
+        <button class="btn btn-outline-secondary me-2" type="button" id="mandarCuestionario" data-idcuestionario="0" data-enviado="0">
           Mandar cuestionario
+        </button>
+        <button class="btn btn-outline-secondary" type="button" id="generarCuestionarioPdf">
+          Generar cuestionario en PDF
         </button>
       </div>
     </div>
@@ -3343,6 +3461,7 @@ $conn->close();
                 <td>
                    
                     <button class="btn btn-primary btn-vermas" data-id="${respuesta.id}" data-idclie="${idclie}">Ver respuestas</button>
+                    <button class="btn btn-outline-secondary btn-sm btn-generar-pdf-respuestas ms-1" data-id="${respuesta.id}">Generar PDF de respuestas</button>
                 </td>
             </tr>
         `;
@@ -4575,6 +4694,98 @@ $conn->close();
                 });
 
             })
+            function iniciarDescargaPdf(urlPdf, tiposExito, tiposError) {
+                Swal.fire({
+                    title: 'Generando PDF...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.left = '-10000px';
+                iframe.style.top = '0';
+                iframe.style.width = '794px';
+                iframe.style.height = '1123px';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+
+                const limpiarGeneracionPdf = (mostrarError) => {
+                    window.removeEventListener('message', onPdfGenerado);
+                    clearTimeout(timeoutPdf);
+
+                    if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                        Swal.close();
+                    }
+
+                    if (iframe.parentNode) {
+                        iframe.parentNode.removeChild(iframe);
+                    }
+
+                    if (mostrarError) {
+                        Swal.fire('Error', 'No se pudo generar el PDF', 'error');
+                    }
+                };
+
+                const onPdfGenerado = (event) => {
+                    if (!event.data || !event.data.type) {
+                        return;
+                    }
+
+                    if (tiposExito.includes(event.data.type)) {
+                        limpiarGeneracionPdf(false);
+                    } else if (tiposError.includes(event.data.type)) {
+                        limpiarGeneracionPdf(true);
+                    }
+                };
+
+                window.addEventListener('message', onPdfGenerado);
+
+                const timeoutPdf = setTimeout(() => {
+                    limpiarGeneracionPdf(false);
+                }, 90000);
+
+                iframe.src = urlPdf;
+            }
+
+            $(document).off('click', '#generarCuestionarioPdf').on('click', '#generarCuestionarioPdf', function () {
+                const selectedCuestionarioId = $('#cuestionarioSelect').val();
+
+                if (!selectedCuestionarioId || selectedCuestionarioId === '0') {
+                    Swal.fire({
+                        title: 'Advertencia',
+                        text: 'Elige un cuestionario para continuar',
+                        icon: 'warning',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    return;
+                }
+
+                iniciarDescargaPdf(
+                    'generar_cuestionario_pdf.php?id=' + encodeURIComponent(selectedCuestionarioId) + '&download=1',
+                    ['cuestionario-pdf-listo'],
+                    ['cuestionario-pdf-error']
+                );
+            });
+
+            $(document).off('click', '.btn-generar-pdf-respuestas').on('click', '.btn-generar-pdf-respuestas', function () {
+                const idRes = $(this).data('id');
+
+                if (!idRes) {
+                    Swal.fire('Error', 'No se pudo identificar la respuesta', 'error');
+                    return;
+                }
+
+                iniciarDescargaPdf(
+                    'generar_cuestionario_respuestas_pdf.php?idres=' + encodeURIComponent(idRes) + '&download=1',
+                    ['cuestionario-respuestas-pdf-listo'],
+                    ['cuestionario-respuestas-pdf-error']
+                );
+            });
+
             $(document).off('click', '#mandarCuestionario').on('click', '#mandarCuestionario', function () {
                 // Obtener datos necesarios
                 const enviado = $(this).data("enviado") || 0;

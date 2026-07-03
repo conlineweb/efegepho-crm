@@ -3,6 +3,28 @@ include 'conn.php';
 
 header('Content-Type: application/json');
 
+$data = isset($_POST['updatedData']) && is_array($_POST['updatedData']) ? $_POST['updatedData'] : [];
+$idclie = isset($_POST['idclie']) ? (int) $_POST['idclie'] : 0;
+
+if ($idclie <= 0) {
+    echo json_encode(['success' => false, 'message' => 'ID de cliente inválido.']);
+    exit;
+}
+
+if (array_key_exists('fecha_atencion', $data)) {
+    require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+    $calendarioId = isset($_POST['calendario_id']) ? (int) $_POST['calendario_id'] : 0;
+    $result = calendarioHistorialUpdateFechaAtencionByContactForm(
+        $conn,
+        $idclie,
+        (string) $data['fecha_atencion'],
+        $calendarioId
+    );
+    echo json_encode($result);
+    $conn->close();
+    exit;
+}
+
 function refValues(array &$values)
 {
     $refs = [];

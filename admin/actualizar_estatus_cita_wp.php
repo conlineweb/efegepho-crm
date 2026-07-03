@@ -34,6 +34,41 @@ if (!in_array($estatus, [1, 3], true)) {
     exit;
 }
 
+$checkCurrentStmt = $conn->prepare('SELECT id, estatus FROM calendario WHERE id = ? AND tipo = 1 AND eliminado = 0 LIMIT 1');
+if (!$checkCurrentStmt) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'No se pudo validar la cita.']);
+    exit;
+}
+$checkCurrentStmt->bind_param('i', $calendarioId);
+if (!$checkCurrentStmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'No se pudo validar la cita.']);
+    $checkCurrentStmt->close();
+    exit;
+}
+$currentResult = $checkCurrentStmt->get_result();
+$currentCita = $currentResult ? $currentResult->fetch_assoc() : null;
+$checkCurrentStmt->close();
+
+if (!$currentCita) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'La cita no existe o ya no está disponible.']);
+    exit;
+}
+
+$currentEstatus = intval($currentCita['estatus'] ?? -1);
+if ($estatus === 1 && $currentEstatus === 1) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'La cita ya está marcada como atendida.']);
+    exit;
+}
+if ($estatus === 3 && $currentEstatus === 3) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'La cita ya está marcada como muerta.']);
+    exit;
+}
+
 try {
     $conn->begin_transaction();
 
@@ -89,20 +124,6 @@ try {
 
         if (intval($currentRow['estatus'] ?? -1) !== $estatus) {
             throw new Exception('No se pudo actualizar la cita.');
-        }
-    }
-
-    if ($eventId > 0) {
-        $eventStatusStmt = $conn->prepare('UPDATE eventos_wp SET estatus = ? WHERE id = ? LIMIT 1');
-        if ($eventStatusStmt) {
-            $eventStatusValue = (string) $estatus;
-            $eventStatusStmt->bind_param('si', $eventStatusValue, $eventId);
-            if (!$eventStatusStmt->execute()) {
-                error_log('WP event status update warning for evento #' . $eventId . ': ' . $eventStatusStmt->error);
-            }
-            $eventStatusStmt->close();
-        } else {
-            error_log('WP event status prepare warning for evento #' . $eventId . ': ' . $conn->error);
         }
     }
 

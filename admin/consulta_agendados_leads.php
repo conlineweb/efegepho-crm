@@ -14,31 +14,10 @@ require_once __DIR__ . '/evento_wp_post_helper.php';
 require_once __DIR__ . '/campaign_badge_helper.php';
 require_once __DIR__ . '/lead_field_badge_helper.php';
 require_once __DIR__ . '/lead_origin_helper.php';
-
-function postLeadResolveEngagementValue(array $lead, array $appointmentsByClient, array $wpEngagementByEventId)
-{
-    $tablaOrigen = strtolower(trim((string) ($lead['tabla_origen'] ?? '')));
-    $origId = intval($lead['original_lead_id'] ?? 0);
-    $cfId = intval($lead['id'] ?? 0);
-
-    if ($tablaOrigen === 'eventos_wp' && $origId > 0 && isset($wpEngagementByEventId[$origId])) {
-        return $wpEngagementByEventId[$origId];
-    }
-
-    $current = intval($lead['engagement'] ?? 0);
-    if ($current >= 1 && $current <= 3) {
-        return $current;
-    }
-
-    if ($cfId > 0 && isset($appointmentsByClient[$cfId])) {
-        $fromCalendar = intval($appointmentsByClient[$cfId]['cliente_engagement'] ?? 0);
-        if ($fromCalendar >= 1 && $fromCalendar <= 3) {
-            return $fromCalendar;
-        }
-    }
-
-    return $current;
-}
+require_once __DIR__ . '/consulta_session_leads_helper.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
+require_once __DIR__ . '/planner_event_display_helper.php';
+require_once __DIR__ . '/dashboard_comercial_helper.php';
 
 function formatCreatedTime($dateString)
 {
@@ -68,277 +47,13 @@ function formatArrivalDateTime($dateString)
     return date('d/m/Y h:i a', $timestamp);
 }
 
-function isB1B2CampaignName($campaignName)
-{
-    if ($campaignName === null) {
-        return false;
-    }
-    $v = strtolower(trim((string) $campaignName));
-    if ($v === '') {
-        return false;
-    }
-    $v = preg_replace('/\s+/', ' ', $v);
-    return in_array($v, ['b1', 'b1 (usa)', 'b1 usa', 'b2', 'b2 (mx)', 'b2 mx'], true);
-}
-
-/**
- * Resuelve el método de contacto inicial (misma lógica que consulta_leads).
- */
-function resolveFirstContactChannelForLead(array $lead, ?array $originalLead = null)
-{
-    $cfFcc = trim((string)($lead['first_contact_channel'] ?? ''));
-    $origFcc = $originalLead ? trim((string)($originalLead['first_contact_channel'] ?? '')) : '';
-    $origLower = mb_strtolower($origFcc, 'UTF-8');
-
-    if ($origFcc !== '' && $origLower !== 'whatsapp') {
-        return $origFcc;
-    }
-
-    $campaign = trim((string)($lead['campaign_name'] ?? ($originalLead['campaign_name'] ?? '')));
-    $platform = mb_strtolower(trim((string)($lead['platform'] ?? ($originalLead['platform'] ?? ''))), 'UTF-8');
-    $tipoIg = mb_strtolower(trim((string)($lead['tipo_ig'] ?? ($originalLead['tipo_ig'] ?? ''))), 'UTF-8');
-    $campaignLower = mb_strtolower($campaign, 'UTF-8');
-
-    if (isB1B2CampaignName($campaign)) {
-        return 'IG';
-    }
-    if (in_array($platform, ['ig', 'ig usa', 'ig mexico'], true)) {
-        return 'IG';
-    }
-    if ($campaignLower === 'ig organico') {
-        return 'IG';
-    }
-    if ($tipoIg === 'campana' || $tipoIg === 'organico') {
-        return 'IG';
-    }
-    if ($origLower === 'ig' || strpos($origLower, 'instagram') !== false) {
-        return $origFcc !== '' ? $origFcc : 'IG';
-    }
-
-    if ($origFcc !== '') {
-        return $origFcc;
-    }
-
-    $cfLower = mb_strtolower($cfFcc, 'UTF-8');
-    if ($cfLower === 'ig' || strpos($cfLower, 'instagram') !== false) {
-        return $cfFcc;
-    }
-
-    return $cfFcc;
-}
-
-// Obtener todos los IDs de contact_form que tienen citas en calendario
-$appointmentIds = [];
-$appointmentQuery = $conn->query("SELECT DISTINCT idclie FROM calendario");
-if ($appointmentQuery && $appointmentQuery->num_rows > 0) {
-    while ($row = $appointmentQuery->fetch_assoc()) {
-        $appointmentIds[] = intval($row['idclie']);
-    }
-}
-
-// Si hay citas, obtener datos de las citas para extraer el estatus (mapear por idclie)
-$appointmentsByClient = [];
-if (!empty($appointmentIds)) {
-    $idsList = implode(',', array_map('intval', $appointmentIds));
-    $apptRes = $conn->query("SELECT * FROM calendario WHERE idclie IN ($idsList)");
-    if ($apptRes && $apptRes->num_rows > 0) {
-        while ($ar = $apptRes->fetch_assoc()) {
-            $idclie = isset($ar['idclie']) ? intval($ar['idclie']) : 0;
-            if ($idclie <= 0)
-                continue;
-
-            // Si ya existe uno, elegir el más reciente por fecha+h ora si están disponibles, sino por id
-            if (!isset($appointmentsByClient[$idclie])) {
-                $appointmentsByClient[$idclie] = $ar;
-            } else {
-                $prev = $appointmentsByClient[$idclie];
-                $replace = false;
-                if (!empty($ar['fecha']) && !empty($prev['fecha'])) {
-                    $t1 = strtotime($ar['fecha'] . ' ' . ($ar['hora'] ?? '')) ?: 0;
-                    $t2 = strtotime($prev['fecha'] . ' ' . ($prev['hora'] ?? '')) ?: 0;
-                    if ($t1 > $t2)
-                        $replace = true;
-                } elseif (!empty($ar['id']) && !empty($prev['id'])) {
-                    if (intval($ar['id']) > intval($prev['id']))
-                        $replace = true;
-                }
-
-                if ($replace)
-                    $appointmentsByClient[$idclie] = $ar;
-            }
-        }
-    }
-}
-
-$wpEngagementByEventId = [];
-$wpEngagementRes = $conn->query("SELECT idclie, cliente_engagement FROM calendario WHERE tipo = 1 AND eliminado = 0 AND cliente_engagement IS NOT NULL AND cliente_engagement > 0 ORDER BY id DESC");
-if ($wpEngagementRes && $wpEngagementRes->num_rows > 0) {
-    while ($wpEngRow = $wpEngagementRes->fetch_assoc()) {
-        $eventId = intval($wpEngRow['idclie'] ?? 0);
-        if ($eventId > 0 && !isset($wpEngagementByEventId[$eventId])) {
-            $wpEngagementByEventId[$eventId] = intval($wpEngRow['cliente_engagement']);
-        }
-    }
-}
-
-// Consultar registros de contact_form (solo los que tienen cita en calendario)
-$allLeads = [];
-if (!empty($appointmentIds)) {
-    // Construir lista segura de IDs
-    $idsList = implode(',', array_map('intval', $appointmentIds));
-    $sql = "SELECT * FROM contact_form WHERE id IN ($idsList) ORDER BY submission_date DESC";
-    $result = $conn->query($sql);
-    if ($result && $result->num_rows > 0) {
-        while ($cf = $result->fetch_assoc()) {
-            // Excluir registros provienen de Wedding Planners (no queremos nada de WP aquí)
-            $tablaOrigenRaw = strtolower(trim($cf['tabla_origen'] ?? ''));
-            if ($tablaOrigenRaw === 'wedding_planners' || $tablaOrigenRaw === 'wedding_planner') {
-                // Saltar este registro
-                continue;
-            }
-
-            // Datos básicos del contact_form
-            $merged = $cf;
-            $merged['engagement'] = postLeadResolveEngagementValue($merged, $appointmentsByClient, $wpEngagementByEventId);
-
-            $merged['tabla_origen'] = $cf['tabla_origen'] ?? '';
-            $merged['original_lead_id'] = $cf['original_lead_id'] ?? null;
-            $merged['full_name'] = $cf['names'] ?? 'N/A';
-            $merged['submission_date'] = $cf['submission_date'] ?? '';
-            // Ensure we have a created_time for filtering: prefer contact_form.created_time, fallback to submission_date
-            $merged['created_time'] = $cf['created_time'] ?? $cf['submission_date'] ?? '';
-            // Garantizar wedding_location - usar 'N/A' si no existe o está vacío (incluye cadenas vacías o sólo espacios)
-            $merged['wedding_location'] = (isset($cf['wedding_location']) && trim($cf['wedding_location']) !== '') ? $cf['wedding_location'] : 'N/A';
-            // Verificar si tiene cita
-            $merged['has_appointment'] = in_array(intval($cf['id']), $appointmentIds) ? 1 : 0;
-
-            // Obtener datos del lead original si es necesario
-            $formName = $cf['tabla_origen'] ?? '';
-            $origId = intval($cf['original_lead_id'] ?? 0);
-            $leadRow = null;
-            if (!empty($formName) && $origId > 0) {
-                $escapedForm = $conn->real_escape_string($formName);
-                $checkTable = $conn->query("SHOW TABLES LIKE '$escapedForm'");
-                if ($checkTable && $checkTable->num_rows > 0) {
-                    $leadRes = $conn->query("SELECT * FROM `$escapedForm` WHERE id = $origId LIMIT 1");
-                    if ($leadRes && $leadRes->num_rows > 0) {
-                        $leadRow = $leadRes->fetch_assoc();
-                        // Only override the contact_form created_time fallback when the original lead has a meaningful value
-                        // Actualizar nombre si está disponible
-                        if (!empty($leadRow['full_name']))
-                            $merged['full_name'] = $leadRow['full_name'];
-                        elseif (!empty($leadRow['names']))
-                            $merged['full_name'] = $leadRow['names'];
-                        elseif (!empty($leadRow['name']))
-                            $merged['full_name'] = $leadRow['name'];
-
-                        // Actualizar fecha de creación si está disponible
-                        if (!empty($leadRow['created_time'])) {
-                            $merged['created_time'] = $leadRow['created_time'];
-                        } elseif (!empty($leadRow['created_at'])) {
-                            $merged['created_time'] = $leadRow['created_at'];
-                        }
-
-                        // Añadir todos los campos del lead original
-                        // Si el `contact_form` tiene el campo pero está vacío, preferimos el valor
-                        // del lead original para evitar perder datos como `platform`.
-                        foreach ($leadRow as $k => $v) {
-                            if (is_string($v)) $v = trim($v);
-                            if (!isset($merged[$k]) || $merged[$k] === '' || $merged[$k] === null) {
-                                $merged[$k] = $v;
-                            }
-                        }
-                    }
-                }
-            }
-
-
-
-            // Garantizar campaign_name: contact_form primero, fallback al lead original
-            $cfCampaign = trim((string)($cf['campaign_name'] ?? ''));
-            if ($cfCampaign === '') {
-                $cfCampaign = trim((string)($merged['campaign_name'] ?? ''));
-            }
-            $merged['campaign_name'] = $cfCampaign;
-
-            // Método de contacto inicial: alinear con consulta_leads (lead original + inferencia IG)
-            $merged['first_contact_channel'] = resolveFirstContactChannelForLead($merged, $leadRow);
-
-            // ===== MAPEO DEL ASESOR ASIGNADO (idusu) =====
-            // Si la cita existe en calendario y en $appointmentsByClient guardamos el id del asesor
-            // en los campos que usa el resto del código: id_vendedor_asignado y usuario_asignado.
-            // Esto evita hacer un JOIN complejo y respeta la lógica previa que eligió la
-            // cita más reciente para cada lead.
-            $cid = intval($cf['id']);
-            // Ocultar leads cuya fecha de cita es inválida (por ejemplo '0000-00-00') para evitar mostrar "-0001"
-            if ($cid > 0 && isset($appointmentsByClient[$cid])) {
-                $appt = $appointmentsByClient[$cid];
-                $apptFechaRaw = trim($appt['fecha'] ?? '');
-                $apptHoraRaw = trim($appt['hora'] ?? '');
-                $apptTs = ($apptFechaRaw !== '') ? strtotime($apptFechaRaw . ' ' . $apptHoraRaw) : false;
-                if ($apptFechaRaw === '' || $apptFechaRaw === '0000-00-00' || $apptTs === false || $apptTs <= 0) {
-                    // Omitir este registro: la fecha de cita es inválida y causaría la visualización de "-0001"
-                    continue;
-                }
-                // "idusu" es la columna usada en 'calendario' para el asesor asignado (si está presente)
-                if (isset($appt['idusu']) && $appt['idusu'] !== '') {
-                    // mantener valores existentes en contact_form si ya vienen con prioridad
-                    if (!isset($merged['id_vendedor_asignado']) || empty($merged['id_vendedor_asignado'])) {
-                        $merged['id_vendedor_asignado'] = intval($appt['idusu']);
-                    }
-                    if (!isset($merged['usuario_asignado']) || empty($merged['usuario_asignado'])) {
-                        $merged['usuario_asignado'] = intval($appt['idusu']);
-                    }
-                }
-                // También respetar otras posibles columnas en la tabla calendario que almacenen
-                // el id del vendedor (por ejemplo id_vendedor_asignado) — prioridad si idusu no existe
-                if (!isset($merged['id_vendedor_asignado']) || empty($merged['id_vendedor_asignado'])) {
-                    if (isset($appt['id_vendedor_asignado']) && $appt['id_vendedor_asignado'] !== '') {
-                        $merged['id_vendedor_asignado'] = intval($appt['id_vendedor_asignado']);
-                    }
-                }
-            }
-
-            // Añadir estatus desde la cita si existe y mapear a etiquetas legibles
-            $cid = intval($cf['id']);
-            $merged['estatus'] = '';
-            if ($cf['cliente'] == 1) {
-
-                $merged['estatus'] = 'cliente';
-            } else
-                if (isset($appointmentsByClient[$cid]) && isset($appointmentsByClient[$cid]['estatus'])) {
-                    $rawStatus = $appointmentsByClient[$cid]['estatus'];
-                    // Intentar normalizar a entero cuando sea posible
-                    $intStatus = is_numeric($rawStatus) ? intval($rawStatus) : null;
-
-                    if ($intStatus === 1) {
-                        $merged['estatus'] = 'atendido';
-                    } elseif ($intStatus === 3) {
-                        $merged['estatus'] = 'muerto';
-                    } elseif ($intStatus === 0) {
-                        $merged['estatus'] = 'agendado';
-                    } elseif ($intStatus === 2) {
-                        $merged['estatus'] = 'fantasma';
-                    } else {
-                        // Si no es un número conocido, dejar el valor crudo como fallback
-                        $merged['estatus'] = $rawStatus;
-                    }
-                }
-
-            // Excluir registros con origen Wedding Planner (how_did_you_meet=1) y estatus 'cliente'
-            $howDidYouMeetRaw = trim((string)($merged['how_did_you_meet'] ?? ''));
-            $merged['how_did_you_meet_raw'] = $howDidYouMeetRaw;
-            if ($howDidYouMeetRaw === '1' && $merged['estatus'] === 'cliente') {
-                continue;
-            }
-
-            // Resolver how_did_you_meet: how_long_known_us prevalece en registro manual / website
-            applyResolvedHowDidYouMeetToLead($merged);
-
-            $allLeads[] = $merged;
-        }
-    }
-}
+// Misma carga que consulta_post_leads.php; en agendados no se excluye estatus agendado en el bucle principal
+$sessionLeadsCtx = consultaSessionLeadsBuildAllLeads($conn, false);
+$allLeads = $sessionLeadsCtx['allLeads'];
+$appointmentsByClient = $sessionLeadsCtx['appointmentsByClient'];
+$appointmentsByEventId = $sessionLeadsCtx['appointmentsByEventId'];
+$wpEngagementByEventId = $sessionLeadsCtx['wpEngagementByEventId'];
+$appointmentIds = $sessionLeadsCtx['appointmentIds'];
 
 // Calcular conteo de registros en contact_form con campaign_name no vacío (para mostrar en un card)
 $campaignCount = 0;
@@ -350,6 +65,7 @@ foreach ($allLeads as $lead) {
 
 // Leer filtro de plataforma desde GET
 $filterPlataforma = isset($_GET['filter_plataforma']) ? trim($_GET['filter_plataforma']) : '';
+$searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
 // Etiqueta amigable para mostrar en los cards: (todo|Campañas digitales|organico)
 $platformLabel = 'todo';
 if ($filterPlataforma === 'campania') {
@@ -492,34 +208,6 @@ if (!function_exists('getDondeNosConocioLabel')) {
     }
 }
 
-if (!function_exists('getOrigenCategoriaLabel')) {
-    function getOrigenCategoriaLabel($lead) {
-        $howRaw = resolveHowDidYouMeetCode(
-            $lead['how_did_you_meet'] ?? '',
-            $lead['how_long_known_us'] ?? '',
-            $lead
-        );
-        $tablaOrigen = strtolower(trim((string)($lead['tabla_origen'] ?? '')));
-        $howMap = [
-            '1' => 'Wedding Planner',
-            '2' => 'Community',
-            '3' => 'New Audience'
-        ];
-
-        if (in_array($tablaOrigen, ['eventos_wp', 'wp_eventos_afianzados', 'wp_citas_leads'], true)) {
-            $howStored = trim((string)($lead['how_did_you_meet_raw'] ?? $howRaw));
-            if ($howStored === '' || $howStored === '1') {
-                return 'Community';
-            }
-            $howRaw = $howStored;
-        }
-
-        if ($howRaw !== '' && isset($howMap[$howRaw])) {
-            return $howMap[$howRaw];
-        }
-        return 'N/A';
-    }
-}
 
 if (!function_exists('normalizeFirstContactChannelLabel')) {
     function normalizeFirstContactChannelLabel($value) {
@@ -618,8 +306,12 @@ if (!function_exists('inferTipoClienteFromOriginData')) {
     {
         $tabla = strtolower(trim((string) $tablaOrigen));
 
-        if (in_array($tabla, ['eventos_wp', 'wp_eventos_afianzados', 'wp_citas_leads'], true)) {
+        if (in_array($tabla, ['wp_eventos_afianzados', 'wp_citas_leads'], true)) {
             return 'Cliente Final';
+        }
+
+        if ($tabla === 'eventos_wp') {
+            return 'Wedding Planner';
         }
 
         if ($tabla === 'wedding_planners') {
@@ -817,8 +509,8 @@ if ($startDate === '' && $endDate === '') {
     $ed = $endDate !== '' ? date('Y-m-d', strtotime($endDate)) : null;
 
     foreach ($allLeads as $lead) {
-        // Usar created_time del lead original si existe, sino usar submission_date
-        $dateField = !empty($lead['created_time']) ? $lead['created_time'] : ($lead['submission_date'] ?? '');
+        // Cohorte por fecha en que agendó (no por llegada del lead)
+        $dateField = postLeadResolveAgendaCohortDateForLead($lead, $appointmentsByClient, $appointmentsByEventId);
         if (empty($dateField))
             continue;
         
@@ -851,8 +543,7 @@ if ($startDate === '' && $endDate === '' && $filterPlataforma === '') {
     foreach ($allLeads as $lead) {
         // Filtro por fecha (solo validar fecha si hay filtro de fecha activo)
         if ($hasFechaFilter) {
-            // Usar created_time del lead original si existe, sino usar submission_date
-            $dateField = !empty($lead['created_time']) ? $lead['created_time'] : ($lead['submission_date'] ?? '');
+            $dateField = postLeadResolveAgendaCohortDateForLead($lead, $appointmentsByClient, $appointmentsByEventId);
             if (empty($dateField))
                 continue;
             
@@ -864,27 +555,18 @@ if ($startDate === '' && $endDate === '' && $filterPlataforma === '') {
             if ($ed && $d > $ed) continue;
         }
 
-        // Filtro por plataforma (basado en tabla_origen)
-        if ($filterPlataforma !== '') {
-            $tablaOrigen = $lead['tabla_origen'] ?? '';
-            $tipoTabla = isset($tablaTipoMap[$tablaOrigen]) ? $tablaTipoMap[$tablaOrigen] : -1;
-            $campaignNameLower = strtolower(trim($lead['campaign_name'] ?? ''));
-            $isB1B2 = isB1B2CampaignName($campaignNameLower);
-
-            if ($filterPlataforma === 'organico') {
-                // Incluir si es tipo 0 O si campaign_name es website o reg manual
-                // Excluir B1/B2 para que no aparezcan en orgánico
-                if ($isB1B2) continue;
-                if ($tipoTabla !== 0 && $campaignNameLower !== 'website' && $campaignNameLower !== 'reg manual') continue;
-            }
-            if ($filterPlataforma === 'campania') {
-                // Incluir campañas (tipo 1) y también B1/B2 que vienen de organic_leads
-                if ($tipoTabla !== 1 && !$isB1B2) continue;
-            } 
+        if (!wpEventosCfLeadPassesPlatformFilter($lead, $filterPlataforma, $tablaTipoMap)) {
+            continue;
         }
 
         $displayLeads[] = $lead;
     }
+}
+
+if ($searchQuery !== '') {
+    $displayLeads = array_values(array_filter($displayLeads, static function ($lead) use ($searchQuery) {
+        return wpEventosCfLeadMatchesSearch($lead, $searchQuery);
+    }));
 }
 
 // Asegurar que el conteo mostrado coincide con la lista que se muestra
@@ -915,12 +597,11 @@ if ($leadsWithFechaCambio > 0) {
 // - Filtro de fechas (start_date/end_date)
 // ============================================================================
 
-// ===== Conteo de leads que llegaron hoy (basado en created_time o submission_date filtrado) =====
+// ===== Conteo de sesiones agendadas hoy (por fecha en que agendaron) =====
 $todayPostLeadsCount = 0;
 $today = date('Y-m-d');
 foreach ($displayLeads as $lead) {
-    // Usar created_time del lead original si existe, sino usar submission_date
-    $dateField = !empty($lead['created_time']) ? $lead['created_time'] : ($lead['submission_date'] ?? '');
+    $dateField = postLeadResolveAgendaCohortDateForLead($lead, $appointmentsByClient, $appointmentsByEventId);
     if (empty($dateField))
         continue;
     
@@ -943,8 +624,7 @@ foreach ($displayLeads as $lead) {
         continue;
     }
 
-    // Usar created_time del lead original si existe, sino usar submission_date
-    $dateField = !empty($lead['created_time']) ? $lead['created_time'] : ($lead['submission_date'] ?? '');
+    $dateField = postLeadResolveAgendaCohortDateForLead($lead, $appointmentsByClient, $appointmentsByEventId);
     if (empty($dateField))
         continue;
     
@@ -1136,6 +816,10 @@ if ($result && $result->num_rows > 0) {
         $vendedores[] = $row; // Agregar cada fila al array
     }
 }
+
+// Mapa de todos los usuarios (cualquier tipoUsu) para mostrar vendedor/a asignado/a
+$dashVendorMap = dashComercialBuildVendorMap($conn);
+dashComercialBuildUsuariosById($conn);
 
 // ============================================================================
 // CÁLCULO DE Tasa de Conversión PRE-Q (basado en datos filtrados)
@@ -1840,6 +1524,16 @@ $conn->close();
             .status-closed { background: rgba(197,160,40,0.15); color: var(--gold); }
             .status-danger { background: var(--danger-bg); color: var(--danger); }
 
+            td[data-column="estatus"] .td-sub-fecha-agenda {
+                margin-top: 4px;
+                font-size: 10px;
+                line-height: 1.2;
+                white-space: normal;
+                max-width: 140px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
             .action-stack {
                 min-width: 120px;
                 display: flex;
@@ -1986,6 +1680,7 @@ $conn->close();
         <div class="filter-bar">
             <span class="filter-label">Filtros</span>
             <form method="get" id="filterForm" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input type="hidden" name="search" value="<?php echo htmlspecialchars($searchQuery, ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="date" name="start_date" class="efege-filter-input"
                     value="<?php echo htmlspecialchars($startDate ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="date" name="end_date" class="efege-filter-input"
@@ -2181,7 +1876,7 @@ $conn->close();
                 <div style="display:flex;align-items:center;gap:10px;">
                     <div style="position:relative;">
                         <i style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;" class="fas fa-search"></i>
-                        <input type="text" id="tableSearchInput" class="efege-filter-search" placeholder="Buscar..." style="padding-left:26px;">
+                        <input type="text" id="tableSearchInput" class="efege-filter-search" placeholder="Buscar WP, correo…" style="padding-left:26px;" value="<?php echo htmlspecialchars($searchQuery, ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                 </div>
             </div>
@@ -2194,13 +1889,14 @@ $conn->close();
                             <th data-column="tipo_cliente"><div class="th-flex-label"><span class="th-compact-label">Tipo de cliente</span><i class="filter-icon bi bi-funnel" data-column="tipo_cliente"></i></div></th>
                             <th data-column="origen_cliente"><div class="th-flex-label"><span class="th-compact-label">Origen</span><i class="filter-icon bi bi-funnel" data-column="origen_cliente"></i></div></th>
                             <th data-column="campana"><div class="th-flex-label"><span class="th-compact-label">Campaña</span><i class="filter-icon bi bi-funnel" data-column="campana"></i></div></th>
+                            <th data-column="estatus">Estatus <i class="filter-icon bi bi-funnel" data-column="estatus"></i></th>
+                            <th data-column="vendedor"><div class="th-flex-label"><span class="th-compact-label">Vendedor/a</span><i class="filter-icon bi bi-funnel" data-column="vendedor"></i></div></th>
                             <th data-column="ciudad_origen"><span class="th-compact-label">Ciudad novios</span></th>
                             <th data-column="boda">¿Dónde se casa?</th>
                             <th data-column="cuando_se_casa">¿Cuándo se casa?</th>
-                            <th data-column="fecha">¿Cuándo llegó?</th>
+                            <th data-column="fecha">¿Cuándo agendó?</th>
                             <th data-column="desde_conoce"><div class="th-flex-label"><span class="th-compact-label">Desde cuándo nos conoce</span><i class="filter-icon bi bi-funnel" data-column="desde_conoce"></i></div></th>
                             <th data-column="engagement"><div class="th-flex-label"><span class="th-compact-label">Engagement</span><i class="filter-icon bi bi-funnel" data-column="engagement"></i></div></th>
-                            <th data-column="estatus">Estatus <i class="filter-icon bi bi-funnel" data-column="estatus"></i></th>
                             <th style="display:none">Sesión Oficial</th>
                             <?php if ($tipoUsuario != 4): ?>
                                 <th>Paquete</th>
@@ -2275,8 +1971,30 @@ $conn->close();
                                     'tipo_cliente' => $lead['tipo_cliente'] ?? null,
                                     'how_did_you_meet' => $lead['how_did_you_meet_raw'] ?? ($lead['how_did_you_meet'] ?? ''),
                                 ]);
+                                $apptForAgenda = postLeadResolveAppointmentForLead($lead, $appointmentsByClient, $appointmentsByEventId);
+                                $vendedorLabel = dashComercialResolveLeadVendorLabel($conn, $lead, $apptForAgenda, $dashVendorMap, $appointmentsByEventId);
+                                $agendaRaw = plannerProfileResolveClienteFinalAgendaDate($lead, $apptForAgenda);
+                                if ($agendaRaw === '') {
+                                    $agendaRaw = plannerProfileResolveEventAgendaDate($lead);
+                                }
+                                // WP / sin slot en calendario: mostrar la misma fecha de cohorte que «¿Cuándo agendó?»
+                                if ($agendaRaw === '') {
+                                    $agendaRaw = postLeadResolveAgendaCohortDateForLead(
+                                        $lead,
+                                        $appointmentsByClient,
+                                        $appointmentsByEventId
+                                    );
+                                }
+                                $agendaDisplay = formatCreatedTime($agendaRaw);
+                                if ($agendaDisplay === '') {
+                                    $agendaDisplay = formatArrivalDateTime($agendaRaw);
+                                }
+                                if ($agendaDisplay === '') {
+                                    $agendaDisplay = '—';
+                                }
                             ?>
                             <tr id="lead-row-<?php echo $lead['id']; ?>-<?php echo htmlspecialchars($lead['tabla_origen']); ?>"
+                                data-search-haystack="<?php echo htmlspecialchars(wpEventosCfBuildSearchHaystack($lead), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-origin-known="<?php echo $isOriginKnown; ?>"
                                 data-llamada-oficial="<?php echo $isOfficialCall; ?>"
                                 data-is-closed="<?php echo $isClosed; ?>"
@@ -2286,7 +2004,11 @@ $conn->close();
 
                                 <!-- Nombre + ID -->
                                 <td data-column="nombre">
-                                    <div class="td-name"><?php echo htmlspecialchars($lead['full_name'] ?? ''); ?></div>
+                                    <?php $nameDisplay = wpEventosCfResolveLeadNameDisplay($lead); ?>
+                                    <div class="td-name"><?php echo htmlspecialchars($nameDisplay['primary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if (!empty($nameDisplay['secondary'])): ?>
+                                        <div class="td-sub"><?php echo htmlspecialchars($nameDisplay['secondary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
                                     <?php if (!empty($lead['email'])): ?>
                                         <div class="td-sub"><?php echo htmlspecialchars($lead['email'], ENT_QUOTES, 'UTF-8'); ?></div>
                                     <?php endif; ?>
@@ -2306,6 +2028,15 @@ $conn->close();
                                 <!-- Campaña -->
                                 <td data-column="campana"><?php echo renderCampaignBadge($campaignDisplayLabel); ?></td>
 
+                                <!-- Estatus (pill) -->
+                                <td class="text-center align-middle" data-column="estatus">
+                                    <span class="<?php echo htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusDisplay, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <div class="td-sub td-sub-fecha-agenda"><?php echo htmlspecialchars($agendaDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                                </td>
+
+                                <!-- Vendedor/a -->
+                                <td data-column="vendedor"><?php echo htmlspecialchars($vendedorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+
                                 <!-- Ciudad novios -->
                                 <td data-column="ciudad_origen"><?php
                                     $city = trim((string)($lead['city'] ?? ''));
@@ -2324,14 +2055,16 @@ $conn->close();
                                     echo htmlspecialchars(formatLeadDate($wd), ENT_QUOTES, 'UTF-8');
                                 ?></td>
 
-                                <!-- ¿Cuándo llegó? -->
+                                <!-- ¿Cuándo agendó? -->
                                 <?php
-                                $llegadaTs = 0;
-                                $llegadaRaw = !empty($lead['created_time']) ? $lead['created_time'] : ($lead['submission_date'] ?? '');
-                                if (!empty($llegadaRaw)) $llegadaTs = strtotime($llegadaRaw) ?: 0;
+                                $cohortRaw = postLeadResolveAgendaCohortDateForLead($lead, $appointmentsByClient, $appointmentsByEventId);
+                                $cohortTs = 0;
+                                if (!empty($cohortRaw)) {
+                                    $cohortTs = strtotime($cohortRaw) ?: 0;
+                                }
                                 ?>
-                                <td data-column="fecha" data-order="<?php echo intval($llegadaTs); ?>">
-                                    <?php echo htmlspecialchars(formatArrivalDateTime($llegadaRaw), ENT_QUOTES, 'UTF-8'); ?>
+                                <td data-column="fecha" data-order="<?php echo intval($cohortTs); ?>">
+                                    <?php echo htmlspecialchars(formatArrivalDateTime($cohortRaw), ENT_QUOTES, 'UTF-8'); ?>
                                 </td>
 
                                 <!-- Desde cuándo nos conoce -->
@@ -2347,11 +2080,6 @@ $conn->close();
                                         echo '<span style="color:var(--muted);">' . htmlspecialchars($engLabel) . '</span>';
                                     }
                                     ?>
-                                </td>
-
-                                <!-- Estatus (pill) -->
-                                <td data-column="estatus">
-                                    <span class="<?php echo htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusDisplay, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </td>
 
                                 <!-- Sesión oficial (hidden) -->
@@ -2487,11 +2215,35 @@ $conn->close();
     const vendedores = <?php echo json_encode($vendedores); ?>;
 
     $(document).ready(function () {
+        $.fn.dataTable.ext.search.push(function (settings, _data, dataIndex) {
+            if (settings.nTable.id !== 'leadsTable') {
+                return true;
+            }
+            var term = ($('#tableSearchInput').val() || '').trim().toLowerCase();
+            if (!term) {
+                return true;
+            }
+            var api = new $.fn.dataTable.Api(settings);
+            var row = api.row(dataIndex).node();
+            if (!row) {
+                return true;
+            }
+            var haystack = (row.getAttribute('data-search-haystack') || '').toLowerCase();
+            var nameCell = row.querySelector('td[data-column="nombre"]');
+            if (nameCell) {
+                haystack += ' ' + nameCell.textContent.toLowerCase();
+            }
+            return haystack.indexOf(term) !== -1;
+        });
+
         var table = $('#leadsTable').DataTable({
             language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
             ordering:  false,
             paging:    false,
             info: true,
+            columnDefs: [
+                { targets: 0, searchable: false }
+            ],
             dom: '<""r>t<"d-flex justify-content-between align-items-center mt-2"il>',
             buttons: [{ extend: 'excelHtml5', title: 'Leads Agendados', exportOptions: { columns: ':visible:not(:last-child)' } }],
             drawCallback: function () { applyColumnFilters(); }
@@ -2502,7 +2254,9 @@ $conn->close();
         });
 
         $('#tableSearchInput').on('input', function () {
-            table.search(this.value).draw();
+            var value = this.value || '';
+            $('input[name="search"]', '#filterForm').val(value);
+            table.draw();
         });
 
         updateDynamicCards();
@@ -2793,6 +2547,9 @@ $conn->close();
             var cell = $(this).find('td[data-column="' + columnName + '"]');
             if (cell.length > 0) {
                 var text = cell.text().trim();
+                if (columnName === 'estatus') {
+                    text = cell.find('.status').first().text().trim();
+                }
                 if (text !== '') values.add(text);
             }
         });
@@ -2921,7 +2678,10 @@ $conn->close();
             for (var columnName in columnFilters) {
                 var cell  = row.find('td[data-column="' + columnName + '"]');
                 if (cell.length > 0) {
-                    var cellValue    = cell.text().trim();
+                    var cellValue = cell.text().trim();
+                    if (columnName === 'estatus') {
+                        cellValue = cell.find('.status').first().text().trim();
+                    }
                     var allowedValues = columnFilters[columnName];
                     if (!allowedValues.includes(cellValue)) { showRow = false; break; }
                 }

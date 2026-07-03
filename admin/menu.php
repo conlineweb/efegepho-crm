@@ -423,7 +423,7 @@ function submenuExpandedAttr(bool $isExpanded): string
             $clientesActive = pageIsActive($currentPage, $clientesPages);
             $cuestionariosActive = pageIsActive($currentPage, $cuestionariosPages);
             $wpActive = pageIsActive($currentPage, $wpPages);
-            $myLeadBoardActive = ($currentPage === 'my_lead_board.php');
+            $myLeadBoardActive = in_array($currentPage, ['my_lead_board.php', 'my_lead_board_leads.php'], true);
             ?>
 
             <?php if (!$isMarketingOnly): ?>

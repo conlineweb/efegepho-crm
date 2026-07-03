@@ -2,7 +2,18 @@
 ob_start();
 include 'conn.php';
 require_once __DIR__ . '/evento_wp_post_helper.php';
-require_once __DIR__ . '/wp_citas_leads_helper.php';
+
+if (!function_exists('wpCitasSyncLeadByEventId')) {
+    $wpCitasHelperPath = __DIR__ . '/wp_citas_leads_helper.php';
+    if (is_readable($wpCitasHelperPath)) {
+        require_once $wpCitasHelperPath;
+    } else {
+        function wpCitasSyncLeadByEventId($conn, $eventId)
+        {
+            return false;
+        }
+    }
+}
 
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
@@ -60,6 +71,8 @@ register_shutdown_function(function () {
     if (!in_array(intval($lastError['type'] ?? 0), $fatalTypes, true)) {
         return;
     }
+
+    error_log('[guardar_evento_desde_cita_wp] Fatal error: ' . ($lastError['message'] ?? 'unknown') . ' in ' . ($lastError['file'] ?? '') . ':' . intval($lastError['line'] ?? 0));
 
     if (!headers_sent()) {
         http_response_code(500);
@@ -134,6 +147,7 @@ try {
     $conn->begin_transaction();
 
     wpEventPersistExistingEvent($conn, $eventId, $payload);
+    wpEventStampFechaAgendadoIfEmpty($conn, $eventId, $payload['fecha_registro'] ?? null);
     $postLeadCalendarId = wpEventEnsurePostLeadCalendarSynced($conn, $eventId, 1);
     wpEventSyncPostLeadEngagement($conn, $eventId, $calendarioId);
     wpEventUpsertPostLeadSaleAmount($conn, $eventId, $montoVenta);
@@ -147,23 +161,10 @@ try {
         $updateAppointmentStmt->close();
     }
 
-    $updateEventStatusStmt = $conn->prepare('UPDATE eventos_wp SET estatus = ?, fecha_actualizacion_estatus = NOW() WHERE id = ? LIMIT 1');
-    if ($updateEventStatusStmt) {
-        $eventStatus = '2';
-        $updateEventStatusStmt->bind_param('si', $eventStatus, $eventId);
-        if (!$updateEventStatusStmt->execute()) {
-            error_log('WP attended event status sync warning for evento #' . $eventId . ': ' . $updateEventStatusStmt->error);
-        }
-        $updateEventStatusStmt->close();
-    }
-
-    $updateLeadClienteStmt = $conn->prepare("UPDATE contact_form SET cliente = 2, fecha_cambio_cliente = NOW() WHERE original_lead_id = ? AND LOWER(COALESCE(tabla_origen, '')) = 'eventos_wp'");
-    if ($updateLeadClienteStmt) {
-        $updateLeadClienteStmt->bind_param('i', $eventId);
-        if (!$updateLeadClienteStmt->execute()) {
-            error_log('WP cotizado lead sync warning for evento #' . $eventId . ': ' . $updateLeadClienteStmt->error);
-        }
-        $updateLeadClienteStmt->close();
+    try {
+        wpPlannerApplyEventWorkflowStatus($conn, $eventId, 2);
+    } catch (Exception $statusError) {
+        error_log('WP cotizado status sync warning for evento #' . $eventId . ': ' . $statusError->getMessage());
     }
 
     try {
@@ -187,9 +188,11 @@ try {
         'evento_id' => $eventId,
         'post_lead_calendar_id' => $postLeadCalendarId
     ]);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log('WP attended event save error for calendario #' . $calendarioId . ': ' . $e->getMessage());
     error_log('[guardar_evento_desde_cita_wp] Exception trace: ' . $e->getTraceAsString());
-    @ $conn->rollback();
+    if (isset($conn) && $conn instanceof mysqli) {
+        @ $conn->rollback();
+    }
     wpEventJsonResponse(500, ['success' => false, 'message' => $e->getMessage()]);
 }

@@ -1,6 +1,7 @@
 <?php
-    include 'conn.php';
-    ini_set('display_errors', 1);
+include 'conn.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';    ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
     header('Content-Type: application/json');
@@ -43,7 +44,8 @@
             uv.apePat as vendedor_asignado_apePat, 
             uv.apeMat as vendedor_asignado_apeMat,
             COALESCE(ev_direct.comentario, ev_afianzado.comentario) AS comentario_wp_inicial,
-            COALESCE(ev_direct.comentario_a_cliente, ev_afianzado.comentario_a_cliente) AS comentario_wp_cliente
+            COALESCE(ev_direct.comentario_a_cliente, ev_afianzado.comentario_a_cliente) AS comentario_wp_cliente,
+            COALESCE(ev_direct.novios, ev_afianzado.novios) AS novios
         FROM contact_form cf
         LEFT JOIN calendario c ON cf.id = c.idclie AND c.eliminado = 0
         LEFT JOIN usuarios u ON c.idusu = u.id
@@ -60,6 +62,19 @@
 
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
+            if (!isset($row['names']) || trim((string) $row['names']) === '') {
+                $row['names'] = $row['cliente_names'] ?? '';
+            }
+            $nameDisplay = wpEventosCfResolveLeadNameDisplay($row);
+            $row['name_primary'] = $nameDisplay['primary'];
+            $row['name_secondary'] = $nameDisplay['secondary'];
+            $fechaAtencion = calendarioHistorialResolveFechaAtencionForContactForm(
+                $conn,
+                (int) ($row['id'] ?? 0),
+                (int) ($row['calendario_id'] ?? 0)
+            );
+            $row['fecha_atencion'] = $fechaAtencion['fecha_atencion'];
+            $row['historial_atendido_id'] = $fechaAtencion['historial_atendido_id'];
             $data[] = $row;
         }
     } else {

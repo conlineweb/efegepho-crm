@@ -13,6 +13,42 @@ include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 require_once __DIR__ . '/campaign_badge_helper.php';
 require_once __DIR__ . '/lead_field_badge_helper.php';
 require_once __DIR__ . '/lead_origin_helper.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
+require_once __DIR__ . '/dashboard_comercial_helper.php';
+
+function clientesResolveFechaCierreCliente(array $lead)
+{
+    global $conn;
+
+    $fecha = trim((string) ($lead['fecha_cambio_cliente'] ?? ''));
+    if ($fecha !== '' && strpos($fecha, '0000-00-00') !== 0) {
+        return $fecha;
+    }
+
+    if (isset($conn) && function_exists('dashComercialResolveClienteFechaCambioLikeClientes')) {
+        $fecha = trim((string) dashComercialResolveClienteFechaCambioLikeClientes($conn, $lead));
+        if ($fecha !== '' && strpos($fecha, '0000-00-00') !== 0) {
+            return $fecha;
+        }
+    }
+
+    return '';
+}
+
+function clientesFormatFechaCierreDisplay($fechaRaw)
+{
+    $fechaRaw = trim((string) $fechaRaw);
+    if ($fechaRaw === '' || strpos($fechaRaw, '0000-00-00') === 0) {
+        return '—';
+    }
+
+    $formatted = formatCreatedTime($fechaRaw);
+    if ($formatted === '') {
+        $formatted = formatArrivalDateTime($fechaRaw);
+    }
+
+    return $formatted !== '' ? $formatted : '—';
+}
 
 function formatCreatedTime($dateString)
 {
@@ -97,6 +133,8 @@ if (!empty($appointmentIds)) {
         }
     }
 }
+
+$appointmentsByEventId = wpEventosCfGetAppointmentsByEventId($conn);
 
 // Cargar mapa id → nombre de paquetes
 $paquetesMap = [];
@@ -967,6 +1005,22 @@ foreach ($leadIdsByTablePre as $t => $ids) {
         $leadStatusMapPre[$key] = 'lead'; // default
         if (isset($contactFormByLeadPre[$key])) {
             $cf = $contactFormByLeadPre[$key];
+            if (strcasecmp($t, 'eventos_wp') === 0) {
+                $cfRow = [
+                    'id' => intval($cf['cf_id']),
+                    'original_lead_id' => intval($lid),
+                    'tabla_origen' => 'eventos_wp',
+                    'form_name' => 'eventos_wp',
+                    'tipo_cliente' => 1,
+                    'cliente' => $cf['cliente'] ?? 0,
+                ];
+                $cfHydrated = wpEventosCfHydratePlannerContactFormFields($conn, $cfRow);
+                $plannerEstatus = wpEventosCfResolvePlannerTipoClienteEstatus($cfHydrated);
+                if ($plannerEstatus !== null && $plannerEstatus !== '') {
+                    $leadStatusMapPre[$key] = $plannerEstatus;
+                    continue;
+                }
+            }
             if (isset($cf['cliente']) && intval($cf['cliente']) === 1) {
                 $leadStatusMapPre[$key] = 'cliente';
                 continue;
@@ -1087,9 +1141,19 @@ if (!empty($appointmentIds)) {
                 }
             }
             
-            // Añadir estatus desde la cita (igual que en consulta_post_leads.php)
+            // Añadir estatus: eventos_wp usa flujo planner; el resto usa calendario
             $merged['estatus'] = '';
-            if ($cf['cliente'] == 1) {
+            if ($tablaOrigenCF === 'eventos_wp') {
+                $cfRow = array_merge($cf, [
+                    'tabla_origen' => 'eventos_wp',
+                    'form_name' => 'eventos_wp',
+                ]);
+                $cfHydrated = wpEventosCfHydratePlannerContactFormFields($conn, $cfRow);
+                $plannerEstatus = wpEventosCfResolvePlannerTipoClienteEstatus($cfHydrated);
+                if ($plannerEstatus !== null && $plannerEstatus !== '') {
+                    $merged['estatus'] = $plannerEstatus;
+                }
+            } elseif ($cf['cliente'] == 1) {
                 $merged['estatus'] = 'cliente';
             } elseif (isset($appointmentsByClient[$cid]) && isset($appointmentsByClient[$cid]['estatus'])) {
                 $rawStatus = $appointmentsByClient[$cid]['estatus'];
@@ -1372,6 +1436,8 @@ if ($result && $result->num_rows > 0) {
         $vendedores[] = $row; // Agregar cada fila al array
     }
 }
+
+$dashVendorMap = dashComercialBuildVendorMap($conn);
 
 
 
@@ -1676,30 +1742,6 @@ foreach ($preQKnownUsCounts as $lbl => $cnt) {
 $preQKnownUsPieJson = json_encode($preQKnownUsPieData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // ===== DATA PARA REPORTE POST-Q (replica consulta_post_leads.php) =====
-
-// Función auxiliar origen categoría (usa how_did_you_meet)
-if (!function_exists('getOrigenCategoriaLabel')) {
-    function getOrigenCategoriaLabel($lead) {
-        $howRaw = resolveHowDidYouMeetCode(
-            $lead['how_did_you_meet'] ?? '',
-            $lead['how_long_known_us'] ?? '',
-            $lead
-        );
-        $tablaOrigen = strtolower(trim((string)($lead['tabla_origen'] ?? '')));
-        $howMap = ['1' => 'Wedding Planner', '2' => 'Community', '3' => 'New Audience'];
-
-        if (in_array($tablaOrigen, ['eventos_wp', 'wp_eventos_afianzados', 'wp_citas_leads'], true)) {
-            $howStored = trim((string)($lead['how_did_you_meet_raw'] ?? $howRaw));
-            if ($howStored === '' || $howStored === '1') {
-                return 'Community';
-            }
-            $howRaw = $howStored;
-        }
-
-        if ($howRaw !== '' && isset($howMap[$howRaw])) return $howMap[$howRaw];
-        return 'N/A';
-    }
-}
 
 // Serie por día Post-Q
 $postQDayMap = [];
@@ -2381,6 +2423,21 @@ $conn->close();
         .efege-postq .status-cliente   { background: rgba(197,160,40,0.12);  color: #92700c; border: 1px solid rgba(197,160,40,0.30); }
         .efege-postq .status-default   { background: var(--gold-dim);        color: #92700c; }
 
+        .efege-postq th[data-column="fecha"],
+        .efege-postq td[data-column="fecha"] {
+            display: none !important;
+        }
+
+        .efege-postq td[data-column="estatus"] .td-sub-fecha-cliente {
+            margin-top: 4px;
+            font-size: 10px;
+            line-height: 1.2;
+            white-space: normal;
+            max-width: 140px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         /* ── ENGAGEMENT PILLS ── */
         .efege-postq .eng-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
         .efege-postq .eng-low  { background: rgba(245,158,11,0.12); color: #B45309; }
@@ -2786,6 +2843,8 @@ $conn->close();
                         <th data-column="tipo_cliente"><div class="th-flex-label"><span class="th-compact-label">Tipo de cliente</span><i class="filter-icon fas fa-filter" data-column="tipo_cliente"></i></div></th>
                         <th data-column="origen_cliente"><div class="th-flex-label"><span class="th-compact-label">Origen</span><i class="filter-icon fas fa-filter" data-column="origen_cliente"></i></div></th>
                         <th data-column="campana"><div class="th-flex-label"><span class="th-compact-label">Campaña</span><i class="filter-icon fas fa-filter" data-column="campana"></i></div></th>
+                        <th data-column="estatus">Estatus <i class="filter-icon fas fa-filter" data-column="estatus"></i></th>
+                        <th data-column="vendedor"><div class="th-flex-label"><span class="th-compact-label">Vendedor/a</span><i class="filter-icon fas fa-filter" data-column="vendedor"></i></div></th>
                         <th data-column="ciudad_origen"><span class="th-compact-label">Ciudad novios</span></th>
                         <th data-column="boda">¿Dónde se casa?</th>
                         <th data-column="cuando_se_casa">¿Cuándo se casa?</th>
@@ -2798,7 +2857,6 @@ $conn->close();
                             <th data-column="paquete"><div class="th-flex-label"><span class="th-compact-label">Paquete</span><i class="filter-icon fas fa-filter" data-column="paquete"></i></div></th>
                         <?php endif; ?>
                         <th data-column="que_se_les_vendio">¿Qué se les vendió?</th>
-                        <th data-column="estatus">Estatus <i class="filter-icon fas fa-filter" data-column="estatus"></i></th>
                         <th style="display:none">Sesión Oficial</th>
                         <th style="display:none">Compromiso</th>
                         <th style="display:none">Técnica Cierre</th>
@@ -2809,35 +2867,19 @@ $conn->close();
                 </thead>
                 <tbody>
                     <?php foreach ($displayLeads as $lead):
-                        /* Vendor name */
-                        $assignedVendorId = 0;
-                        if (isset($lead['id_vendedor_asignado']) && $lead['id_vendedor_asignado'] !== null && $lead['id_vendedor_asignado'] !== '') {
-                            $assignedVendorId = intval($lead['id_vendedor_asignado']);
-                        } elseif (isset($lead['usuario_asignado']) && $lead['usuario_asignado'] !== null && $lead['usuario_asignado'] !== '') {
-                            $assignedVendorId = intval($lead['usuario_asignado']);
+                        $apptForVendor = null;
+                        $cfIdForVendor = intval($lead['id'] ?? 0);
+                        if ($cfIdForVendor > 0 && isset($appointmentsByClient[$cfIdForVendor])) {
+                            $apptForVendor = $appointmentsByClient[$cfIdForVendor];
                         }
-                        $assignedVendorName = 'No asignado';
-                        if (!empty($vendedores)) {
-                            foreach ($vendedores as $vendor) {
-                                if (isset($vendor['id']) && intval($vendor['id']) === $assignedVendorId) {
-                                    $fn = trim((string)($vendor['nombre'] ?? $vendor['nombreUsu'] ?? ''));
-                                    $ln = trim((string)($vendor['apePat'] ?? ''));
-                                    $combined = trim($fn . ' ' . $ln);
-                                    $assignedVendorName = ($combined !== '') ? $combined : ($vendor['nombreUsu'] ?? $assignedVendorName);
-                                    break;
-                                }
-                            }
+                        if (!$apptForVendor && wpEventosCfIsWpEventLead($lead)) {
+                            $apptForVendor = wpEventosCfResolveAppointment($lead, $appointmentsByClient, $appointmentsByEventId);
                         }
+                        $vendedorLabel = dashComercialResolveLeadVendorLabel($conn, $lead, $apptForVendor, $dashVendorMap, $appointmentsByEventId);
                         /* Estatus pill */
-                        $statusRaw   = isset($lead['estatus']) ? trim((string)$lead['estatus']) : '';
-                        $statusLower = mb_strtolower($statusRaw, 'UTF-8');
-                        $statusDisplay = $statusRaw !== '' ? ucfirst($statusLower) : '';
-                        $statusClass = 'status-default';
-                        if      ($statusLower === 'cliente')   $statusClass = 'status-cliente';
-                        elseif  ($statusLower === 'agendado')  $statusClass = 'status-agendado';
-                        elseif  ($statusLower === 'atendido')  $statusClass = 'status-atendido';
-                        elseif  ($statusLower === 'fantasma')  $statusClass = 'status-fantasma';
-                        elseif  ($statusLower === 'muerto')    $statusClass = 'status-muerto';
+                        $statusDisplay = 'Cliente';
+                        $statusClass = 'status-cliente';
+                        $statusLower = 'cliente';
                         /* Origin badge */
                         $howRaw2 = trim((string)($lead['how_did_you_meet'] ?? ''));
                         if      ($howRaw2 === '1') { $origClass = 'origin-planner';   $origLabel = 'Wedding Planner'; }
@@ -2856,10 +2898,10 @@ $conn->close();
                         $fechaLlegadaTs  = (!empty($fechaLlegadaRaw) && strtotime($fechaLlegadaRaw) !== false) ? intval(strtotime($fechaLlegadaRaw)) : 0;
                         $fechaLlegadaOut = $fechaLlegadaTs > 0 ? htmlspecialchars(formatArrivalDateTime($fechaLlegadaRaw), ENT_QUOTES, 'UTF-8') : '—';
 
-                        /* Fecha cierre */
-                        $fechaCierreRaw = $lead['fecha_cambio_cliente'] ?? '';
+                        /* Fecha cierre (cuándo pasó a cliente) */
+                        $fechaCierreRaw = clientesResolveFechaCierreCliente($lead);
                         $fechaCierreTs  = (!empty($fechaCierreRaw) && strtotime($fechaCierreRaw) !== false) ? intval(strtotime($fechaCierreRaw)) : 0;
-                        $fechaCierreOut = $fechaCierreTs > 0 ? htmlspecialchars(formatCreatedTime($fechaCierreRaw)) : '—';
+                        $fechaCierreOut = htmlspecialchars(clientesFormatFechaCierreDisplay($fechaCierreRaw), ENT_QUOTES, 'UTF-8');
 
                         /* Monto de la venta */
                         $montoRaw = trim((string)($lead['monto_venta'] ?? ''));
@@ -2939,7 +2981,11 @@ $conn->close();
 
                         <!-- Nombre -->
                         <td data-column="nombre">
-                            <div class="td-name"><?php echo htmlspecialchars($lead['full_name'] ?? ''); ?></div>
+                            <?php $nameDisplay = wpEventosCfResolveLeadNameDisplay($lead); ?>
+                            <div class="td-name"><?php echo htmlspecialchars($nameDisplay['primary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                            <?php if (!empty($nameDisplay['secondary'])): ?>
+                                <div class="td-sub"><?php echo htmlspecialchars($nameDisplay['secondary'], ENT_QUOTES, 'UTF-8'); ?></div>
+                            <?php endif; ?>
                             <?php if (!empty($lead['email'])): ?>
                                 <div class="td-sub"><?php echo htmlspecialchars($lead['email'], ENT_QUOTES, 'UTF-8'); ?></div>
                             <?php endif; ?>
@@ -2956,6 +3002,15 @@ $conn->close();
 
                         <!-- Campaña -->
                         <td data-column="campana"><?php echo renderCampaignBadge($campaignDisplayLabel); ?></td>
+
+                        <!-- Estatus -->
+                        <td class="text-center align-middle" data-column="estatus">
+                            <span class="status-pill <?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusDisplay, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <div class="td-sub td-sub-fecha-cliente"><?php echo $fechaCierreOut; ?></div>
+                        </td>
+
+                        <!-- Vendedor/a -->
+                        <td data-column="vendedor"><?php echo htmlspecialchars($vendedorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
 
                         <!-- Ciudad novios -->
                         <td data-column="ciudad_origen"><?php
@@ -3010,11 +3065,6 @@ $conn->close();
                         <!-- ¿Qué se les vendió? -->
                         <td data-column="que_se_les_vendio">
                             <?php echo $vendidoOut; ?>
-                        </td>
-
-                        <!-- Estatus -->
-                        <td data-column="estatus">
-                            <span class="status-pill <?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusDisplay); ?></span>
                         </td>
 
                         <!-- Sesión oficial (hidden) -->
@@ -3323,7 +3373,13 @@ $conn->close();
         var values = new Set();
         $('#leadsTable tbody tr').each(function () {
             var cell = $(this).find('td[data-column="' + columnName + '"]');
-            if (cell.length > 0) { var text = cell.text().trim(); if (text !== '') values.add(text); }
+            if (cell.length > 0) {
+                var text = cell.text().trim();
+                if (columnName === 'estatus') {
+                    text = cell.find('.status-pill').first().text().trim();
+                }
+                if (text !== '') values.add(text);
+            }
         });
         return Array.from(values).sort();
     }
@@ -3395,17 +3451,17 @@ $conn->close();
         dropdown.append(footer);
         $('body').append(dropdown);
 
-        var iconOffset     = $(iconElement).offset();
-        var iconHeight     = $(iconElement).outerHeight();
+        var anchorRect     = iconElement.getBoundingClientRect();
         var dropdownWidth  = dropdown.outerWidth();
         var dropdownHeight = dropdown.outerHeight();
-        var windowWidth    = $(window).width();
-        var windowHeight   = $(window).height();
-        var left = iconOffset.left;
-        var top  = iconOffset.top + iconHeight + 5;
-        if (left + dropdownWidth  > windowWidth)  left = windowWidth  - dropdownWidth  - 10;
-        if (top  + dropdownHeight > windowHeight) top  = iconOffset.top - dropdownHeight - 5;
-        dropdown.css({ left: left + 'px', top: top + 'px' });
+        var viewportWidth  = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+        var gap = 5;
+        var left = anchorRect.left;
+        var top  = anchorRect.bottom + gap;
+        if (left + dropdownWidth  > viewportWidth  - 10) left = Math.max(10, viewportWidth  - dropdownWidth  - 10);
+        if (top  + dropdownHeight > viewportHeight - 10) top  = anchorRect.top - dropdownHeight - gap;
+        dropdown.css({ position: 'fixed', left: left + 'px', top: top + 'px' });
         currentFilterDropdown = dropdown;
         $(iconElement).addClass('active');
 
@@ -3446,7 +3502,10 @@ $conn->close();
             for (var columnName in columnFilters) {
                 var cell = row.find('td[data-column="' + columnName + '"]');
                 if (cell.length > 0) {
-                    var cellValue     = cell.text().trim();
+                    var cellValue = cell.text().trim();
+                    if (columnName === 'estatus') {
+                        cellValue = cell.find('.status-pill').first().text().trim();
+                    }
                     var allowedValues = columnFilters[columnName];
                     if (!allowedValues.includes(cellValue)) { showRow = false; break; }
                 }

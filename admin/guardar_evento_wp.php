@@ -1,6 +1,8 @@
 <?php
 include 'conn.php';
 require_once __DIR__ . '/usuario_roles_helper.php';
+require_once __DIR__ . '/evento_wp_post_helper.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
 
@@ -236,6 +238,7 @@ function fetchAfianzadoLeadSourceData($conn, $eventId)
                 wp.when_are_you_getting_married_,
                 wp.where_is_your_marriage_taking_place_,
                 wp.id_vendedor_asignado,
+                wp.first_contact_channel AS wp_first_contact_channel,
                 coord.nombre AS coordinador_nombre,
                 coord.telefono AS coordinador_telefono,
                 coord.correo AS coordinador_correo,
@@ -363,11 +366,13 @@ function upsertAfianzadoLeadCalendar($conn, $contactFormId, array $payload)
         }
         $stmt->close();
     } else {
-        $stmt = $conn->prepare('INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        ensureCalendarioFechaRegistroColumn($conn);
+        $fechaRegistroCal = calendarioBookingTimestamp();
+        $stmt = $conn->prepare('INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, fecha_registro, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         if (!$stmt) {
             throw new Exception('No se pudo preparar la insercion en calendario: ' . $conn->error);
         }
-        $stmt->bind_param('issssssiii', $assignedAdvisorId, $appointmentDate, $appointmentDate, $appointmentTime, $appointmentTime, $calendarTitle, $calendarNote, $contactFormId, $calendarStatus, $calendarDeleted);
+        $stmt->bind_param('isssssssiii', $assignedAdvisorId, $appointmentDate, $appointmentDate, $appointmentTime, $appointmentTime, $fechaRegistroCal, $calendarTitle, $calendarNote, $contactFormId, $calendarStatus, $calendarDeleted);
         if (!$stmt->execute()) {
             throw new Exception('No se pudo insertar calendario del lead afianzado: ' . $stmt->error);
         }
@@ -475,12 +480,11 @@ function syncAfianzadoLeadForEvent($conn, $eventId)
     }
 
     $createdTime = first_non_empty_value($source['created_time'] ?? '', date('Y-m-d H:i:s'));
-    $campaignName = first_non_empty_value(
-        $source['coordinador_campaign_name'] ?? '',
-        $source['wp_campaign_name'] ?? '',
-        $source['empresa_wp'] ?? '',
-        'Wedding Planner Afianzado'
+    $firstContactChannel = first_non_empty_value(
+        $source['coordinador_first_contact_channel'] ?? '',
+        $source['wp_first_contact_channel'] ?? ''
     );
+    $campaignName = $firstContactChannel;
     $platform = first_non_empty_value($source['coordinador_platform'] ?? '', $source['wp_platform'] ?? '', 'Wedding Planner');
     $fullName = first_non_empty_value($source['coordinador_nombre'] ?? '', $source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $source['novios'] ?? '', 'Evento afianzado');
     $weddingLocation = first_non_empty_value($source['lugar'] ?? '', $source['where_is_your_marriage_taking_place_'] ?? '');
@@ -496,13 +500,12 @@ function syncAfianzadoLeadForEvent($conn, $eventId)
     $countryCode = '';
     $city = '';
     $howLongKnownUs = trim((string) ($source['coordinador_how_long_known_us'] ?? ''));
-    $firstContactChannel = trim((string) ($source['coordinador_first_contact_channel'] ?? ''));
     $engagement = intval($source['coordinador_engagement'] ?? 0);
     $eventoFecha = !empty($source['fecha']) ? date('Y-m-d H:i:s', strtotime($source['fecha'])) : null;
     $fechaRegistroEvento = !empty($source['fecha_registro']) ? date('Y-m-d H:i:s', strtotime($source['fecha_registro'])) : null;
     $eventoLugar = trim((string) ($source['lugar'] ?? ''));
     $coordinadorNombre = trim((string) ($source['coordinador_nombre'] ?? ''));
-    $empresaWp = first_non_empty_value($source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $campaignName);
+    $empresaWp = first_non_empty_value($source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $source['wp_campaign_name'] ?? '');
     $tipoPaquete = trim((string) ($source['tipo_paquete'] ?? ''));
     $idPaquete = intval($source['id_paquete'] ?? 0);
     $paquetePersonalizado = trim((string) ($source['paquete_personalizado'] ?? ''));
@@ -840,6 +843,7 @@ try {
         if (!$stmt->execute()) throw new Exception('Error al actualizar evento: ' . $stmt->error);
         $stmt->close();
         syncAfianzadoLeadForEvent($conn, $id);
+        wpPlannerAutoMarkCotizadoIfEligible($conn, $id);
         echo json_encode(['success' => true, 'updated_id' => $id]);
         exit;
     } else {
@@ -853,6 +857,7 @@ try {
         $stmt->close();
 
         syncAfianzadoLeadForEvent($conn, $ev_id);
+        wpPlannerAutoMarkCotizadoIfEligible($conn, $ev_id);
 
         echo json_encode(['success' => true, 'evento_id' => $ev_id]);
         exit;

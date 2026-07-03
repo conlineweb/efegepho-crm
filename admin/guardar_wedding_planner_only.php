@@ -1,7 +1,11 @@
 <?php
+include 'autoload_session.php';
 include 'conn.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
+
+$sessionUserId = intval($_SESSION['uid'] ?? 0);
 
 function normalize_text($texto) {
     if ($texto === null || $texto === '') return '';
@@ -66,7 +70,7 @@ if ($id_vendedor_asignado > 0) {
         exit;
     }
     $rowu = $resu->fetch_assoc();
-    if (intval($rowu['tipoUsu']) !== 1) {
+    if (!usuarioEsVendedoraAsignableEnConsultaWp($rowu['tipoUsu'] ?? -1, $sessionUserId, $id_vendedor_asignado)) {
         echo json_encode(['success' => false, 'message' => 'El usuario seleccionado no es un asesor válido.']);
         exit;
     }

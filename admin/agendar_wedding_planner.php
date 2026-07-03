@@ -1,7 +1,19 @@
 <?php
 include 'conn.php';
 require_once __DIR__ . '/usuario_roles_helper.php';
-require_once __DIR__ . '/wp_citas_leads_helper.php';
+
+if (!function_exists('wpCitasSyncLeadByCalendarId')) {
+    $wpCitasHelperPath = __DIR__ . '/wp_citas_leads_helper.php';
+    if (is_readable($wpCitasHelperPath)) {
+        require_once $wpCitasHelperPath;
+    } else {
+        function wpCitasSyncLeadByCalendarId($conn, $calendarId)
+        {
+            return false;
+        }
+    }
+}
+
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
 
@@ -94,6 +106,9 @@ $conn->query("CREATE TABLE IF NOT EXISTS eventos_wp (
     estatus VARCHAR(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+ensureColumnExists($conn, 'eventos_wp', 'how_did_you_meet', "`how_did_you_meet` VARCHAR(50) DEFAULT NULL COMMENT '1=Wedding Planner, 2=Community, 3=New Audience'");
+ensureColumnExists($conn, 'eventos_wp', 'tipo_cliente', "`tipo_cliente` TINYINT(1) NULL DEFAULT NULL COMMENT '1=Wedding Planner, 0=Cliente Final'");
+
 // Fetch wedding_planner
 $stmt = $conn->prepare("SELECT id, campaign_name, empresa_wp, where_is_your_marriage_taking_place_, when_are_you_getting_married_, full_name, id_vendedor_asignado FROM wedding_planners WHERE id = ? LIMIT 1");
 $stmt->bind_param('i', $wp_id);
@@ -130,7 +145,7 @@ if ($override_vendedor > 0) {
         exit;
     }
     $rowv = $resv->fetch_assoc();
-    if (!usuarioTipoPuedeAsignarSesionWp($rowv['tipoUsu'] ?? -1)) {
+    if (!usuarioTipoEsAsesorEventoWp($rowv['tipoUsu'] ?? -1)) {
         echo json_encode(['success' => false, 'message' => 'El usuario seleccionado no es un asesor válido.']);
         exit;
     }
@@ -144,12 +159,21 @@ if ($id_vendedor_asignado <= 0) {
 
 $conn->begin_transaction();
 try {
-    $stmt = $conn->prepare("INSERT INTO eventos_wp (wedding_planner_id) VALUES (?)");
+    $stmt = $conn->prepare("INSERT INTO eventos_wp (wedding_planner_id, how_did_you_meet, tipo_cliente) VALUES (?, '1', 1)");
     if (!$stmt) throw new Exception('Prepare eventos_wp failed: ' . $conn->error);
     $stmt->bind_param('i', $wp_id);
     if (!$stmt->execute()) throw new Exception('Error al insertar en eventos_wp: ' . $stmt->error);
     $evento_wp_id = intval($stmt->insert_id);
     $stmt->close();
+
+    $stmtAsesor = $conn->prepare('UPDATE eventos_wp SET id_asesor = ? WHERE id = ? LIMIT 1');
+    if ($stmtAsesor) {
+        $stmtAsesor->bind_param('ii', $id_vendedor_asignado, $evento_wp_id);
+        if (!$stmtAsesor->execute()) {
+            throw new Exception('Error al asignar asesor al evento: ' . $stmtAsesor->error);
+        }
+        $stmtAsesor->close();
+    }
 
     $tituloPrefix = 'Llamada WP: ';
     $nota = '';

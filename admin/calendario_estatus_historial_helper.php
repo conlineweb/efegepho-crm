@@ -1035,3 +1035,191 @@ if (!function_exists('obtenerTrazabilidadLead')) {
         return ['success' => false, 'error' => 'Parámetros inválidos'];
     }
 }
+
+if (!function_exists('calendarioHistorialResolveCalendarioIdForContactForm')) {
+    function calendarioHistorialResolveCalendarioIdForContactForm($conn, $contactFormId, $preferredCalendarioId = 0)
+    {
+        $preferredCalendarioId = (int) $preferredCalendarioId;
+        if ($preferredCalendarioId > 0) {
+            return $preferredCalendarioId;
+        }
+
+        $contactFormId = (int) $contactFormId;
+        if ($contactFormId <= 0) {
+            return 0;
+        }
+
+        $stmt = $conn->prepare(
+            'SELECT id FROM calendario WHERE idclie = ? AND COALESCE(eliminado, 0) = 0 ORDER BY id DESC LIMIT 1'
+        );
+        if (!$stmt) {
+            return 0;
+        }
+
+        $stmt->bind_param('i', $contactFormId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
+        $stmt->close();
+
+        return (int) ($row['id'] ?? 0);
+    }
+}
+
+if (!function_exists('calendarioHistorialResolveFechaAtencionForContactForm')) {
+    /**
+     * Primera fecha en que la cita alcanzó estatus atendido (1) en calendario_estatus_historial.
+     *
+     * @return array{fecha_atencion: ?string, historial_atendido_id: ?int, calendario_id: int}
+     */
+    function calendarioHistorialResolveFechaAtencionForContactForm($conn, $contactFormId, $preferredCalendarioId = 0)
+    {
+        ensureCalendarioEstatusHistorialTable($conn);
+
+        $calendarioId = calendarioHistorialResolveCalendarioIdForContactForm($conn, $contactFormId, $preferredCalendarioId);
+        if ($calendarioId <= 0) {
+            return [
+                'fecha_atencion'        => null,
+                'historial_atendido_id' => null,
+                'calendario_id'         => 0,
+            ];
+        }
+
+        $stmt = $conn->prepare(
+            'SELECT id, fecha_cambio
+             FROM calendario_estatus_historial
+             WHERE id_calendario = ? AND estatus = 1
+             ORDER BY fecha_cambio ASC
+             LIMIT 1'
+        );
+        if (!$stmt) {
+            return [
+                'fecha_atencion'        => null,
+                'historial_atendido_id' => null,
+                'calendario_id'         => $calendarioId,
+            ];
+        }
+
+        $stmt->bind_param('i', $calendarioId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
+        $stmt->close();
+
+        return [
+            'fecha_atencion'        => $row['fecha_cambio'] ?? null,
+            'historial_atendido_id' => isset($row['id']) ? (int) $row['id'] : null,
+            'calendario_id'         => $calendarioId,
+        ];
+    }
+}
+
+if (!function_exists('calendarioHistorialUpdateFechaAtencionByContactForm')) {
+    /**
+     * Actualiza (o crea) el registro de atención en calendario_estatus_historial.
+     *
+     * @return array{success: bool, message: string, fecha_atencion?: string}
+     */
+    function calendarioHistorialUpdateFechaAtencionByContactForm($conn, $contactFormId, $fechaYmd, $preferredCalendarioId = 0)
+    {
+        ensureCalendarioEstatusHistorialTable($conn);
+
+        $contactFormId = (int) $contactFormId;
+        $fechaYmd = trim((string) $fechaYmd);
+
+        if ($contactFormId <= 0) {
+            return ['success' => false, 'message' => 'ID de cliente inválido.'];
+        }
+        if ($fechaYmd === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaYmd)) {
+            return ['success' => false, 'message' => 'Fecha de atención inválida.'];
+        }
+
+        $calendarioId = calendarioHistorialResolveCalendarioIdForContactForm($conn, $contactFormId, $preferredCalendarioId);
+        if ($calendarioId <= 0) {
+            return ['success' => false, 'message' => 'No se encontró cita asociada a este cliente.'];
+        }
+
+        $resolved = calendarioHistorialResolveFechaAtencionForContactForm($conn, $contactFormId, $calendarioId);
+        $timePart = '12:00:00';
+        if (!empty($resolved['fecha_atencion']) && preg_match('/(\d{2}:\d{2}:\d{2})/', (string) $resolved['fecha_atencion'], $matches)) {
+            $timePart = $matches[1];
+        } elseif (!empty($resolved['fecha_atencion']) && strlen((string) $resolved['fecha_atencion']) >= 19) {
+            $timePart = substr((string) $resolved['fecha_atencion'], 11, 8) ?: $timePart;
+        }
+
+        $fechaCambio = $fechaYmd . ' ' . $timePart;
+
+        if (!empty($resolved['historial_atendido_id'])) {
+            $histId = (int) $resolved['historial_atendido_id'];
+            $stmt = $conn->prepare('UPDATE calendario_estatus_historial SET fecha_cambio = ? WHERE id = ? LIMIT 1');
+            if (!$stmt) {
+                return ['success' => false, 'message' => 'No se pudo preparar la actualización.'];
+            }
+            $stmt->bind_param('si', $fechaCambio, $histId);
+            $ok = $stmt->execute();
+            $stmt->close();
+
+            if (!$ok) {
+                return ['success' => false, 'message' => 'No se pudo actualizar la fecha de atención.'];
+            }
+
+            return [
+                'success'       => true,
+                'message'       => 'Fecha que se atendió actualizada.',
+                'fecha_atencion' => $fechaCambio,
+            ];
+        }
+
+        $estatusAnterior = 0;
+        if ($stmtCal = $conn->prepare('SELECT estatus FROM calendario WHERE id = ? LIMIT 1')) {
+            $stmtCal->bind_param('i', $calendarioId);
+            $stmtCal->execute();
+            $resCal = $stmtCal->get_result();
+            if ($resCal && ($calRow = $resCal->fetch_assoc())) {
+                $estatusAnterior = (int) ($calRow['estatus'] ?? 0);
+            }
+            $stmtCal->close();
+        }
+
+        $ok = registrarCambioEstatusCalendario($conn, $calendarioId, 1, [
+            'fecha_cambio'         => $fechaCambio,
+            'estatus_anterior'     => $estatusAnterior,
+            'origen'               => 'consulta-clientes.php',
+            'skip_lookup_anterior' => true,
+        ]);
+
+        if (!$ok) {
+            return ['success' => false, 'message' => 'No se pudo registrar la fecha de atención.'];
+        }
+
+        return [
+            'success'        => true,
+            'message'        => 'Fecha que se atendió registrada.',
+            'fecha_atencion' => $fechaCambio,
+        ];
+    }
+}
+
+if (!function_exists('ensureCalendarioFechaRegistroColumn')) {
+    function ensureCalendarioFechaRegistroColumn($conn)
+    {
+        static $verified = false;
+        if ($verified) {
+            return;
+        }
+
+        $check = $conn->query("SHOW COLUMNS FROM `calendario` LIKE 'fecha_registro'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE `calendario` ADD COLUMN `fecha_registro` DATETIME DEFAULT NULL AFTER `hora_cliente`");
+        }
+
+        $verified = true;
+    }
+}
+
+if (!function_exists('calendarioBookingTimestamp')) {
+    function calendarioBookingTimestamp()
+    {
+        return date('Y-m-d H:i:s');
+    }
+}

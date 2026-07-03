@@ -33,46 +33,11 @@ if ($isEmbed) {
 include 'conn.php';
 date_default_timezone_set('America/Mexico_City');
 require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/lead_interactions_helper.php';
 
 function ensureLeadInteractionsTable($conn)
 {
-    $sql = "CREATE TABLE IF NOT EXISTS `lead_interactions` (
-        `id` INT NOT NULL AUTO_INCREMENT,
-        `tabla_origen` VARCHAR(120) NOT NULL,
-        `lead_id` INT NOT NULL,
-        `original_lead_id` INT DEFAULT NULL,
-        `interaction_type` VARCHAR(40) DEFAULT NULL,
-        `interaction_date` DATE DEFAULT NULL,
-        `interaction_time` VARCHAR(20) DEFAULT NULL,
-        `notes` TEXT,
-        `outcome` VARCHAR(40) DEFAULT NULL,
-        `next_action` VARCHAR(255) DEFAULT NULL,
-        `next_action_date` DATE DEFAULT NULL,
-        `created_by` INT DEFAULT NULL,
-        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`),
-        KEY `idx_lead_interactions_lead` (`tabla_origen`, `lead_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-
-    $conn->query($sql);
-
-    $checkOriginalLeadId = $conn->query("SHOW COLUMNS FROM `lead_interactions` LIKE 'original_lead_id'");
-    if ($checkOriginalLeadId && $checkOriginalLeadId->num_rows === 0) {
-        $conn->query("ALTER TABLE `lead_interactions` ADD COLUMN `original_lead_id` INT DEFAULT NULL AFTER `lead_id`");
-    }
-
-    $checkInteractionType = $conn->query("SHOW COLUMNS FROM `lead_interactions` LIKE 'interaction_type'");
-    if ($checkInteractionType && $checkInteractionType->num_rows > 0) {
-        $col = $checkInteractionType->fetch_assoc();
-        if (($col['Null'] ?? '') === 'NO') {
-            $conn->query("ALTER TABLE `lead_interactions` MODIFY COLUMN `interaction_type` VARCHAR(40) DEFAULT NULL");
-        }
-    }
-
-    $checkCompleted = $conn->query("SHOW COLUMNS FROM `lead_interactions` LIKE 'next_action_completed'");
-    if ($checkCompleted && $checkCompleted->num_rows === 0) {
-        $conn->query("ALTER TABLE `lead_interactions` ADD COLUMN `next_action_completed` TINYINT(1) NOT NULL DEFAULT 0 AFTER `next_action_date`");
-    }
+    leadInteractionsEnsureTable($conn);
 }
 
 function safeTableName($name)
@@ -423,17 +388,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $interactionTime = date('H:i:s');
 
     $createdBy = isset($_SESSION['uid']) ? intval($_SESSION['uid']) : null;
+    $leadName = leadInteractionsNormalizeLeadName($lead['full_name'] ?? '') ?? '';
+    if ($leadName === '') {
+        $leadName = leadInteractionsNormalizeLeadName(leadInteractionsResolveLeadName($conn, $tablaOrigen, $leadId)) ?? '';
+    }
 
     $stmt = $conn->prepare("INSERT INTO lead_interactions
-        (tabla_origen, lead_id, original_lead_id, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, created_by)
-        VALUES (?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?)");
+        (tabla_origen, lead_id, original_lead_id, lead_name, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, created_by)
+        VALUES (?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?)");
 
     if ($stmt) {
         $stmt->bind_param(
-            'siisssssssi',
+            'siissssssssi',
             $tablaOrigen,
             $leadId,
             $leadId,
+            $leadName,
             $interactionType,
             $interactionDate,
             $interactionTime,

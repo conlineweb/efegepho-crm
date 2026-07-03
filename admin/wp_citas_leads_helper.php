@@ -115,6 +115,7 @@ function wpCitasEnsureLeadTableExists($conn)
         comentario TEXT DEFAULT NULL,
         cliente_engagement TINYINT(1) DEFAULT NULL,
         descartado TINYINT(1) DEFAULT 0,
+        tipo_cliente TINYINT(1) DEFAULT NULL COMMENT '1=Wedding Planner, 0=Cliente Final',
         UNIQUE KEY uniq_wp_citas_leads_calendario (id_calendario),
         KEY idx_wp_citas_leads_created_time (created_time),
         KEY idx_wp_citas_leads_descartado (descartado),
@@ -125,6 +126,8 @@ function wpCitasEnsureLeadTableExists($conn)
     if (!$conn->query($createSql)) {
         throw new Exception('No se pudo crear la tabla wp_citas_leads: ' . $conn->error);
     }
+
+    wpCitasEnsureColumnExists($conn, 'wp_citas_leads', 'tipo_cliente', "`tipo_cliente` TINYINT(1) DEFAULT NULL COMMENT '1=Wedding Planner, 0=Cliente Final' AFTER `descartado`");
 }
 
 function wpCitasEnsureLeadTableRegistered($conn)
@@ -401,6 +404,7 @@ function wpCitasSyncLeadByCalendarId($conn, $calendarId)
         'how_long_known_us' => trim((string) ($source['wp_how_long_known_us'] ?? '')),
         'first_contact_channel' => trim((string) ($source['wp_first_contact_channel'] ?? '')),
         'how_did_you_meet' => '1',
+        'tipo_cliente' => 1,
         'hear_about_us' => $hearAboutUs,
         'campaign_name' => 'Wedding Planner',
         'form_name' => 'wp_citas_leads',
@@ -431,7 +435,7 @@ function wpCitasSyncLeadByCalendarId($conn, $calendarId)
 
     if ($existing) {
         $mirrorId = intval($existing['id']);
-        $stmt = $conn->prepare('UPDATE wp_citas_leads SET id_evento = ?, id_wedding_planner = ?, created_time = ?, fecha_importacion = ?, full_name = ?, email = ?, phone = ?, country_code = ?, city = ?, wedding_location = ?, wedding_date = ?, how_long_known_us = ?, first_contact_channel = ?, how_did_you_meet = ?, hear_about_us = ?, campaign_name = ?, form_name = ?, platform = ?, choose_your_call_date_ = ?, lead_status = ?, estatus_cita = ?, id_vendedor_asignado = ?, usuario_asignado = ?, calendario_fecha = ?, calendario_hora = ?, fecha_cliente = ?, hora_cliente = ?, comentario = ?, cliente_engagement = ?, descartado = ? WHERE id = ? LIMIT 1');
+        $stmt = $conn->prepare('UPDATE wp_citas_leads SET id_evento = ?, id_wedding_planner = ?, created_time = ?, fecha_importacion = ?, full_name = ?, email = ?, phone = ?, country_code = ?, city = ?, wedding_location = ?, wedding_date = ?, how_long_known_us = ?, first_contact_channel = ?, how_did_you_meet = ?, tipo_cliente = ?, hear_about_us = ?, campaign_name = ?, form_name = ?, platform = ?, choose_your_call_date_ = ?, lead_status = ?, estatus_cita = ?, id_vendedor_asignado = ?, usuario_asignado = ?, calendario_fecha = ?, calendario_hora = ?, fecha_cliente = ?, hora_cliente = ?, comentario = ?, cliente_engagement = ?, descartado = ? WHERE id = ? LIMIT 1');
         if (!$stmt) {
             throw new Exception('No se pudo preparar la actualización de wp_citas_leads: ' . $conn->error);
         }
@@ -451,6 +455,7 @@ function wpCitasSyncLeadByCalendarId($conn, $calendarId)
             $payload['how_long_known_us'],
             $payload['first_contact_channel'],
             $payload['how_did_you_meet'],
+            $payload['tipo_cliente'],
             $payload['hear_about_us'],
             $payload['campaign_name'],
             $payload['form_name'],
@@ -477,7 +482,7 @@ function wpCitasSyncLeadByCalendarId($conn, $calendarId)
         return $mirrorId;
     }
 
-    $stmt = $conn->prepare('INSERT INTO wp_citas_leads (id_calendario, id_evento, id_wedding_planner, created_time, fecha_importacion, full_name, email, phone, country_code, city, wedding_location, wedding_date, how_long_known_us, first_contact_channel, how_did_you_meet, hear_about_us, campaign_name, form_name, platform, choose_your_call_date_, lead_status, estatus_cita, id_vendedor_asignado, usuario_asignado, calendario_fecha, calendario_hora, fecha_cliente, hora_cliente, comentario, cliente_engagement, descartado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $conn->prepare('INSERT INTO wp_citas_leads (id_calendario, id_evento, id_wedding_planner, created_time, fecha_importacion, full_name, email, phone, country_code, city, wedding_location, wedding_date, how_long_known_us, first_contact_channel, how_did_you_meet, tipo_cliente, hear_about_us, campaign_name, form_name, platform, choose_your_call_date_, lead_status, estatus_cita, id_vendedor_asignado, usuario_asignado, calendario_fecha, calendario_hora, fecha_cliente, hora_cliente, comentario, cliente_engagement, descartado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     if (!$stmt) {
         throw new Exception('No se pudo preparar la inserción de wp_citas_leads: ' . $conn->error);
     }
@@ -498,6 +503,7 @@ function wpCitasSyncLeadByCalendarId($conn, $calendarId)
         $payload['how_long_known_us'],
         $payload['first_contact_channel'],
         $payload['how_did_you_meet'],
+        $payload['tipo_cliente'],
         $payload['hear_about_us'],
         $payload['campaign_name'],
         $payload['form_name'],

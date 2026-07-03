@@ -28,25 +28,41 @@ if ($vendorId !== null && $vendorId <= 0) {
     $vendorId = null;
 }
 
-$allowed = ['clientes', 'atendidos', 'agendas', 'leads'];
+$allowed = ['clientes', 'atendidos', 'agendas', 'todos', 'leads'];
 if (!in_array($type, $allowed, true)) {
     dashRecordsJsonResponse(400, ['error' => 'Tipo de registro no válido']);
 }
 
 try {
+    require_once __DIR__ . '/dashboard_comercial_period_helper.php';
     require_once __DIR__ . '/conn.php';
     require_once __DIR__ . '/dashboard_comercial_helper.php';
 
-    $rows = dashComercialFetchRecordsByType($conn, $type, $startDate, $endDate, $vendorId);
+    list($startDate, $endDate) = dashComercialResolvePeriodDates($startDate, $endDate);
+
+    if ($vendorId !== null && in_array($type, ['todos', 'agendas'], true)) {
+        $vendorModal = dashComercialFetchVendorModalSections($conn, $startDate, $endDate, $vendorId);
+        $payload = [
+            'type'     => $type,
+            'total'    => count($vendorModal['rows']),
+            'rows'     => $vendorModal['rows'],
+            'sections' => $vendorModal['sections'],
+            'summary'  => $vendorModal['summary'],
+        ];
+    } else {
+        $rows = dashComercialFetchRecordsByType($conn, $type, $startDate, $endDate, $vendorId);
+        $payload = [
+            'type'  => $type,
+            'total' => count($rows),
+            'rows'  => $rows,
+        ];
+    }
+
     if (isset($conn) && $conn instanceof mysqli) {
         $conn->close();
     }
 
-    dashRecordsJsonResponse(200, [
-        'type'  => $type,
-        'total' => count($rows),
-        'rows'  => $rows,
-    ]);
+    dashRecordsJsonResponse(200, $payload);
 } catch (Throwable $e) {
     if (isset($conn) && $conn instanceof mysqli) {
         $conn->close();

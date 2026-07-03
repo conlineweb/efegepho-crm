@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 include __DIR__ . '/conn.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
 
 $response = ['success' => false, 'message' => 'No se pudo actualizar la informacion'];
 

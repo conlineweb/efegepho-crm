@@ -6,6 +6,10 @@ error_reporting(E_ALL);
 include 'menu.php';
 include 'conn.php';
 require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/evento_wp_post_helper.php';
+require_once __DIR__ . '/wp_planner_open_notes_helper.php';
+require_once __DIR__ . '/lead_interactions_helper.php';
+leadInteractionsEnsureTable($conn);
 
 function plannerProfileFormatDate($dateString)
 {
@@ -325,66 +329,135 @@ function plannerProfileAfianzadoLabel($value)
 
   function plannerProfileEventStatusMeta($value, $contactFormCliente = null)
   {
-    $raw = trim((string) $value);
-    $cliente = is_numeric($contactFormCliente) ? intval($contactFormCliente) : null;
+    $statusKey = wpPlannerResolveEventStatusKey($value, $contactFormCliente);
 
-    if ($cliente === 1 || strcasecmp($raw, 'cliente') === 0) {
-      return ['label' => 'Cliente', 'class' => 'status-afianzado'];
-    }
-    if ($cliente === 3 || $raw === '3' || strcasecmp($raw, 'rechazado') === 0) {
-      return ['label' => 'Rechazado', 'class' => 'status-rechazado'];
-    }
-    if ($cliente === 2 || $raw === '2' || strcasecmp($raw, 'cotizado') === 0) {
-      return ['label' => 'Cotizado', 'class' => 'status-pendiente'];
-    }
-    if ($cliente === 4 || $raw === '4' || strcasecmp($raw, 'cliente inminente') === 0) {
-      return ['label' => 'Cliente inminente', 'class' => 'status-inminente'];
-    }
-    if ($raw === '1' || strcasecmp($raw, 'atendido') === 0) {
-      return ['label' => 'Atendido', 'class' => 'status-afianzado'];
-    }
-
-    return ['label' => 'Pendiente', 'class' => 'status-pendiente'];
+    return wpPlannerEventStatusPresentation($statusKey);
   }
 
   function plannerProfileNextEventStatusMeta($value, $contactFormCliente = null)
   {
-    $current = plannerProfileEventStatusMeta($value, $contactFormCliente);
-    $label = strtolower((string) ($current['label'] ?? ''));
+    $statusKey = wpPlannerResolveEventStatusKey($value, $contactFormCliente);
 
-    if ($label === 'atendido') {
-      return [
-        'can_change' => true,
-        'mode' => 'direct',
-        'target' => 2,
-        'button_label' => 'Pasar a Cotizado',
-      ];
+    return wpPlannerEventNextStatusAction($statusKey);
+  }
+
+  function plannerProfileEventAttendedStatusKeys()
+  {
+    return ['atendido', 'cliente_inminente', 'cliente'];
+  }
+
+  function plannerProfileEventCotizadoStatusKeys()
+  {
+    return ['cotizado', 'atendido', 'cliente_inminente', 'cliente'];
+  }
+
+  function plannerProfileResolveEventCotizadoDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+    if (!in_array($statusKey, plannerProfileEventCotizadoStatusKeys(), true)) {
+      return '';
     }
 
-    if ($label === 'cotizado') {
-      return [
-        'can_change' => true,
-        'mode' => 'direct',
-        'target' => 4,
-        'button_label' => 'Pasar a Cliente inminente',
-      ];
+    $raw = trim((string) ($eventItem['fecha_cotizado'] ?? ''));
+    if ($raw !== '' && strpos($raw, '0000-00-00') !== 0) {
+      return $raw;
     }
 
-    if ($label === 'cliente inminente') {
-      return [
-        'can_change' => true,
-        'mode' => 'inminente_options',
-        'target' => 0,
-        'button_label' => 'Cambiar de estatus',
-      ];
+    return '';
+  }
+
+  function plannerProfileEventCanEditCotizadoDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+
+    return in_array($statusKey, plannerProfileEventCotizadoStatusKeys(), true);
+  }
+
+  function plannerProfileResolveEventAttendedDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+    if (!in_array($statusKey, plannerProfileEventAttendedStatusKeys(), true)) {
+      return '';
     }
 
-    return [
-      'can_change' => false,
-      'mode' => 'none',
-      'target' => 0,
-      'button_label' => 'Sin cambios',
-    ];
+    $raw = trim((string) ($eventItem['fecha_atendido'] ?? ''));
+    if ($raw !== '' && strpos($raw, '0000-00-00') !== 0) {
+      return $raw;
+    }
+
+    return '';
+  }
+
+  function plannerProfileEventCanEditAttendedDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+
+    return in_array($statusKey, plannerProfileEventAttendedStatusKeys(), true);
+  }
+
+  function plannerProfileDateTimeLocalInputValue($rawValue)
+  {
+    $raw = trim((string) $rawValue);
+    if ($raw === '' || strpos($raw, '0000-00-00') === 0) {
+      return '';
+    }
+
+    $timestamp = strtotime($raw);
+    if ($timestamp === false) {
+      return '';
+    }
+
+    return date('Y-m-d\TH:i', $timestamp);
+  }
+
+  function plannerProfileResolveEventClienteDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+    if ($statusKey !== 'cliente') {
+      return '';
+    }
+
+    $fechaCambio = trim((string) ($eventItem['contact_form_fecha_cambio_cliente'] ?? ''));
+    if ($fechaCambio !== '' && strpos($fechaCambio, '0000-00-00') !== 0) {
+      return $fechaCambio;
+    }
+
+    $fechaCliente = trim((string) ($eventItem['fecha_cliente'] ?? ''));
+    if ($fechaCliente !== '' && strpos($fechaCliente, '0000-00-00') !== 0) {
+      return $fechaCliente;
+    }
+
+    $fechaActualizacion = trim((string) ($eventItem['fecha_actualizacion_estatus'] ?? ''));
+    if ($fechaActualizacion !== '' && strpos($fechaActualizacion, '0000-00-00') !== 0) {
+      return $fechaActualizacion;
+    }
+
+    return '';
+  }
+
+  function plannerProfileEventCanEditClienteDate(array $eventItem)
+  {
+    $statusKey = wpPlannerResolveEventStatusKey(
+      $eventItem['estatus'] ?? '',
+      $eventItem['contact_form_cliente'] ?? null
+    );
+
+    return $statusKey === 'cliente';
   }
 
 $plannerId = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -398,8 +471,11 @@ $plannerEvents = [];
 $interactions = [];
 $coordinatorInteractions = [];
 $scheduledActions = [];
+$plannerOpenNotes = [];
 $hasConvertiblePendingAppointment = false;
 $agents = [];
+$eventAsesorAgents = [];
+$plannerVendorAgents = [];
 $packages = [];
 $blockedDates = [];
 
@@ -476,7 +552,7 @@ if ($plannerId > 0) {
         $interactionTypes .= 'i';
       }
 
-      $interactionSql = "SELECT id, tabla_origen, lead_id, original_lead_id, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, next_action_completed, created_by, created_at\n        FROM lead_interactions\n        WHERE " . implode(' OR ', $interactionWhereParts) . "\n        ORDER BY COALESCE(interaction_date, DATE(created_at)) DESC, COALESCE(interaction_time, TIME(created_at)) DESC, id DESC\n        LIMIT 100";
+      $interactionSql = "SELECT id, tabla_origen, lead_id, original_lead_id, lead_name, interaction_type, interaction_date, interaction_time, notes, outcome, next_action, next_action_date, next_action_completed, created_by, created_at\n        FROM lead_interactions\n        WHERE " . implode(' OR ', $interactionWhereParts) . "\n        ORDER BY COALESCE(interaction_date, DATE(created_at)) DESC, COALESCE(interaction_time, TIME(created_at)) DESC, id DESC\n        LIMIT 100";
       $stmt = $conn->prepare($interactionSql);
       if ($stmt) {
         $bindArgs = [$interactionTypes];
@@ -515,6 +591,8 @@ if ($plannerId > 0) {
         }
       }
 
+      $plannerOpenNotes = loadWpPlannerOpenNotes($conn, $plannerId);
+
       if (!empty($scheduledActions)) {
         usort($scheduledActions, function ($a, $b) {
           $aDate = trim((string) ($a['next_action_date'] ?? ''));
@@ -546,6 +624,9 @@ if ($plannerId > 0) {
           c.cliente_city,
           e.id AS evento_wp_id,
           e.estatus AS evento_estatus,
+          e.novios AS evento_novios,
+          e.modo AS evento_modo,
+          e.id_paquete AS evento_id_paquete,
           e.created_time AS evento_created_time,
           u.nombre AS vendedor_nombre,
           u.apepat AS vendedor_apepat
@@ -570,8 +651,12 @@ if ($plannerId > 0) {
 
       foreach ($appointments as $appointmentRow) {
         $appointmentCalendarStatus = is_numeric($appointmentRow['estatus'] ?? null) ? intval($appointmentRow['estatus']) : null;
-        $appointmentEventStatusRaw = trim((string) ($appointmentRow['evento_estatus'] ?? ''));
-        $appointmentHasEvent = $appointmentEventStatusRaw !== '' && $appointmentEventStatusRaw !== '0';
+        $appointmentHasEvent = wpPlannerEventIsPublished([
+          'estatus' => $appointmentRow['evento_estatus'] ?? '',
+          'novios' => $appointmentRow['evento_novios'] ?? '',
+          'modo' => $appointmentRow['evento_modo'] ?? '',
+          'id_paquete' => $appointmentRow['evento_id_paquete'] ?? 0,
+        ]);
 
         if ($appointmentCalendarStatus !== 1 && !$appointmentHasEvent) {
           $hasConvertiblePendingAppointment = true;
@@ -579,11 +664,15 @@ if ($plannerId > 0) {
         }
       }
 
+      wpEventEnsureTable($conn);
+
       $eventCitySelect = "NULL AS ciudad_novios";
       $eventCityColumnResult = $conn->query("SHOW COLUMNS FROM eventos_wp LIKE 'ciudad_novios'");
       if ($eventCityColumnResult && $eventCityColumnResult->num_rows > 0) {
         $eventCitySelect = "e.ciudad_novios AS ciudad_novios";
       }
+
+      $contactFormClienteSelect = wpPlannerSqlContactFormClienteSelect('e') . ' AS contact_form_cliente';
 
       $stmt = $conn->prepare("SELECT
           e.id,
@@ -593,6 +682,12 @@ if ($plannerId > 0) {
           e.id_paquete,
           {$eventCitySelect},
           e.fecha_registro,
+          e.fecha_agendado,
+          e.fecha_cotizado,
+          e.fecha_atendido,
+          e.fecha_cliente,
+          e.fecha_muerto,
+          e.created_time,
           COALESCE(NULLIF(TRIM(wp.empresa_wp), ''), NULLIF(TRIM(wp.full_name), ''), NULLIF(TRIM(wp.campaign_name), ''), CONCAT('WP #', e.wedding_planner_id)) AS wedding_planner,
           e.novios,
           wp.afianzado,
@@ -604,8 +699,10 @@ if ($plannerId > 0) {
           e.fecha AS fecha_evento,
           COALESCE(NULLIF(TRIM(CONCAT(u.nombre, ' ', u.apepat)), ''), 'Sin asignar') AS asesor_nombre,
           COALESCE(NULLIF(TRIM(p.nombre), ''), 'Sin paquete') AS paquete_nombre,
-           cf.cliente AS contact_form_cliente,
-           cf.monto_venta AS monto_venta
+          {$contactFormClienteSelect},
+          cf.created_time AS contact_form_created_time,
+          cf.fecha_cambio_cliente AS contact_form_fecha_cambio_cliente,
+          cf.monto_venta AS monto_venta
         FROM eventos_wp e
         LEFT JOIN wedding_planners wp ON wp.id = e.wedding_planner_id
         LEFT JOIN coordinadores_wp cw ON cw.id = e.id_coordinador
@@ -614,11 +711,12 @@ if ($plannerId > 0) {
         LEFT JOIN (
           SELECT original_lead_id, MAX(id) AS latest_id
           FROM contact_form
-          WHERE LOWER(COALESCE(tabla_origen, '')) = 'eventos_wp'
+          WHERE LOWER(TRIM(COALESCE(tabla_origen, ''))) = 'eventos_wp'
           GROUP BY original_lead_id
         ) cf_latest ON cf_latest.original_lead_id = e.id
         LEFT JOIN contact_form cf ON cf.id = cf_latest.latest_id
         WHERE e.wedding_planner_id = ?
+          AND " . wpPlannerSqlPublishedEventCondition('e') . "
         ORDER BY COALESCE(e.created_time, e.fecha_registro, e.fecha) DESC, e.id DESC");
       if ($stmt) {
         $stmt->bind_param('i', $plannerId);
@@ -626,6 +724,15 @@ if ($plannerId > 0) {
         $result = $stmt->get_result();
         if ($result) {
           while ($row = $result->fetch_assoc()) {
+            $eventId = intval($row['id'] ?? 0);
+            if ($eventId > 0) {
+              if (wpPlannerAutoMarkCotizadoIfEligible($conn, $eventId)) {
+                $row['estatus'] = '2';
+                $row['contact_form_cliente'] = '2';
+              } elseif (wpPlannerSyncCotizadoContactFormIfMisaligned($conn, $eventId)) {
+                $row['contact_form_cliente'] = '2';
+              }
+            }
             $plannerEvents[] = $row;
           }
         }
@@ -637,6 +744,21 @@ if ($plannerId > 0) {
     if ($resultAgents) {
       while ($row = $resultAgents->fetch_assoc()) {
         $agents[] = $row;
+      }
+    }
+
+    $eventAsesorAgents = [];
+    $resultEventAsesors = $conn->query('SELECT id, nombre, apepat, tipoUsu FROM usuarios WHERE tipoUsu IN (' . usuarioSqlInTiposAsesorEventoWp() . ') ORDER BY nombre, apepat');
+    if ($resultEventAsesors) {
+      while ($row = $resultEventAsesors->fetch_assoc()) {
+        $eventAsesorAgents[] = $row;
+      }
+    }
+
+    $resultPlannerVendors = $conn->query('SELECT id, nombre, apepat, tipoUsu FROM usuarios WHERE tipoUsu IN (' . usuarioSqlInTiposAsesorEventoWp() . ') ORDER BY nombre, apepat');
+    if ($resultPlannerVendors) {
+      while ($row = $resultPlannerVendors->fetch_assoc()) {
+        $plannerVendorAgents[] = $row;
       }
     }
 
@@ -669,20 +791,34 @@ $statusLabel = $planner ? plannerProfileAfianzadoLabel($planner['afianzado'] ?? 
 $plannerVendedorId = $planner ? intval($planner['id_vendedor_asignado'] ?? 0) : 0;
 $plannerVendedorName = '';
 if ($plannerVendedorId > 0) {
-  foreach ($agents as $agent) {
+  foreach ($plannerVendorAgents as $agent) {
     if (intval($agent['id'] ?? 0) === $plannerVendedorId) {
       $plannerVendedorName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? '')));
       break;
     }
   }
   if ($plannerVendedorName === '') {
-    $stmtVendedor = $conn->prepare('SELECT nombre, apepat FROM usuarios WHERE id = ? LIMIT 1');
+    foreach ($agents as $agent) {
+      if (intval($agent['id'] ?? 0) === $plannerVendedorId) {
+        $plannerVendedorName = trim((string) (($agent['nombre'] ?? '') . ' ' . ($agent['apepat'] ?? '')));
+        break;
+      }
+    }
+  }
+  if ($plannerVendedorName === '') {
+    $stmtVendedor = $conn->prepare('SELECT id, nombre, apepat FROM usuarios WHERE id = ? LIMIT 1');
     if ($stmtVendedor) {
       $stmtVendedor->bind_param('i', $plannerVendedorId);
       $stmtVendedor->execute();
       $resVendedor = $stmtVendedor->get_result();
       if ($resVendedor && ($rowVendedor = $resVendedor->fetch_assoc())) {
         $plannerVendedorName = trim((string) (($rowVendedor['nombre'] ?? '') . ' ' . ($rowVendedor['apepat'] ?? '')));
+        $plannerVendorAgents[] = [
+          'id' => intval($rowVendedor['id'] ?? $plannerVendedorId),
+          'nombre' => $rowVendedor['nombre'] ?? '',
+          'apepat' => $rowVendedor['apepat'] ?? '',
+          'tipoUsu' => USUARIO_ROL_VENDEDOR,
+        ];
       }
       $stmtVendedor->close();
     }
@@ -1284,7 +1420,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
   .events-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1350px;
+    min-width: 1500px;
   }
 
   .events-table th,
@@ -1304,6 +1440,28 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     position: sticky;
     top: 0;
     z-index: 1;
+  }
+
+  .events-date-edit {
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font: inherit;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+  }
+
+  .events-date-edit:hover {
+    color: #1d4ed8;
+  }
+
+  .events-date-edit.is-empty {
+    color: #64748b;
+    font-style: italic;
   }
 
   .interaction-type {
@@ -1346,6 +1504,120 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     margin-top: 6px;
     line-height: 1.45;
     white-space: pre-wrap;
+  }
+
+  .open-notes-form {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    background: #fafafa;
+    margin-bottom: 14px;
+  }
+
+  .open-notes-type-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .open-notes-type-btn {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #475569;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .open-notes-type-btn:hover {
+    border-color: #9ca3af;
+  }
+
+  .open-notes-type-btn.active {
+    background: #1f2937;
+    border-color: #1f2937;
+    color: #fff;
+  }
+
+  .open-notes-textarea {
+    width: 100%;
+    min-height: 88px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #1f2937;
+    resize: vertical;
+    background: #fff;
+  }
+
+  .open-notes-textarea:focus {
+    outline: none;
+    border-color: #9ca3af;
+    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.18);
+  }
+
+  .open-notes-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+
+  .open-note-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #fff;
+  }
+
+  .open-note-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .open-note-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+
+  .open-note-type-nota {
+    background: #e2e8f0;
+    color: #334155;
+    border-color: #cbd5e1;
+  }
+
+  .open-note-type-acuerdo {
+    background: #ffedd5;
+    color: #9a3412;
+    border-color: #fed7aa;
+  }
+
+  .open-note-content {
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  .open-note-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 8px;
   }
 
   .schedule-modal .modal-content {
@@ -1763,10 +2035,10 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
       <div class="card dashboard-card">
         <div class="card-header">
-          <span class="card-title">Citas</span>
+          <span class="card-title">Llamadas</span>
           <div class="card-actions">
-            <a class="btn btn-outline btn-sm" href="post_qualified_wedding_planners.php">Ver todas las citas</a>
-            <button class="btn btn-dark btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#agendarCitaPlannerModal">Agendar cita</button>
+            <a class="btn btn-outline btn-sm" href="post_qualified_wedding_planners.php">Ver todas las llamadas</a>
+            <button class="btn btn-dark btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#agendarCitaPlannerModal">Agendar llamada</button>
           </div>
         </div>
         <div class="card-body">
@@ -1776,8 +2048,12 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                 <?php foreach ($appointments as $appointment): ?>
                 <?php $sellerName = trim((string) (($appointment['vendedor_nombre'] ?? '') . ' ' . ($appointment['vendedor_apepat'] ?? ''))); ?>
                 <?php
-                  $appointmentEventStatusRaw = trim((string) ($appointment['evento_estatus'] ?? ''));
-                  $appointmentHasEvent = $appointmentEventStatusRaw !== '' && $appointmentEventStatusRaw !== '0';
+                  $appointmentHasEvent = wpPlannerEventIsPublished([
+                    'estatus' => $appointment['evento_estatus'] ?? '',
+                    'novios' => $appointment['evento_novios'] ?? '',
+                    'modo' => $appointment['evento_modo'] ?? '',
+                    'id_paquete' => $appointment['evento_id_paquete'] ?? 0,
+                  ]);
                   $appointmentCalStatus = is_numeric($appointment['estatus'] ?? null) ? intval($appointment['estatus']) : 0;
                   $appointmentPayload = [
                     'calendario_id' => intval($appointment['calendario_id'] ?? 0),
@@ -1789,7 +2065,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                 <div class="appointment-item" data-calendario-id="<?php echo intval($appointment['calendario_id'] ?? 0); ?>" data-appointment-payload="<?php echo htmlspecialchars(json_encode($appointmentPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                   <div class="coord-item" style="padding: 0; border-bottom: none;">
                     <div class="coord-main">
-                      <div class="coord-avatar"><?php echo htmlspecialchars(plannerProfileInitials($sellerName !== '' ? $sellerName : 'Cita'), ENT_QUOTES, 'UTF-8'); ?></div>
+                      <div class="coord-avatar"><?php echo htmlspecialchars(plannerProfileInitials($sellerName !== '' ? $sellerName : 'Llamada'), ENT_QUOTES, 'UTF-8'); ?></div>
                       <div>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                           <div class="coord-name"><?php echo htmlspecialchars(plannerProfileFormatDateTime($appointment['fecha'] ?? '', $appointment['hora'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -1829,7 +2105,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                 <?php endforeach; ?>
               </div>
             <?php else: ?>
-              <div class="empty-card">Este wedding planner aún no tiene citas registradas.</div>
+              <div class="empty-card">Este wedding planner aún no tiene llamadas registradas.</div>
             <?php endif; ?>
           </div>
         </div>
@@ -1917,6 +2193,10 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                     <?php endif; ?>
                   </div>
                   <div class="appointment-meta"><?php echo htmlspecialchars(plannerProfileInteractionDateTime($interaction['interaction_date'] ?? '', $interaction['interaction_time'] ?? '', $interaction['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($interaction['created_by_name'])): ?> · Registrado por: <?php echo htmlspecialchars($interaction['created_by_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></div>
+                  <?php $storedLeadName = trim((string) ($interaction['lead_name'] ?? '')); ?>
+                  <?php if ($storedLeadName !== ''): ?>
+                    <div class="appointment-meta">Lead: <?php echo htmlspecialchars($storedLeadName, ENT_QUOTES, 'UTF-8'); ?></div>
+                  <?php endif; ?>
                   <?php if ($interactionNotes !== ''): ?>
                     <div class="interaction-note"><?php echo nl2br(htmlspecialchars($interactionNotes, ENT_QUOTES, 'UTF-8')); ?></div>
                   <?php endif; ?>
@@ -1934,6 +2214,61 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               </div>
             <?php else: ?>
               <div class="empty-card">Sin interacciones registradas.</div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="card dashboard-card">
+        <div class="card-header">
+          <span class="card-title">Notas abiertas y acuerdos comerciales</span>
+        </div>
+        <div class="card-body">
+          <div class="open-notes-form">
+            <div class="open-notes-type-group" id="plannerOpenNoteTypeGroup">
+              <button type="button" class="open-notes-type-btn active" data-note-type="nota">Nota abierta</button>
+              <button type="button" class="open-notes-type-btn" data-note-type="acuerdo">Acuerdo comercial</button>
+            </div>
+            <textarea
+              id="plannerOpenNoteContent"
+              class="open-notes-textarea"
+              placeholder="Escribe una nota o acuerdo comercial con este planner..."
+            ></textarea>
+            <div class="open-notes-form-actions">
+              <button type="button" class="btn btn-dark btn-sm" id="btnGuardarPlannerOpenNote">Guardar nota</button>
+            </div>
+          </div>
+
+          <div class="dashboard-scroll max-four-items">
+            <?php if (!empty($plannerOpenNotes)): ?>
+              <div class="appointment-list" id="plannerOpenNotesList">
+                <?php foreach ($plannerOpenNotes as $openNote): ?>
+                  <?php
+                    $openNoteType = trim((string) ($openNote['note_type'] ?? 'nota'));
+                    $openNoteContent = trim((string) ($openNote['content'] ?? ''));
+                    $openNoteAuthor = trim((string) ($openNote['created_by_name'] ?? ''));
+                    $openNoteCreatedAt = trim((string) ($openNote['created_at'] ?? ''));
+                  ?>
+                  <div class="open-note-item">
+                    <div class="open-note-top">
+                      <span class="open-note-type-badge <?php echo htmlspecialchars(plannerOpenNoteTypeClass($openNoteType), ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo htmlspecialchars(plannerOpenNoteTypeLabel($openNoteType), ENT_QUOTES, 'UTF-8'); ?>
+                      </span>
+                    </div>
+                    <?php if ($openNoteContent !== ''): ?>
+                      <div class="open-note-content"><?php echo nl2br(htmlspecialchars($openNoteContent, ENT_QUOTES, 'UTF-8')); ?></div>
+                    <?php endif; ?>
+                    <div class="open-note-meta">
+                      <?php echo htmlspecialchars(plannerProfileInteractionDateTime('', '', $openNoteCreatedAt), ENT_QUOTES, 'UTF-8'); ?>
+                      <?php if ($openNoteAuthor !== ''): ?>
+                        · Registrado por: <?php echo htmlspecialchars($openNoteAuthor, ENT_QUOTES, 'UTF-8'); ?>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php else: ?>
+              <div class="empty-card" id="plannerOpenNotesEmpty">Sin notas ni acuerdos registrados.</div>
             <?php endif; ?>
           </div>
         </div>
@@ -1960,6 +2295,9 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                 <th>Nombre de los novios</th>
                 <th>Afianzado</th>
                 <th>Estatus</th>
+                <th>Fecha cotizado</th>
+                <th>Fecha en la que se atendió</th>
+                <th>Fecha en la que se pasó a cliente</th>
                 <th>Fecha de actualización</th>
                 <th>Coordinador</th>
                 <th>Lugar del evento</th>
@@ -1992,6 +2330,15 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                     'fecha' => trim((string) ($eventItem['fecha_evento'] ?? '')),
                     'monto_venta' => $eventItem['monto_venta'] !== null ? (string) $eventItem['monto_venta'] : '',
                   ];
+                  $eventCotizadoDate = plannerProfileResolveEventCotizadoDate($eventItem);
+                  $eventCanEditCotizadoDate = plannerProfileEventCanEditCotizadoDate($eventItem);
+                  $eventCotizadoDateInput = plannerProfileDateTimeLocalInputValue($eventCotizadoDate);
+                  $eventAttendedDate = plannerProfileResolveEventAttendedDate($eventItem);
+                  $eventCanEditAttendedDate = plannerProfileEventCanEditAttendedDate($eventItem);
+                  $eventAttendedDateInput = plannerProfileDateTimeLocalInputValue($eventAttendedDate);
+                  $eventClienteDate = plannerProfileResolveEventClienteDate($eventItem);
+                  $eventCanEditClienteDate = plannerProfileEventCanEditClienteDate($eventItem);
+                  $eventClienteDateInput = plannerProfileDateTimeLocalInputValue($eventClienteDate);
                 ?>
                 <tr>
                   <td><?php echo intval($eventItem['id'] ?? 0); ?></td>
@@ -1999,7 +2346,53 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                   <td><?php echo htmlspecialchars(trim((string) ($eventItem['wedding_planner'] ?? '')) !== '' ? $eventItem['wedding_planner'] : ('WP #' . intval($eventItem['wedding_planner_id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo htmlspecialchars(trim((string) ($eventItem['novios'] ?? '')) !== '' ? $eventItem['novios'] : 'Sin novios', ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo intval($eventItem['afianzado'] ?? 0) === 1 ? 'Sí' : 'No'; ?></td>
-                  <td><span class="status-badge <?php echo htmlspecialchars($eventStatus['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($eventStatus['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                  <td><span class="js-event-status-badge status-badge <?php echo htmlspecialchars($eventStatus['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($eventStatus['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                  <td>
+                    <?php if ($eventCanEditCotizadoDate): ?>
+                      <button
+                        type="button"
+                        class="events-date-edit js-edit-cotizado-date<?php echo $eventCotizadoDate === '' ? ' is-empty' : ''; ?>"
+                        data-event-id="<?php echo intval($eventItem['id'] ?? 0); ?>"
+                        data-cotizado-date="<?php echo htmlspecialchars($eventCotizadoDateInput, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-event-label="<?php echo htmlspecialchars(trim((string) ($eventItem['novios'] ?? '')) !== '' ? $eventItem['novios'] : ('Evento #' . intval($eventItem['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?>"
+                        title="Clic para editar la fecha de cotizado"
+                      ><?php echo htmlspecialchars($eventCotizadoDate !== '' ? plannerProfileFormatDateTime($eventCotizadoDate, '') : 'Sin fecha', ENT_QUOTES, 'UTF-8'); ?></button>
+                    <?php elseif ($eventCotizadoDate !== ''): ?>
+                      <?php echo htmlspecialchars(plannerProfileFormatDateTime($eventCotizadoDate, ''), ENT_QUOTES, 'UTF-8'); ?>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if ($eventCanEditAttendedDate): ?>
+                      <button
+                        type="button"
+                        class="events-date-edit js-edit-attended-date<?php echo $eventAttendedDate === '' ? ' is-empty' : ''; ?>"
+                        data-event-id="<?php echo intval($eventItem['id'] ?? 0); ?>"
+                        data-attended-date="<?php echo htmlspecialchars($eventAttendedDateInput, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-event-label="<?php echo htmlspecialchars(trim((string) ($eventItem['novios'] ?? '')) !== '' ? $eventItem['novios'] : ('Evento #' . intval($eventItem['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?>"
+                        title="Clic para editar la fecha de atención"
+                      ><?php echo htmlspecialchars($eventAttendedDate !== '' ? plannerProfileFormatDateTime($eventAttendedDate, '') : 'Sin fecha', ENT_QUOTES, 'UTF-8'); ?></button>
+                    <?php elseif ($eventAttendedDate !== ''): ?>
+                      <?php echo htmlspecialchars(plannerProfileFormatDateTime($eventAttendedDate, ''), ENT_QUOTES, 'UTF-8'); ?>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if ($eventCanEditClienteDate): ?>
+                      <button
+                        type="button"
+                        class="events-date-edit js-edit-cliente-date<?php echo $eventClienteDate === '' ? ' is-empty' : ''; ?>"
+                        data-event-id="<?php echo intval($eventItem['id'] ?? 0); ?>"
+                        data-cliente-date="<?php echo htmlspecialchars($eventClienteDateInput, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-event-label="<?php echo htmlspecialchars(trim((string) ($eventItem['novios'] ?? '')) !== '' ? $eventItem['novios'] : ('Evento #' . intval($eventItem['id'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?>"
+                        title="Clic para editar la fecha en la que pasó a cliente"
+                      ><?php echo htmlspecialchars($eventClienteDate !== '' ? plannerProfileFormatDateTime($eventClienteDate, '') : 'Sin fecha', ENT_QUOTES, 'UTF-8'); ?></button>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
+                  </td>
                   <td><?php echo htmlspecialchars(plannerProfileFormatDateTime($eventItem['fecha_actualizacion_estatus'] ?? '', ''), ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo htmlspecialchars(trim((string) ($eventItem['coordinador_nombre'] ?? '')) !== '' ? $eventItem['coordinador_nombre'] : 'Sin asignar', ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo htmlspecialchars(trim((string) ($eventItem['lugar'] ?? '')) !== '' ? $eventItem['lugar'] : 'Sin lugar', ENT_QUOTES, 'UTF-8'); ?></td>
@@ -2026,8 +2419,6 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                         type="button"
                         data-event-status="<?php echo htmlspecialchars(json_encode($eventActionPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>"
                       ><?php echo htmlspecialchars($eventNextStep['button_label'], ENT_QUOTES, 'UTF-8'); ?></button>
-                    <?php else: ?>
-                      <span class="appointment-meta">Sin cambios</span>
                     <?php endif; ?>
                   </td>
                 </tr>
@@ -2129,12 +2520,12 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
             <label for="plannerEditVendor">Vendedor/a asignado/a</label>
             <select id="plannerEditVendor" name="id_vendedor_asignado">
               <option value="0">Sin asignar</option>
-              <?php foreach ($agents as $agent): ?>
+              <?php foreach ($plannerVendorAgents as $agent): ?>
                 <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
                 <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
-            <div style="font-size:0.8rem;color:#6b7280;margin-top:4px;">Solo actualiza el vendedor del planner. No modifica los vendedores de sus citas.</div>
+            <div style="font-size:0.8rem;color:#6b7280;margin-top:4px;">Solo actualiza el vendedor del planner. No modifica los vendedores de sus llamadas.</div>
           </div>
         </form>
       </div>
@@ -2256,7 +2647,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     <div class="modal-content">
       <div class="modal-header">
         <div>
-          <h5 class="modal-title" id="agendarCitaPlannerModalLabel">Agendar cita</h5>
+          <h5 class="modal-title" id="agendarCitaPlannerModalLabel">Agendar llamada</h5>
           <div style="font-size: 0.85rem; color: #666; margin-top: 4px;"><?php echo htmlspecialchars($plannerName, ENT_QUOTES, 'UTF-8'); ?></div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -2267,7 +2658,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
             <label for="plannerAssignedVendor">L&iacute;der de Planners <span style="color:#b45309;">*</span></label>
             <select id="plannerAssignedVendor" name="override_vendedor_id">
               <option value="">Seleccionar...</option>
-              <?php foreach ($agents as $agent): ?>
+              <?php foreach ($eventAsesorAgents as $agent): ?>
                 <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
                 <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
@@ -2332,7 +2723,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-dark" id="btnGuardarPlannerAppointment">Guardar cita</button>
+        <button type="button" class="btn btn-dark" id="btnGuardarPlannerAppointment">Guardar llamada</button>
       </div>
     </div>
   </div>
@@ -2342,7 +2733,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="cambiarEstatusCitaModalLabel">Cambiar estatus de cita</h5>
+        <h5 class="modal-title" id="cambiarEstatusCitaModalLabel">Cambiar estatus de llamada</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -2357,13 +2748,35 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
   </div>
 </div>
 
+<div class="modal fade schedule-modal" id="cambiarEstatusEventoModal" tabindex="-1" aria-labelledby="cambiarEstatusEventoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cambiarEstatusEventoModalLabel">Cambiar de Estatus</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cambiarEstatusEventoId" value="">
+        <p style="margin-bottom: 16px;">¿A qué estatus lo quieres pasar?</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button id="btnEventoCliente" class="btn btn-outline btn-sm" type="button" style="flex:1;padding:14px 8px;font-size:0.95rem;">Cliente</button>
+          <button id="btnEventoMuerto" class="btn btn-outline btn-sm" type="button" style="flex:1;padding:14px 8px;font-size:0.95rem;">Muerto</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade schedule-modal" id="pasarEventoModal" tabindex="-1" aria-labelledby="pasarEventoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <div>
-          <h5 class="modal-title" id="pasarEventoModalLabel">Pasar cita a evento</h5>
-          <div id="pasarEventoModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Completa los datos para convertir la cita en evento.</div>
+          <h5 class="modal-title" id="pasarEventoModalLabel">Pasar llamada a evento</h5>
+          <div id="pasarEventoModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Completa los datos para convertir la llamada en evento.</div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -2382,7 +2795,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               <div class="invalid-feedback">Escribe el nombre de los novios</div>
             </div>
             <div class="schedule-field">
-              <label for="eventoDesdeCitaAsesorNombre">Asesor de la cita</label>
+              <label for="eventoDesdeCitaAsesorNombre">Asesor de la llamada</label>
               <input type="text" id="eventoDesdeCitaAsesorNombre" value="" readonly>
             </div>
           </div>
@@ -2447,7 +2860,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     <div class="modal-content">
       <div class="modal-header">
         <div>
-          <h5 class="modal-title" id="crearEventoSinCitaModalLabel">Crear evento sin cita</h5>
+          <h5 class="modal-title" id="crearEventoSinCitaModalLabel">Crear evento sin llamada</h5>
           <div id="crearEventoSinCitaModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Registra un evento directo para este wedding planner.</div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -2468,9 +2881,9 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               <label for="eventoSinCitaAsesor">Asesor <span style="color:#b45309;">*</span></label>
               <select id="eventoSinCitaAsesor" name="id_asesor">
                 <option value="">Seleccionar asesor...</option>
-                <?php foreach ($agents as $agent): ?>
+                <?php foreach ($eventAsesorAgents as $agent): ?>
                   <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
-                  <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
+                  <option value="<?php echo intval($agent['id'] ?? 0); ?>" <?php echo intval($agent['id'] ?? 0) === $plannerVendedorId ? 'selected' : ''; ?>><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
               </select>
               <div class="invalid-feedback">Selecciona un asesor</div>
@@ -2526,7 +2939,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-dark" id="btnCrearEventoSinCita">Guardar evento sin cita</button>
+        <button type="button" class="btn btn-dark" id="btnCrearEventoSinCita">Guardar evento sin llamada</button>
       </div>
     </div>
   </div>
@@ -2575,7 +2988,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               <label for="plannerEditEventAsesor">Asesor <span style="color:#b45309;">*</span></label>
               <select id="plannerEditEventAsesor" name="id_asesor">
                 <option value="">Seleccionar asesor...</option>
-                <?php foreach ($agents as $agent): ?>
+                <?php foreach ($eventAsesorAgents as $agent): ?>
                   <?php $agentName = plannerProfileAgentOptionLabel($agent); ?>
                   <option value="<?php echo intval($agent['id'] ?? 0); ?>"><?php echo htmlspecialchars($agentName, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
@@ -2622,9 +3035,94 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
   </div>
 </div>
 
+<div class="modal fade schedule-modal" id="editarFechaCotizadoModal" tabindex="-1" aria-labelledby="editarFechaCotizadoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="editarFechaCotizadoModalLabel">Editar fecha de cotizado</h5>
+          <div id="editarFechaCotizadoModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Ajusta cuándo este evento pasó a Cotizado.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editarFechaCotizadoForm">
+          <input type="hidden" id="editarFechaCotizadoEventId" value="">
+          <div class="schedule-field">
+            <label for="editarFechaCotizadoInput">Fecha y hora de cotizado <span style="color:#b45309;">*</span></label>
+            <input type="datetime-local" id="editarFechaCotizadoInput" name="fecha_cotizado" required>
+            <div class="invalid-feedback">Selecciona una fecha válida</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark" id="btnGuardarFechaCotizado">Guardar fecha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade schedule-modal" id="editarFechaAtendidoModal" tabindex="-1" aria-labelledby="editarFechaAtendidoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="editarFechaAtendidoModalLabel">Editar fecha de atención</h5>
+          <div id="editarFechaAtendidoModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Ajusta cuándo se atendió este evento.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editarFechaAtendidoForm">
+          <input type="hidden" id="editarFechaAtendidoEventId" value="">
+          <div class="schedule-field">
+            <label for="editarFechaAtendidoInput">Fecha y hora de atención <span style="color:#b45309;">*</span></label>
+            <input type="datetime-local" id="editarFechaAtendidoInput" name="fecha_atendido" required>
+            <div class="invalid-feedback">Selecciona una fecha válida</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark" id="btnGuardarFechaAtendido">Guardar fecha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade schedule-modal" id="editarFechaClienteModal" tabindex="-1" aria-labelledby="editarFechaClienteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="editarFechaClienteModalLabel">Editar fecha de cliente</h5>
+          <div id="editarFechaClienteModalSubtitle" style="font-size: 0.85rem; color: #666; margin-top: 4px;">Ajusta cuándo este evento pasó a Cliente.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editarFechaClienteForm">
+          <input type="hidden" id="editarFechaClienteEventId" value="">
+          <div class="schedule-field">
+            <label for="editarFechaClienteInput">Fecha y hora en que pasó a cliente <span style="color:#b45309;">*</span></label>
+            <input type="datetime-local" id="editarFechaClienteInput" name="fecha_cliente" required>
+            <div class="invalid-feedback">Selecciona una fecha válida</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark" id="btnGuardarFechaCliente">Guardar fecha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   const plannerBlockedDates = <?php echo json_encode($blockedDates, JSON_UNESCAPED_UNICODE); ?>;
   const plannerId = <?php echo intval($plannerId); ?>;
+  const plannerLeadName = <?php echo json_encode($plannerName, JSON_UNESCAPED_UNICODE); ?>;
   const plannerDefaultCity = <?php echo json_encode($plannerCity, JSON_UNESCAPED_UNICODE); ?>;
   const plannerHasPendingConvertibleAppointment = <?php echo $hasConvertiblePendingAppointment ? 'true' : 'false'; ?>;
   const plannerDefaultVendorId = <?php echo $plannerVendedorId; ?>;
@@ -3008,6 +3506,10 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     const interactionTypeGroup = document.getElementById('plannerInteractionTypeGroup');
     const interactionTypeFeedback = document.getElementById('plannerInteractionTypeFeedback');
     const saveInteractionButton = document.getElementById('btnGuardarPlannerInteraction');
+    const openNoteTypeGroup = document.getElementById('plannerOpenNoteTypeGroup');
+    const openNoteContentInput = document.getElementById('plannerOpenNoteContent');
+    const saveOpenNoteButton = document.getElementById('btnGuardarPlannerOpenNote');
+    let selectedOpenNoteType = 'nota';
     const actionOutcomeInput = document.getElementById('plannerActionOutcome');
     const actionTextInput = document.getElementById('plannerActionText');
     const actionDateInput = document.getElementById('plannerActionDate');
@@ -3053,6 +3555,21 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     const saveEditedEventButton = document.getElementById('btnGuardarEventoEditadoPlanner');
     const editEventButtons = document.querySelectorAll('.js-edit-event');
     const eventStatusButtons = document.querySelectorAll('.js-event-status-change');
+    const editarFechaCotizadoModalElement = document.getElementById('editarFechaCotizadoModal');
+    const editarFechaCotizadoSubtitle = document.getElementById('editarFechaCotizadoModalSubtitle');
+    const editarFechaCotizadoEventIdInput = document.getElementById('editarFechaCotizadoEventId');
+    const editarFechaCotizadoInput = document.getElementById('editarFechaCotizadoInput');
+    const saveFechaCotizadoButton = document.getElementById('btnGuardarFechaCotizado');
+    const editarFechaAtendidoModalElement = document.getElementById('editarFechaAtendidoModal');
+    const editarFechaAtendidoSubtitle = document.getElementById('editarFechaAtendidoModalSubtitle');
+    const editarFechaAtendidoEventIdInput = document.getElementById('editarFechaAtendidoEventId');
+    const editarFechaAtendidoInput = document.getElementById('editarFechaAtendidoInput');
+    const saveFechaAtendidoButton = document.getElementById('btnGuardarFechaAtendido');
+    const editarFechaClienteModalElement = document.getElementById('editarFechaClienteModal');
+    const editarFechaClienteSubtitle = document.getElementById('editarFechaClienteModalSubtitle');
+    const editarFechaClienteEventIdInput = document.getElementById('editarFechaClienteEventId');
+    const editarFechaClienteInput = document.getElementById('editarFechaClienteInput');
+    const saveFechaClienteButton = document.getElementById('btnGuardarFechaCliente');
 
     function plannerAdvisorNameById(advisorId) {
       if (!advisorId || !vendor || !vendor.options) {
@@ -3092,7 +3609,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
       if (pasarEventoFechaInput) pasarEventoFechaInput.value = '';
       if (pasarEventoPaqueteInput) pasarEventoPaqueteInput.value = '';
       if (pasarEventoMontoVentaInput) pasarEventoMontoVentaInput.value = '';
-      if (pasarEventoSubtitle) pasarEventoSubtitle.textContent = 'Completa los datos para convertir la cita en evento.';
+      if (pasarEventoSubtitle) pasarEventoSubtitle.textContent = 'Completa los datos para convertir la llamada en evento.';
     }
 
     function plannerResetProfileInvalidStates() {
@@ -3383,10 +3900,10 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
           if (pasarEventoSubtitle) {
             const eventoId = String(appointment.evento_wp_id || '').trim();
-            pasarEventoSubtitle.textContent = 'Cita #' + calendarioId + (eventoId ? (' · Evento WP #' + eventoId) : '') + ' seleccionada.';
+            pasarEventoSubtitle.textContent = 'Llamada #' + calendarioId + (eventoId ? (' · Evento WP #' + eventoId) : '') + ' seleccionada.';
           }
         } catch (error) {
-          console.error('No se pudieron cargar los datos de la cita:', error);
+          console.error('No se pudieron cargar los datos de la llamada:', error);
         }
       });
 
@@ -3408,6 +3925,288 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
     if (editarEventoPlannerModalElement) {
       editarEventoPlannerModalElement.addEventListener('hidden.bs.modal', function () {
         plannerResetEditEventForm();
+      });
+    }
+
+    if (editarFechaCotizadoModalElement) {
+      editarFechaCotizadoModalElement.addEventListener('hidden.bs.modal', function () {
+        if (editarFechaCotizadoEventIdInput) editarFechaCotizadoEventIdInput.value = '';
+        if (editarFechaCotizadoInput) {
+          editarFechaCotizadoInput.value = '';
+          editarFechaCotizadoInput.classList.remove('is-invalid');
+        }
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      const trigger = event.target.closest('.js-edit-cotizado-date');
+      if (!trigger) {
+        return;
+      }
+
+      const eventId = parseInt(trigger.getAttribute('data-event-id') || '0', 10);
+      const cotizadoDate = String(trigger.getAttribute('data-cotizado-date') || '').trim();
+      const eventLabel = String(trigger.getAttribute('data-event-label') || '').trim();
+
+      if (!eventId) {
+        return;
+      }
+
+      if (editarFechaCotizadoEventIdInput) {
+        editarFechaCotizadoEventIdInput.value = String(eventId);
+      }
+      if (editarFechaCotizadoInput) {
+        editarFechaCotizadoInput.value = cotizadoDate || plannerCurrentDatetimeLocal();
+        editarFechaCotizadoInput.classList.remove('is-invalid');
+      }
+      if (editarFechaCotizadoSubtitle) {
+        editarFechaCotizadoSubtitle.textContent = eventLabel !== '' ? eventLabel : ('Evento #' + eventId);
+      }
+
+      if (editarFechaCotizadoModalElement && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(editarFechaCotizadoModalElement).show();
+      }
+    });
+
+    if (saveFechaCotizadoButton) {
+      saveFechaCotizadoButton.addEventListener('click', function () {
+        const eventId = editarFechaCotizadoEventIdInput ? parseInt(editarFechaCotizadoEventIdInput.value || '0', 10) : 0;
+        const fechaCotizado = editarFechaCotizadoInput ? editarFechaCotizadoInput.value.trim() : '';
+
+        if (editarFechaCotizadoInput) {
+          editarFechaCotizadoInput.classList.remove('is-invalid');
+        }
+
+        if (!eventId) {
+          plannerShowAlert('Evento inválido', 'warning');
+          return;
+        }
+
+        if (!fechaCotizado) {
+          if (editarFechaCotizadoInput) editarFechaCotizadoInput.classList.add('is-invalid');
+          plannerShowAlert('Selecciona la fecha y hora de cotizado', 'warning');
+          return;
+        }
+
+        const payload = new URLSearchParams();
+        payload.append('event_id', String(eventId));
+        payload.append('fecha_cotizado', fechaCotizado);
+
+        saveFechaCotizadoButton.disabled = true;
+        saveFechaCotizadoButton.textContent = 'Guardando...';
+
+        plannerRequestAsJson('actualizar_fecha_cotizado_evento_wp.php', payload)
+          .then(function (data) {
+            if (!data || !data.success) {
+              plannerShowAlert(data && data.message ? data.message : 'No se pudo actualizar la fecha', 'error');
+              return;
+            }
+
+            if (editarFechaCotizadoModalElement && window.bootstrap) {
+              const modal = bootstrap.Modal.getInstance(editarFechaCotizadoModalElement) || bootstrap.Modal.getOrCreateInstance(editarFechaCotizadoModalElement);
+              modal.hide();
+            }
+
+            plannerShowAlert(data.message || 'Fecha de cotizado actualizada', 'success').then(function () {
+              window.location.reload();
+            });
+          })
+          .catch(function (error) {
+            console.error('Error al actualizar fecha de cotizado:', error);
+            plannerShowAlert(error && error.message ? error.message : 'No se pudo actualizar la fecha', 'error');
+          })
+          .finally(function () {
+            saveFechaCotizadoButton.disabled = false;
+            saveFechaCotizadoButton.textContent = 'Guardar fecha';
+          });
+      });
+    }
+
+    if (editarFechaAtendidoModalElement) {
+      editarFechaAtendidoModalElement.addEventListener('hidden.bs.modal', function () {
+        if (editarFechaAtendidoEventIdInput) editarFechaAtendidoEventIdInput.value = '';
+        if (editarFechaAtendidoInput) {
+          editarFechaAtendidoInput.value = '';
+          editarFechaAtendidoInput.classList.remove('is-invalid');
+        }
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      const trigger = event.target.closest('.js-edit-attended-date');
+      if (!trigger) {
+        return;
+      }
+
+      const eventId = parseInt(trigger.getAttribute('data-event-id') || '0', 10);
+      const attendedDate = String(trigger.getAttribute('data-attended-date') || '').trim();
+      const eventLabel = String(trigger.getAttribute('data-event-label') || '').trim();
+
+      if (!eventId) {
+        return;
+      }
+
+      if (editarFechaAtendidoEventIdInput) {
+        editarFechaAtendidoEventIdInput.value = String(eventId);
+      }
+      if (editarFechaAtendidoInput) {
+        editarFechaAtendidoInput.value = attendedDate || plannerCurrentDatetimeLocal();
+        editarFechaAtendidoInput.classList.remove('is-invalid');
+      }
+      if (editarFechaAtendidoSubtitle) {
+        editarFechaAtendidoSubtitle.textContent = eventLabel !== '' ? eventLabel : ('Evento #' + eventId);
+      }
+
+      if (editarFechaAtendidoModalElement && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(editarFechaAtendidoModalElement).show();
+      }
+    });
+
+    if (saveFechaAtendidoButton) {
+      saveFechaAtendidoButton.addEventListener('click', function () {
+        const eventId = editarFechaAtendidoEventIdInput ? parseInt(editarFechaAtendidoEventIdInput.value || '0', 10) : 0;
+        const fechaAtendido = editarFechaAtendidoInput ? editarFechaAtendidoInput.value.trim() : '';
+
+        if (editarFechaAtendidoInput) {
+          editarFechaAtendidoInput.classList.remove('is-invalid');
+        }
+
+        if (!eventId) {
+          plannerShowAlert('Evento inválido', 'warning');
+          return;
+        }
+
+        if (!fechaAtendido) {
+          if (editarFechaAtendidoInput) editarFechaAtendidoInput.classList.add('is-invalid');
+          plannerShowAlert('Selecciona la fecha y hora de atención', 'warning');
+          return;
+        }
+
+        const payload = new URLSearchParams();
+        payload.append('event_id', String(eventId));
+        payload.append('fecha_atendido', fechaAtendido);
+
+        saveFechaAtendidoButton.disabled = true;
+        saveFechaAtendidoButton.textContent = 'Guardando...';
+
+        plannerRequestAsJson('actualizar_fecha_atendido_evento_wp.php', payload)
+          .then(function (data) {
+            if (!data || !data.success) {
+              plannerShowAlert(data && data.message ? data.message : 'No se pudo actualizar la fecha', 'error');
+              return;
+            }
+
+            if (editarFechaAtendidoModalElement && window.bootstrap) {
+              const modal = bootstrap.Modal.getInstance(editarFechaAtendidoModalElement) || bootstrap.Modal.getOrCreateInstance(editarFechaAtendidoModalElement);
+              modal.hide();
+            }
+
+            plannerShowAlert(data.message || 'Fecha de atención actualizada', 'success').then(function () {
+              window.location.reload();
+            });
+          })
+          .catch(function (error) {
+            console.error('Error al actualizar fecha de atención:', error);
+            plannerShowAlert(error && error.message ? error.message : 'No se pudo actualizar la fecha', 'error');
+          })
+          .finally(function () {
+            saveFechaAtendidoButton.disabled = false;
+            saveFechaAtendidoButton.textContent = 'Guardar fecha';
+          });
+      });
+    }
+
+    if (editarFechaClienteModalElement) {
+      editarFechaClienteModalElement.addEventListener('hidden.bs.modal', function () {
+        if (editarFechaClienteEventIdInput) editarFechaClienteEventIdInput.value = '';
+        if (editarFechaClienteInput) {
+          editarFechaClienteInput.value = '';
+          editarFechaClienteInput.classList.remove('is-invalid');
+        }
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      const trigger = event.target.closest('.js-edit-cliente-date');
+      if (!trigger) {
+        return;
+      }
+
+      const eventId = parseInt(trigger.getAttribute('data-event-id') || '0', 10);
+      const clienteDate = String(trigger.getAttribute('data-cliente-date') || '').trim();
+      const eventLabel = String(trigger.getAttribute('data-event-label') || '').trim();
+
+      if (!eventId) {
+        return;
+      }
+
+      if (editarFechaClienteEventIdInput) {
+        editarFechaClienteEventIdInput.value = String(eventId);
+      }
+      if (editarFechaClienteInput) {
+        editarFechaClienteInput.value = clienteDate || plannerCurrentDatetimeLocal();
+        editarFechaClienteInput.classList.remove('is-invalid');
+      }
+      if (editarFechaClienteSubtitle) {
+        editarFechaClienteSubtitle.textContent = eventLabel !== '' ? eventLabel : ('Evento #' + eventId);
+      }
+
+      if (editarFechaClienteModalElement && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(editarFechaClienteModalElement).show();
+      }
+    });
+
+    if (saveFechaClienteButton) {
+      saveFechaClienteButton.addEventListener('click', function () {
+        const eventId = editarFechaClienteEventIdInput ? parseInt(editarFechaClienteEventIdInput.value || '0', 10) : 0;
+        const fechaCliente = editarFechaClienteInput ? editarFechaClienteInput.value.trim() : '';
+
+        if (editarFechaClienteInput) {
+          editarFechaClienteInput.classList.remove('is-invalid');
+        }
+
+        if (!eventId) {
+          plannerShowAlert('Evento inválido', 'warning');
+          return;
+        }
+
+        if (!fechaCliente) {
+          if (editarFechaClienteInput) editarFechaClienteInput.classList.add('is-invalid');
+          plannerShowAlert('Selecciona la fecha y hora en que pasó a cliente', 'warning');
+          return;
+        }
+
+        const payload = new URLSearchParams();
+        payload.append('event_id', String(eventId));
+        payload.append('fecha_cliente', fechaCliente);
+
+        saveFechaClienteButton.disabled = true;
+        saveFechaClienteButton.textContent = 'Guardando...';
+
+        plannerRequestAsJson('actualizar_fecha_cliente_evento_wp.php', payload)
+          .then(function (data) {
+            if (!data || !data.success) {
+              plannerShowAlert(data && data.message ? data.message : 'No se pudo actualizar la fecha', 'error');
+              return;
+            }
+
+            if (editarFechaClienteModalElement && window.bootstrap) {
+              const modal = bootstrap.Modal.getInstance(editarFechaClienteModalElement) || bootstrap.Modal.getOrCreateInstance(editarFechaClienteModalElement);
+              modal.hide();
+            }
+
+            plannerShowAlert(data.message || 'Fecha de cliente actualizada', 'success').then(function () {
+              window.location.reload();
+            });
+          })
+          .catch(function (error) {
+            console.error('Error al actualizar fecha de cliente:', error);
+            plannerShowAlert(error && error.message ? error.message : 'No se pudo actualizar la fecha', 'error');
+          })
+          .finally(function () {
+            saveFechaClienteButton.disabled = false;
+            saveFechaClienteButton.textContent = 'Guardar fecha';
+          });
       });
     }
 
@@ -3622,7 +4421,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
         if (!selectedDate) {
           if (date) date.classList.add('is-invalid');
-          plannerShowAlert('Selecciona una fecha para la cita', 'warning');
+          plannerShowAlert('Selecciona una fecha para la llamada', 'warning');
           return;
         }
 
@@ -3634,13 +4433,13 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
         if (!selectedClientDate) {
           if (clientDate) clientDate.classList.add('is-invalid');
-          plannerShowAlert('Selecciona la fecha de la cita para el cliente', 'warning');
+          plannerShowAlert('Selecciona la fecha de la llamada para el cliente', 'warning');
           return;
         }
 
         if (!selectedClientTime) {
           if (clientTime) clientTime.classList.add('is-invalid');
-          plannerShowAlert('Selecciona la hora de la cita para el cliente', 'warning');
+          plannerShowAlert('Selecciona la hora de la llamada para el cliente', 'warning');
           return;
         }
 
@@ -3675,7 +4474,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           .then(function (response) { return response.json(); })
           .then(function (data) {
             if (!data || !data.success) {
-              plannerShowAlert(data && data.message ? data.message : 'No se pudo crear la cita', 'error');
+              plannerShowAlert(data && data.message ? data.message : 'No se pudo crear la llamada', 'error');
               return;
             }
 
@@ -3684,17 +4483,17 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               modal.hide();
             }
 
-            plannerShowAlert('La cita se registró correctamente', 'success').then(function () {
+            plannerShowAlert('La llamada se registró correctamente', 'success').then(function () {
               window.location.reload();
             });
           })
           .catch(function (error) {
-            console.error('Error creando cita:', error);
-            plannerShowAlert('No se pudo crear la cita para el wedding planner', 'error');
+            console.error('Error creando llamada:', error);
+            plannerShowAlert('No se pudo crear la llamada para el wedding planner', 'error');
           })
           .finally(function () {
             saveButton.disabled = false;
-            saveButton.textContent = 'Guardar cita';
+            saveButton.textContent = 'Guardar llamada';
           });
       });
     }
@@ -3789,12 +4588,12 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
         if (pasarEventoMontoVentaInput) pasarEventoMontoVentaInput.classList.remove('is-invalid');
 
         if (!calendarioId) {
-          plannerShowAlert('No se pudo identificar la cita seleccionada', 'error');
+          plannerShowAlert('No se pudo identificar la llamada seleccionada', 'error');
           return;
         }
 
         if (!asesorId) {
-          plannerShowAlert('La cita seleccionada no tiene asesor asignado', 'warning');
+          plannerShowAlert('La llamada seleccionada no tiene asesor asignado', 'warning');
           return;
         }
 
@@ -3869,7 +4668,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
               rawResponse: error && error.rawResponse ? error.rawResponse : null,
               error: error
             });
-            var errorMessage = (error && error.message) ? error.message : 'No se pudo convertir la cita en evento';
+            var errorMessage = (error && error.message) ? error.message : 'No se pudo convertir la llamada en evento';
             plannerShowAlert(errorMessage, 'error');
           })
           .finally(function () {
@@ -3952,7 +4751,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           plannerRequestAsJson('guardar_evento_sin_cita_wp.php', payload)
             .then(function (data) {
               if (!data || !data.success) {
-                plannerShowAlert(data && data.message ? data.message : 'No se pudo guardar el evento sin cita', 'error');
+                plannerShowAlert(data && data.message ? data.message : 'No se pudo guardar el evento sin llamada', 'error');
                 return;
               }
 
@@ -3961,27 +4760,27 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
                 modal.hide();
               }
 
-              plannerShowAlert('El evento sin cita se registró correctamente', 'success').then(function () {
+              plannerShowAlert('El evento sin llamada se registró correctamente', 'success').then(function () {
                 window.location.reload();
               });
             })
             .catch(function (error) {
-              console.error('Error al guardar evento sin cita:', error);
-              plannerShowAlert(error && error.message ? error.message : 'No se pudo guardar el evento sin cita', 'error');
+              console.error('Error al guardar evento sin llamada:', error);
+              plannerShowAlert(error && error.message ? error.message : 'No se pudo guardar el evento sin llamada', 'error');
             })
             .finally(function () {
               saveEventoSinCitaButton.disabled = false;
-              saveEventoSinCitaButton.textContent = 'Guardar evento sin cita';
+              saveEventoSinCitaButton.textContent = 'Guardar evento sin llamada';
             });
         };
 
         if (plannerHasPendingConvertibleAppointment && window.Swal && typeof window.Swal.fire === 'function') {
           window.Swal.fire({
             icon: 'warning',
-            title: 'Tienes una cita pendiente',
-            text: 'Hay una cita pendiente que se puede convertir a evento desde la sección de citas. ¿Quieres crear el evento sin cita de todas formas?',
+            title: 'Tienes una llamada pendiente',
+            text: 'Hay una llamada pendiente que se puede convertir a evento desde la sección de llamadas. ¿Quieres crear el evento sin llamada de todas formas?',
             showCancelButton: true,
-            confirmButtonText: 'Sí, crear sin cita',
+            confirmButtonText: 'Sí, crear sin llamada',
             cancelButtonText: 'Cancelar'
           }).then(function (result) {
             if (result && result.isConfirmed) {
@@ -4097,6 +4896,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
 
         const payload = new URLSearchParams();
         payload.append('planner_id', String(plannerId));
+        payload.append('lead_name', plannerLeadName || '');
         payload.append('interaction_type', interactionType);
         payload.append('notes', notes);
         if (outcome) payload.append('outcome', outcome);
@@ -4136,6 +4936,64 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           .finally(function () {
             saveInteractionButton.disabled = false;
             saveInteractionButton.textContent = 'Registrar interacción';
+          });
+      });
+    }
+
+    if (openNoteTypeGroup) {
+      openNoteTypeGroup.querySelectorAll('.open-notes-type-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+          openNoteTypeGroup.querySelectorAll('.open-notes-type-btn').forEach(function (item) {
+            item.classList.remove('active');
+          });
+          button.classList.add('active');
+          selectedOpenNoteType = button.getAttribute('data-note-type') || 'nota';
+        });
+      });
+    }
+
+    if (saveOpenNoteButton) {
+      saveOpenNoteButton.addEventListener('click', function () {
+        const content = openNoteContentInput ? openNoteContentInput.value.trim() : '';
+
+        if (!content) {
+          plannerShowAlert('Escribe el contenido de la nota', 'warning');
+          return;
+        }
+
+        const payload = new URLSearchParams();
+        payload.append('planner_id', String(plannerId));
+        payload.append('note_type', selectedOpenNoteType);
+        payload.append('content', content);
+
+        saveOpenNoteButton.disabled = true;
+        saveOpenNoteButton.textContent = 'Guardando...';
+
+        fetch('guardar_planner_nota_abierta.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: payload.toString()
+        })
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (!data || !data.success) {
+              plannerShowAlert(data && data.message ? data.message : 'No se pudo guardar la nota', 'error');
+              return;
+            }
+
+            plannerShowAlert('Nota guardada correctamente', 'success').then(function () {
+              window.location.reload();
+            });
+          })
+          .catch(function (error) {
+            console.error('Error guardando nota abierta:', error);
+            plannerShowAlert('No se pudo guardar la nota', 'error');
+          })
+          .finally(function () {
+            saveOpenNoteButton.disabled = false;
+            saveOpenNoteButton.textContent = 'Guardar nota';
           });
       });
     }
@@ -4273,6 +5131,110 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
       });
     }
 
+    const EVENT_STATUS_UI = {
+      1: { label: 'Cliente', class: 'status-afianzado' },
+      2: { label: 'Cotizado', class: 'status-pendiente' },
+      3: { label: 'Muerto', class: 'status-rechazado' },
+      4: { label: 'Atendido', class: 'status-afianzado' },
+      5: { label: 'Cliente Inminente', class: 'status-inminente' }
+    };
+
+    const cambiarEstatusEventoModal = document.getElementById('cambiarEstatusEventoModal');
+    const cambiarEstatusEventoIdInput = document.getElementById('cambiarEstatusEventoId');
+    const btnEventoCliente = document.getElementById('btnEventoCliente');
+    const btnEventoMuerto = document.getElementById('btnEventoMuerto');
+    let pendingEventStatusButton = null;
+
+    function plannerEventStatusTargetLabel(targetStatus) {
+      const key = String(targetStatus || '').trim();
+      if (EVENT_STATUS_UI[key]) {
+        return EVENT_STATUS_UI[key].label;
+      }
+      return 'Estatus seleccionado';
+    }
+
+    function updateEventRowAfterStatusChange(button, responseData) {
+      const row = button ? button.closest('tr') : null;
+      if (!row) {
+        return;
+      }
+
+      const badge = row.querySelector('.js-event-status-badge');
+      const newStatus = responseData && responseData.new_status ? responseData.new_status : null;
+      const nextAction = responseData && responseData.next_action ? responseData.next_action : null;
+
+      if (badge && newStatus) {
+        badge.textContent = newStatus.label || badge.textContent;
+        badge.className = 'js-event-status-badge status-badge ' + (newStatus.class || 'status-pendiente');
+      }
+
+      const actionsCell = button ? button.parentElement : null;
+      if (!actionsCell || !button) {
+        return;
+      }
+
+      if (nextAction && nextAction.can_change) {
+        const payload = {
+          event_id: parseInt(button.getAttribute('data-event-id') || cambiarEstatusEventoIdInput.value || '0', 10),
+          action_mode: nextAction.mode || 'direct',
+          target_status: parseInt(nextAction.target || 0, 10)
+        };
+        button.setAttribute('data-event-status', JSON.stringify(payload));
+        button.textContent = nextAction.button_label || button.textContent;
+        button.disabled = false;
+      } else {
+        button.remove();
+      }
+    }
+
+    function applyEventStatusChange(button, eventId, finalTargetStatus) {
+      const finalTargetStatusValue = String(finalTargetStatus || '').trim();
+      if (!finalTargetStatusValue) {
+        plannerShowAlert('No se pudo identificar el estatus destino', 'error');
+        return;
+      }
+
+      const requestPayload = new URLSearchParams();
+      requestPayload.append('event_id', eventId);
+      requestPayload.append('target_status', finalTargetStatusValue);
+
+      let originalText = '';
+      if (button) {
+        button.disabled = true;
+        originalText = button.textContent;
+        button.textContent = 'Actualizando...';
+      }
+
+      plannerRequestAsJson('cambiar_estatus_evento_wp_planner.php', requestPayload)
+        .then(function (responseData) {
+          if (!responseData || !responseData.success) {
+            plannerShowAlert(responseData && responseData.message ? responseData.message : 'No se pudo actualizar el estatus', 'error');
+            if (button) {
+              button.disabled = false;
+              button.textContent = originalText;
+            }
+            return;
+          }
+
+          if (cambiarEstatusEventoModal && window.bootstrap) {
+            const eventModal = bootstrap.Modal.getInstance(cambiarEstatusEventoModal);
+            if (eventModal) {
+              eventModal.hide();
+            }
+          }
+
+          updateEventRowAfterStatusChange(button, responseData);
+        })
+        .catch(function (requestError) {
+          console.error('Error al actualizar estatus del evento:', requestError);
+          plannerShowAlert(requestError && requestError.message ? requestError.message : 'No se pudo actualizar el estatus', 'error');
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        });
+    }
+
     eventStatusButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         const serialized = button.getAttribute('data-event-status') || '';
@@ -4294,73 +5256,15 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           return;
         }
 
-        const applyEventStatusChange = function (finalTargetStatus) {
-          const finalTargetStatusValue = String(finalTargetStatus || '').trim();
-          if (!finalTargetStatusValue) {
-            plannerShowAlert('No se pudo identificar el estatus destino', 'error');
-            return;
-          }
-
-          const requestPayload = new URLSearchParams();
-          requestPayload.append('event_id', eventId);
-          requestPayload.append('target_status', finalTargetStatusValue);
-
-          button.disabled = true;
-          const originalText = button.textContent;
-          button.textContent = 'Actualizando...';
-
-          plannerRequestAsJson('cambiar_estatus_evento_wp_planner.php', requestPayload)
-            .then(function (responseData) {
-              if (!responseData || !responseData.success) {
-                plannerShowAlert(responseData && responseData.message ? responseData.message : 'No se pudo actualizar el estatus', 'error');
-                return;
-              }
-
-              plannerShowAlert(responseData.message || 'Estatus actualizado correctamente', 'success').then(function () {
-                window.location.reload();
-              });
-            })
-            .catch(function (requestError) {
-              console.error('Error al actualizar estatus del evento:', requestError);
-              plannerShowAlert(requestError && requestError.message ? requestError.message : 'No se pudo actualizar el estatus', 'error');
-            })
-            .finally(function () {
-              button.disabled = false;
-              button.textContent = originalText;
-            });
-        };
+        button.setAttribute('data-event-id', eventId);
 
         if (actionMode === 'inminente_options') {
-          if (window.Swal && typeof window.Swal.fire === 'function') {
-            window.Swal.fire({
-              icon: 'question',
-              title: 'Cambiar de estatus',
-              text: 'Selecciona el siguiente estatus para este evento.',
-              showCancelButton: true,
-              showDenyButton: true,
-              confirmButtonText: 'Pasar a Cliente',
-              denyButtonText: 'Rechazar',
-              cancelButtonText: 'Cancelar'
-            }).then(function (result) {
-              if (!result) {
-                return;
-              }
-
-              if (result.isConfirmed) {
-                applyEventStatusChange('1');
-                return;
-              }
-
-              if (result.isDenied) {
-                applyEventStatusChange('3');
-              }
-            });
-            return;
+          pendingEventStatusButton = button;
+          if (cambiarEstatusEventoIdInput) {
+            cambiarEstatusEventoIdInput.value = eventId;
           }
-
-          const fallbackSelection = window.prompt('Escribe 1 para Pasar a Cliente o 3 para Rechazar.');
-          if (fallbackSelection === '1' || fallbackSelection === '3') {
-            applyEventStatusChange(fallbackSelection);
+          if (cambiarEstatusEventoModal && window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(cambiarEstatusEventoModal).show();
           }
           return;
         }
@@ -4370,7 +5274,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           return;
         }
 
-        const targetLabel = targetStatus === '2' ? 'Cotizado' : (targetStatus === '1' ? 'Cliente' : (targetStatus === '3' ? 'Rechazado' : (targetStatus === '4' ? 'Cliente inminente' : 'Estatus seleccionado')));
+        const targetLabel = plannerEventStatusTargetLabel(targetStatus);
         const confirmPromise = (window.Swal && typeof window.Swal.fire === 'function')
           ? window.Swal.fire({
               icon: 'question',
@@ -4387,20 +5291,63 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
             return;
           }
 
-          applyEventStatusChange(targetStatus);
+          applyEventStatusChange(button, eventId, targetStatus);
         });
       });
     });
+
+    if (btnEventoCliente) {
+      btnEventoCliente.addEventListener('click', function () {
+        const eventId = cambiarEstatusEventoIdInput ? cambiarEstatusEventoIdInput.value.trim() : '';
+        if (!eventId || !pendingEventStatusButton) {
+          return;
+        }
+        applyEventStatusChange(pendingEventStatusButton, eventId, '1');
+      });
+    }
+
+    if (btnEventoMuerto) {
+      btnEventoMuerto.addEventListener('click', function () {
+        const eventId = cambiarEstatusEventoIdInput ? cambiarEstatusEventoIdInput.value.trim() : '';
+        if (!eventId || !pendingEventStatusButton) {
+          return;
+        }
+        applyEventStatusChange(pendingEventStatusButton, eventId, '3');
+      });
+    }
+
+    if (cambiarEstatusEventoModal) {
+      cambiarEstatusEventoModal.addEventListener('hidden.bs.modal', function () {
+        pendingEventStatusButton = null;
+        if (cambiarEstatusEventoIdInput) {
+          cambiarEstatusEventoIdInput.value = '';
+        }
+      });
+    }
 
     // Cita status change modal
     const cambiarEstatusModal = document.getElementById('cambiarEstatusCitaModal');
     const cambiarEstatusCalendarioIdInput = document.getElementById('cambiarEstatusCalendarioId');
     const cambiarEstatusActualInput = document.getElementById('cambiarEstatusActual');
+    const btnCitaAtendido = document.getElementById('btnCitaAtendido');
+    const btnCitaMuerto = document.getElementById('btnCitaMuerto');
+
+    function updateCitaEstatusModalButtons(currentStatus) {
+      const status = intval(currentStatus);
+      if (btnCitaAtendido) {
+        btnCitaAtendido.style.display = status === 1 ? 'none' : '';
+      }
+      if (btnCitaMuerto) {
+        btnCitaMuerto.style.display = status === 3 ? 'none' : '';
+      }
+    }
 
     document.querySelectorAll('.js-abrir-cambiar-estatus').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        const currentStatus = btn.dataset.estatusActual || '0';
         cambiarEstatusCalendarioIdInput.value = btn.dataset.calendarioId || '';
-        cambiarEstatusActualInput.value = btn.dataset.estatusActual || '0';
+        cambiarEstatusActualInput.value = currentStatus;
+        updateCitaEstatusModalButtons(currentStatus);
         if (cambiarEstatusModal && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(cambiarEstatusModal).show();
         }
@@ -4424,7 +5371,7 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data || !data.success) {
-            plannerShowAlert(data && data.message ? data.message : 'No se pudo actualizar la cita', 'error');
+            plannerShowAlert(data && data.message ? data.message : 'No se pudo actualizar la llamada', 'error');
             return;
           }
 
@@ -4439,8 +5386,8 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
             const actions = item.querySelector('.card-actions');
             if (actions) {
               if (estatus === 1) {
-                // Muerto button gone, Cambiar estatus remains but update its data, show Pasar a evento
                 if (triggerBtn) triggerBtn.dataset.estatusActual = '1';
+                updateCitaEstatusModalButtons(1);
                 // Build Pasar a evento button from existing payload if available
                 const existingPasar = item.querySelector('.js-pasar-evento');
                 if (!existingPasar) {
@@ -4466,12 +5413,10 @@ $plannerContactChannel = plannerProfileFirstNonEmpty(
           }
         })
         .catch(function () {
-          plannerShowAlert('No se pudo actualizar la cita', 'error');
+          plannerShowAlert('No se pudo actualizar la llamada', 'error');
         });
     }
 
-    const btnCitaAtendido = document.getElementById('btnCitaAtendido');
-    const btnCitaMuerto = document.getElementById('btnCitaMuerto');
     if (btnCitaAtendido) btnCitaAtendido.addEventListener('click', function () { applyCitaEstatus(1); });
     if (btnCitaMuerto) btnCitaMuerto.addEventListener('click', function () { applyCitaEstatus(3); });
 

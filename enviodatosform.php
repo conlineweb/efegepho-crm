@@ -5,6 +5,7 @@ ini_set('display_errors', 0); // No mostrar errores en pantalla
 error_reporting(E_ALL);
 include 'conn.php';
 require_once __DIR__ . '/admin/lead_origin_helper.php';
+require_once __DIR__ . '/admin/calendario_estatus_historial_helper.php';
 
 function normalizeAppointmentTime($time) {
     $time = trim((string)$time);
@@ -777,10 +778,12 @@ if (count($vendedores) > 0) {
         }
 
         //mandar a la tabla calendario
+        ensureCalendarioFechaRegistroColumn($conn);
+        $fecha_registro_cal = calendarioBookingTimestamp();
 
         $sql_cal = "INSERT INTO calendario 
-        (idusu, fecha, hora, hora_cliente, fecha_cliente, titulo, nota, idclie, appointment_utc) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        (idusu, fecha, hora, hora_cliente, fecha_cliente, fecha_registro, titulo, nota, idclie, appointment_utc) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt_cal = $conn->prepare($sql_cal);
 
         if ($stmt_cal === false) {
@@ -801,12 +804,13 @@ if (count($vendedores) > 0) {
         // Usamos strings para mayor compatibilidad
         // IMPORTANTE: fecha/hora = VENDEDOR, fecha_cliente/hora_cliente = CLIENTE
         $bind_cal_result = $stmt_cal->bind_param(
-            "issssssis",
+            "isssssssis",
             $idusu,
             $date_appointment,          // fecha = VENDEDOR
             $time_appointment,          // hora = VENDEDOR
             $time_appointment_cust,     // hora_cliente = CLIENTE
             $date_appointment_cust,     // fecha_cliente = CLIENTE
+            $fecha_registro_cal,
             $titulo,
             $nota,
             $idGenerated,

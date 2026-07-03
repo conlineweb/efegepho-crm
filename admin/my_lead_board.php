@@ -5,6 +5,116 @@ error_reporting(E_ALL);
 
 include 'menu.php';
 include 'conn.php';
+require_once __DIR__ . '/lead_field_badge_helper.php';
+require_once __DIR__ . '/lead_origin_helper.php';
+require_once __DIR__ . '/usuario_roles_helper.php';
+require_once __DIR__ . '/wp_eventos_contact_form_helper.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/evento_wp_post_helper.php';
+require_once __DIR__ . '/planner_event_display_helper.php';
+
+if (!function_exists('firstNonEmptyValue')) {
+    function firstNonEmptyValue()
+    {
+        foreach (func_get_args() as $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $normalized = trim((string) $value);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('mapTipoClienteValue')) {
+    function mapTipoClienteValue($raw)
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return '';
+        }
+
+        if ($value === '1' || strcasecmp($value, 'Wedding Planner') === 0) {
+            return 'Wedding Planner';
+        }
+
+        if ($value === '0' || strcasecmp($value, 'Cliente Final') === 0) {
+            return 'Cliente Final';
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('isTrustedClienteFinalTipo')) {
+    function isTrustedClienteFinalTipo($tipoRaw, $lead, $howDidYouMeet)
+    {
+        if (mapTipoClienteValue($tipoRaw) !== 'Cliente Final') {
+            return false;
+        }
+
+        $how = trim((string) $howDidYouMeet);
+        if ($how === '1') {
+            return false;
+        }
+
+        if (in_array($how, ['2', '3'], true)) {
+            return true;
+        }
+
+        return strtolower(trim((string) ($lead['lead_status'] ?? ''))) === 'manual';
+    }
+}
+
+if (!function_exists('getTipoClienteLabel')) {
+    function getTipoClienteLabel($lead, $cfData = null)
+    {
+        $tablaOrigen = $lead['tabla_origen'] ?? '';
+
+        $cfTipoCliente = null;
+        $cfHowDidYouMeet = null;
+        if (is_array($cfData)) {
+            $cfTipoCliente = $cfData['tipo_cliente'] ?? null;
+            $cfHowDidYouMeet = $cfData['how_did_you_meet'] ?? null;
+        } elseif ($cfData !== null) {
+            $cfTipoCliente = $cfData;
+        }
+
+        if (mapTipoClienteValue($cfTipoCliente) === 'Wedding Planner') {
+            return 'Wedding Planner';
+        }
+
+        if (mapTipoClienteValue($lead['tipo_cliente'] ?? '') === 'Wedding Planner') {
+            return 'Wedding Planner';
+        }
+
+        $howDidYouMeet = firstNonEmptyValue(
+            $cfHowDidYouMeet,
+            $lead['how_did_you_meet_raw'] ?? '',
+            $lead['how_did_you_meet'] ?? ''
+        );
+
+        $inferred = inferTipoClienteFromOriginData($howDidYouMeet, $tablaOrigen);
+        if ($inferred !== '') {
+            return $inferred;
+        }
+
+        if (isTrustedClienteFinalTipo($cfTipoCliente, $lead, $howDidYouMeet)) {
+            return 'Cliente Final';
+        }
+
+        if (isTrustedClienteFinalTipo($lead['tipo_cliente'] ?? '', $lead, $howDidYouMeet)) {
+            return 'Cliente Final';
+        }
+
+        return '—';
+    }
+}
 
 function resolveLeadStatus($tableName, $contactFormRow, $appointmentRow, $leadRow = null)
 {
@@ -24,19 +134,38 @@ function resolveLeadStatus($tableName, $contactFormRow, $appointmentRow, $leadRo
         }
     }
 
-    if (isset($contactFormRow['cliente']) && intval($contactFormRow['cliente']) === 1) {
+    if (is_array($contactFormRow) && isset($contactFormRow['cliente']) && intval($contactFormRow['cliente']) === 1) {
         return 'cliente';
+    }
+
+    if (strcasecmp((string) $tableName, 'eventos_wp') === 0) {
+        global $conn;
+        $eventId = (int) ($leadRow['id'] ?? 0);
+        if (isset($conn) && $eventId > 0) {
+            $cfRow = is_array($contactFormRow) ? $contactFormRow : [];
+            $cf = [
+                'tabla_origen' => 'eventos_wp',
+                'form_name' => 'eventos_wp',
+                'original_lead_id' => $eventId,
+                'tipo_cliente' => $cfRow['tipo_cliente'] ?? 1,
+                'cliente' => $cfRow['cliente'] ?? 0,
+            ];
+            $cf = wpEventosCfHydratePlannerContactFormFields($conn, $cf);
+            $resolved = wpEventosCfResolvePlannerTipoClienteEstatus($cf);
+            if ($resolved !== null && $resolved !== '') {
+                return $resolved;
+            }
+        }
+
+        if (is_array($contactFormRow) && !empty($contactFormRow)) {
+            return 'atendido';
+        }
+
+        return 'agendado';
     }
 
     if ($appointmentRow === null || !isset($appointmentRow['estatus'])) {
         return 'lead';
-    }
-
-    if (
-        strcasecmp((string) $tableName, 'wedding_planners') === 0 ||
-        strcasecmp((string) $tableName, 'eventos_wp') === 0
-    ) {
-        return 'agendado';
     }
 
     $rawStatus = $appointmentRow['estatus'];
@@ -141,6 +270,208 @@ function statusBadgeClass($status)
     return 'status status-pending';
 }
 
+function leadBoardStatusToHistorialCode($status)
+{
+    $normalized = strtolower(trim((string) $status));
+    $map = [
+        'agendado' => 0,
+        'atendido' => 1,
+        'fantasma' => 2,
+        'muerto'   => 3,
+    ];
+
+    return $map[$normalized] ?? null;
+}
+
+function leadBoardIsValidDateValue($raw)
+{
+    $value = trim((string) $raw);
+
+    return $value !== '' && strpos($value, '0000-00-00') !== 0;
+}
+
+function leadBoardBuildHistorialDateMap($conn, array $calendarioIds)
+{
+    $map = [];
+    if (!($conn instanceof mysqli) || empty($calendarioIds)) {
+        return $map;
+    }
+
+    ensureCalendarioEstatusHistorialTable($conn);
+
+    $idsList = implode(',', array_map('intval', $calendarioIds));
+    if ($idsList === '') {
+        return $map;
+    }
+
+    $res = $conn->query(
+        "SELECT id_calendario, estatus, fecha_cambio
+         FROM calendario_estatus_historial
+         WHERE id_calendario IN ($idsList)
+         ORDER BY fecha_cambio ASC, id ASC"
+    );
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $calId = (int) ($row['id_calendario'] ?? 0);
+            $estatusCode = (int) ($row['estatus'] ?? -1);
+            $fecha = trim((string) ($row['fecha_cambio'] ?? ''));
+            if ($calId > 0 && $fecha !== '') {
+                $map[$calId . '|' . $estatusCode] = $fecha;
+            }
+        }
+    }
+
+    return $map;
+}
+
+function resolveLeadBoardWpEventStatusUpdatedAt(array $milestones, ?array $contactForm)
+{
+    $statusKey = wpPlannerResolveEventStatusKey(
+        $milestones['estatus'] ?? '',
+        $contactForm['cliente'] ?? ($milestones['contact_form_cliente'] ?? null)
+    );
+
+    switch ($statusKey) {
+        case 'cliente':
+            if (is_array($contactForm) && leadBoardIsValidDateValue($contactForm['fecha_cambio_cliente'] ?? '')) {
+                return trim((string) $contactForm['fecha_cambio_cliente']);
+            }
+            if (leadBoardIsValidDateValue($milestones['contact_form_fecha_cambio_cliente'] ?? '')) {
+                return trim((string) $milestones['contact_form_fecha_cambio_cliente']);
+            }
+            if (leadBoardIsValidDateValue($milestones['fecha_cliente'] ?? '')) {
+                return trim((string) $milestones['fecha_cliente']);
+            }
+            break;
+        case 'cotizado':
+            if (leadBoardIsValidDateValue($milestones['fecha_cotizado'] ?? '')) {
+                return trim((string) $milestones['fecha_cotizado']);
+            }
+            // Sin fecha de cotizado: usar la de agendado.
+        case 'pendiente':
+            if (leadBoardIsValidDateValue($milestones['fecha_agendado'] ?? '')) {
+                return trim((string) $milestones['fecha_agendado']);
+            }
+            if (leadBoardIsValidDateValue($milestones['fecha_registro'] ?? '')) {
+                return trim((string) $milestones['fecha_registro']);
+            }
+            break;
+        case 'atendido':
+        case 'cliente_inminente':
+            if (leadBoardIsValidDateValue($milestones['fecha_atendido'] ?? '')) {
+                return trim((string) $milestones['fecha_atendido']);
+            }
+            if (is_array($contactForm) && leadBoardIsValidDateValue($contactForm['submission_date'] ?? '')) {
+                return trim((string) $contactForm['submission_date']);
+            }
+            break;
+        case 'muerto':
+        case 'rechazado':
+            if (leadBoardIsValidDateValue($milestones['fecha_muerto'] ?? '')) {
+                return trim((string) $milestones['fecha_muerto']);
+            }
+            break;
+    }
+
+    if (leadBoardIsValidDateValue($milestones['fecha_actualizacion_estatus'] ?? '')) {
+        return trim((string) $milestones['fecha_actualizacion_estatus']);
+    }
+
+    return '';
+}
+
+function resolveLeadBoardStatusUpdatedAt($status, $tableName, $calendarioId, array $historialDateMap, $appointment, array $lead, array $eventoMilestonesById, ?array $contactForm = null, array $historialFechaByCfIdByCode = [])
+{
+    $normalized = strtolower(trim((string) $status));
+    $estatusCode = leadBoardStatusToHistorialCode($status);
+    $cfId = is_array($contactForm) ? (int) ($contactForm['cf_id'] ?? 0) : 0;
+
+    // Eventos WP (wedding planner): hitos en eventos_wp, no calendario_estatus_historial.
+    if (strcasecmp((string) $tableName, 'eventos_wp') === 0) {
+        $eventId = (int) ($lead['id'] ?? 0);
+        $milestones = is_array($eventoMilestonesById[$eventId] ?? null)
+            ? $eventoMilestonesById[$eventId]
+            : $lead;
+
+        return resolveLeadBoardWpEventStatusUpdatedAt($milestones, $contactForm);
+    }
+
+    if ($cfId > 0 && $estatusCode !== null && !empty($historialFechaByCfIdByCode[$estatusCode][$cfId])) {
+        return trim((string) $historialFechaByCfIdByCode[$estatusCode][$cfId]);
+    }
+
+    if ($calendarioId > 0 && $estatusCode !== null) {
+        $histKey = $calendarioId . '|' . $estatusCode;
+        if (!empty($historialDateMap[$histKey]) && leadBoardIsValidDateValue($historialDateMap[$histKey])) {
+            return trim((string) $historialDateMap[$histKey]);
+        }
+    }
+
+    if ($normalized === 'agendado' && is_array($appointment)) {
+        $fechaRegistro = trim((string) ($appointment['fecha_registro'] ?? ''));
+        if (leadBoardIsValidDateValue($fechaRegistro)) {
+            return $fechaRegistro;
+        }
+
+        $fecha = trim((string) ($appointment['fecha'] ?? ''));
+        $hora = trim((string) ($appointment['hora'] ?? ''));
+        if (leadBoardIsValidDateValue($fecha)) {
+            return trim($fecha . ($hora !== '' ? ' ' . $hora : ''));
+        }
+    }
+
+    if ($normalized === 'atendido') {
+        if (is_array($appointment)) {
+            $fecha = trim((string) ($appointment['fecha'] ?? ''));
+            $hora = trim((string) ($appointment['hora'] ?? ''));
+            if (leadBoardIsValidDateValue($fecha)) {
+                return trim($fecha . ($hora !== '' ? ' ' . $hora : ''));
+            }
+        }
+
+        foreach (['submission_date', 'created_time'] as $field) {
+            if (is_array($contactForm) && leadBoardIsValidDateValue($contactForm[$field] ?? '')) {
+                return trim((string) $contactForm[$field]);
+            }
+            if (leadBoardIsValidDateValue($lead[$field] ?? '')) {
+                return trim((string) $lead[$field]);
+            }
+        }
+    }
+
+    if (in_array($normalized, ['muerto', 'fantasma'], true) && is_array($appointment)) {
+        $fecha = trim((string) ($appointment['fecha'] ?? ''));
+        $hora = trim((string) ($appointment['hora'] ?? ''));
+        if (leadBoardIsValidDateValue($fecha)) {
+            return trim($fecha . ($hora !== '' ? ' ' . $hora : ''));
+        }
+    }
+
+    if ($normalized === 'agendado' && leadBoardIsValidDateValue($lead['calendario_fecha'] ?? '')) {
+        $horaLead = trim((string) ($lead['calendario_hora'] ?? ''));
+
+        return trim((string) $lead['calendario_fecha'] . ($horaLead !== '' ? ' ' . $horaLead : ''));
+    }
+
+    return '';
+}
+
+function formatLeadBoardStatusDate($raw)
+{
+    if (!leadBoardIsValidDateValue($raw)) {
+        return '—';
+    }
+
+    $ts = strtotime((string) $raw);
+    if ($ts === false) {
+        return '—';
+    }
+
+    $hasTime = preg_match('/\d{1,2}:\d{2}/', (string) $raw);
+
+    return $hasTime ? date('d/m/Y H:i', $ts) : date('d/m/Y', $ts);
+}
+
 function getVendedorInitial($nombre)
 {
     $nombre = trim((string) $nombre);
@@ -188,12 +519,10 @@ if (!in_array($filterEstatus, $allowedEstatus, true)) {
     $filterEstatus = '';
 }
 
-// Si el usuario es vendedora (tipoUsu=1), forzar que solo vea sus propios leads.
-// Excepción: usuario 20 administra esta vista y ve todos los leads (como admin).
-const MLB_VIEW_ADMIN_USER_IDS = [20];
+// Vendedor (tipoUsu=1) y gestor de galería (tipoUsu=2): vista completa sin forzar filtro propio.
 $mlbUserId = intval($_SESSION['uid'] ?? 0);
-$mlbViewAsAdmin = in_array($mlbUserId, MLB_VIEW_ADMIN_USER_IDS, true);
-$isVendedoraLocked = ($tipoUsuario == '1' && !$mlbViewAsAdmin);
+$isVendedoraLocked = !usuarioTipoVeTodoEnVistasComerciales($tipoUsuario)
+    && (int) $tipoUsuario === USUARIO_ROL_VENDEDOR;
 if ($isVendedoraLocked) {
     $filterVendedor = $mlbUserId;
 }
@@ -268,6 +597,34 @@ foreach ($tablas as $tableName) {
     }
 }
 
+$wpEventosLeads = wpEventosCfBuildLeadsForConsultaLeads($conn);
+$appointmentsByEventId = wpEventosCfGetAppointmentsByEventId($conn);
+if (!empty($wpEventosLeads)) {
+    $existingKeys = [];
+    foreach ($allLeads as $existingLead) {
+        $existingKeys[($existingLead['tabla_origen'] ?? '') . '|' . (int) ($existingLead['id'] ?? 0)] = true;
+    }
+    foreach ($wpEventosLeads as $wpLead) {
+        if ($searchQuery !== '' && !wpEventosCfLeadMatchesSearch($wpLead, $searchQuery)) {
+            continue;
+        }
+
+        if ($isVendedoraLocked) {
+            $assignedVendor = wpEventosCfResolveEventVendedorId($conn, $wpLead, null, $appointmentsByEventId);
+            if ($assignedVendor !== $mlbUserId) {
+                continue;
+            }
+        }
+
+        $key = ($wpLead['tabla_origen'] ?? '') . '|' . (int) ($wpLead['id'] ?? 0);
+        if (isset($existingKeys[$key])) {
+            continue;
+        }
+        $allLeads[] = $wpLead;
+        $existingKeys[$key] = true;
+    }
+}
+
 usort($allLeads, function ($a, $b) {
     $ta = (!empty($a['created_time']) && strtotime($a['created_time']) !== false) ? strtotime($a['created_time']) : 0;
     $tb = (!empty($b['created_time']) && strtotime($b['created_time']) !== false) ? strtotime($b['created_time']) : 0;
@@ -299,7 +656,7 @@ foreach ($leadIdsByTable as $t => $ids) {
         continue;
     }
 
-    $sql = "SELECT id, original_lead_id, cliente, how_did_you_meet, engagement FROM contact_form WHERE LOWER(tabla_origen) = LOWER('" . $safeTable . "') AND original_lead_id IN (" . $idsList . ")";
+    $sql = "SELECT id, original_lead_id, cliente, how_did_you_meet, engagement, tipo_cliente, fecha_cambio_cliente, submission_date, created_time FROM contact_form WHERE LOWER(tabla_origen) = LOWER('" . $safeTable . "') AND original_lead_id IN (" . $idsList . ")";
     $resCf = $conn->query($sql);
 
     if ($resCf) {
@@ -310,6 +667,10 @@ foreach ($leadIdsByTable as $t => $ids) {
                 'cliente' => isset($row['cliente']) ? intval($row['cliente']) : 0,
                 'how_did_you_meet' => $row['how_did_you_meet'] ?? null,
                 'engagement' => $row['engagement'] ?? null,
+                'tipo_cliente' => $row['tipo_cliente'] ?? null,
+                'fecha_cambio_cliente' => $row['fecha_cambio_cliente'] ?? null,
+                'submission_date' => $row['submission_date'] ?? null,
+                'created_time' => $row['created_time'] ?? null,
             ];
             $cfIds[] = intval($row['id']);
         }
@@ -375,9 +736,10 @@ if (!empty($calendarioIds)) {
     }
 }
 
-// Fetch all agents (vendedoras) for name lookup and filter dropdown
+// Agentes asignables: vendedoras (1), líderes de planners (5) y admins (0)
 $agents = [];
-$resAgents = $conn->query("SELECT id, nombre, apepat FROM usuarios WHERE tipoUsu IN (0,1) ORDER BY nombre, apepat");
+$agentTiposSql = usuarioSqlInTiposAsignacionLeadBoard();
+$resAgents = $conn->query("SELECT id, nombre, apepat, tipoUsu FROM usuarios WHERE tipoUsu IN ($agentTiposSql) ORDER BY nombre, apepat");
 if ($resAgents) {
     while ($a = $resAgents->fetch_assoc()) {
         $agentId = intval($a['id'] ?? 0);
@@ -387,6 +749,7 @@ if ($resAgents) {
         $agents[$agentId] = [
             'full' => trim(($a['nombre'] ?? '') . ' ' . ($a['apepat'] ?? '')),
             'nombre' => trim((string) ($a['nombre'] ?? '')),
+            'tipoUsu' => (int) ($a['tipoUsu'] ?? 0),
         ];
     }
 }
@@ -408,6 +771,52 @@ if (!empty($leadIdsByTable)) {
             while ($liRow = $liRes->fetch_assoc()) {
                 $key = strtolower($liRow['tabla_origen']) . '|' . intval($liRow['lead_id']);
                 $lastInteractionMap[$key] = $liRow['last_date'];
+            }
+        }
+    }
+}
+
+$allCalendarioIdsForHistorial = [];
+foreach ($appointmentsByCFId as $apptRow) {
+    $calId = (int) ($apptRow['id'] ?? 0);
+    if ($calId > 0) {
+        $allCalendarioIdsForHistorial[$calId] = true;
+    }
+}
+foreach ($allLeads as $leadRowForCal) {
+    $calId = (int) ($leadRowForCal['id_calendario'] ?? 0);
+    if ($calId > 0) {
+        $allCalendarioIdsForHistorial[$calId] = true;
+    }
+}
+$historialDateMap = leadBoardBuildHistorialDateMap($conn, array_keys($allCalendarioIdsForHistorial));
+
+$historialFechaByCfIdByCode = [
+    0 => plannerProfileBatchLoadFechaHistorialByContactFormIds($conn, $cfIds, [0]),
+    1 => plannerProfileBatchLoadFechaAtencionByContactFormIds($conn, $cfIds),
+    2 => plannerProfileBatchLoadFechaHistorialByContactFormIds($conn, $cfIds, [2]),
+    3 => plannerProfileBatchLoadFechaHistorialByContactFormIds($conn, $cfIds, [3]),
+];
+
+$eventoMilestonesById = [];
+$eventoWpIds = $leadIdsByTable['eventos_wp'] ?? [];
+if (!empty($eventoWpIds)) {
+    $evIdsList = implode(',', array_map('intval', array_unique($eventoWpIds)));
+    $evRes = $conn->query(
+        "SELECT e.id, e.estatus, e.fecha_agendado, e.fecha_cotizado, e.fecha_atendido,
+                e.fecha_cliente, e.fecha_muerto, e.fecha_registro, e.fecha_actualizacion_estatus,
+                cf.cliente AS contact_form_cliente, cf.fecha_cambio_cliente AS contact_form_fecha_cambio_cliente
+         FROM eventos_wp e
+         LEFT JOIN contact_form cf
+           ON cf.original_lead_id = e.id
+          AND LOWER(TRIM(COALESCE(cf.tabla_origen, ''))) = 'eventos_wp'
+         WHERE e.id IN ($evIdsList)"
+    );
+    if ($evRes) {
+        while ($evRow = $evRes->fetch_assoc()) {
+            $evId = (int) ($evRow['id'] ?? 0);
+            if ($evId > 0) {
+                $eventoMilestonesById[$evId] = $evRow;
             }
         }
     }
@@ -443,8 +852,17 @@ function formatLastContact($dateStr) {
     return $months . ' mes' . ($months > 1 ? 'es' : '');
 }
 
-function resolveLeadBoardVendedorId(array $lead, $appointment, array $appointmentsByCalendarioId)
+function resolveLeadBoardVendedorId(array $lead, $appointment, array $appointmentsByCalendarioId, $conn = null, ?array $appointmentsByEventId = null)
 {
+    if ($conn && function_exists('wpEventosCfIsWpEventLead') && wpEventosCfIsWpEventLead($lead)) {
+        return wpEventosCfResolveEventVendedorId(
+            $conn,
+            $lead,
+            is_array($appointment) ? $appointment : null,
+            $appointmentsByEventId
+        );
+    }
+
     if (is_array($appointment)) {
         $fromAppointment = intval($appointment['idusu'] ?? 0);
         if ($fromAppointment > 0) {
@@ -472,20 +890,31 @@ foreach ($allLeads as $lead) {
     $contactForm = $contactFormByLead[$key] ?? null;
     $cfId = intval($contactForm['cf_id'] ?? 0);
     $appointment = ($cfId > 0 && isset($appointmentsByCFId[$cfId])) ? $appointmentsByCFId[$cfId] : null;
+    if (!$appointment && wpEventosCfIsWpEventLead($lead)) {
+        $eventIdForVendor = wpEventosCfResolveEventIdFromLead($lead);
+        if ($eventIdForVendor > 0 && isset($appointmentsByEventId[$eventIdForVendor])) {
+            $appointment = $appointmentsByEventId[$eventIdForVendor];
+        }
+    }
 
-    $status = resolveLeadStatus($tableName, $contactForm ?: [], $appointment, $lead);
+    $status = resolveLeadStatus($tableName, $contactForm, $appointment, $lead);
 
     $normalizedStatus = strtolower(trim((string) $status));
     if ($normalizedStatus === '' || $normalizedStatus === 'lead' || $normalizedStatus === 'cliente') {
         continue;
     }
 
-    $name = trim((string) ($lead['full_name'] ?? ''));
-    if ($name === '') {
-        $name = trim((string) ($lead['names'] ?? ''));
-    }
-    if ($name === '') {
-        $name = 'Lead #' . $leadId;
+    if (strcasecmp($tableName, 'eventos_wp') === 0) {
+        $nameDisplay = wpEventosCfResolveLeadNameDisplay(array_merge($lead, ['tabla_origen' => 'eventos_wp']));
+        $name = $nameDisplay['primary'] !== '' ? $nameDisplay['primary'] : ('Evento WP #' . $leadId);
+    } else {
+        $name = trim((string) ($lead['full_name'] ?? ''));
+        if ($name === '') {
+            $name = trim((string) ($lead['names'] ?? ''));
+        }
+        if ($name === '') {
+            $name = 'Lead #' . $leadId;
+        }
     }
 
     $createdAt = trim((string) ($lead['created_time'] ?? ''));
@@ -495,28 +924,83 @@ foreach ($allLeads as $lead) {
     }
 
     $originValue = $contactForm['how_did_you_meet'] ?? ($lead['how_did_you_meet'] ?? '');
+    if (strcasecmp($tableName, 'eventos_wp') === 0 && trim((string) $originValue) === '') {
+        $originValue = '1';
+    }
 
-    $vendedorId = resolveLeadBoardVendedorId($lead, $appointment, $appointmentsByCalendarioId);
+    $vendedorId = resolveLeadBoardVendedorId($lead, $appointment, $appointmentsByCalendarioId, $conn, $appointmentsByEventId);
     $vendedorAgent = ($vendedorId > 0 && isset($agents[$vendedorId])) ? $agents[$vendedorId] : null;
     $vendedorName = is_array($vendedorAgent) ? ($vendedorAgent['full'] ?? '') : '';
+    if ($vendedorName === '' && $vendedorId > 0) {
+        $vendedorName = wpEventosCfResolveAsesorDisplayName($conn, $vendedorId);
+    }
     $vendedorNombre = is_array($vendedorAgent) ? ($vendedorAgent['nombre'] ?? '') : '';
+    if ($vendedorNombre === '' && $vendedorName !== '') {
+        $vendedorNombre = trim(explode(' ', $vendedorName, 2)[0]);
+    }
 
     $liKey = strtolower($tableName) . '|' . $leadId;
     $lastContactDate = $lastInteractionMap[$liKey] ?? null;
+
+    $tipoClienteLabel = getTipoClienteLabel($lead, $contactForm);
+
+    $calendarioId = 0;
+    if (is_array($appointment)) {
+        $calendarioId = (int) ($appointment['id'] ?? 0);
+    }
+    if ($calendarioId <= 0) {
+        $calendarioId = (int) ($lead['id_calendario'] ?? 0);
+    }
+
+    $statusUpdatedRaw = resolveLeadBoardStatusUpdatedAt(
+        $status,
+        $tableName,
+        $calendarioId,
+        $historialDateMap,
+        $appointment,
+        $lead,
+        $eventoMilestonesById,
+        $contactForm,
+        $historialFechaByCfIdByCode
+    );
 
     $rows[] = [
         'id'            => $leadId,
         'cf_id'         => $cfId,
         'tabla_origen'  => $tableName,
+        'calendario_id' => $calendarioId,
         'name'          => $name,
         'created_date'  => $createdDate,
         'last_contact'  => $lastContactDate,
+        'tipo_cliente'  => $tipoClienteLabel,
         'origin'        => originLabelFromValue($originValue),
         'status'        => $status,
+        'status_updated_at' => $statusUpdatedRaw,
+        'status_updated_display' => formatLeadBoardStatusDate($statusUpdatedRaw),
         'vendedor_id'      => $vendedorId,
         'vendedor_name'    => $vendedorName,
         'vendedor_nombre'  => $vendedorNombre,
         'engagement'    => $contactForm['engagement'] ?? null,
+    ];
+}
+
+$canAssignVendor = !$isVendedoraLocked;
+$mlbAgentesJs = [];
+foreach ($agents as $agentId => $agentData) {
+    $nombreAgente = is_array($agentData) ? ($agentData['nombre'] ?? '') : '';
+    $fullLabel = is_array($agentData) ? ($agentData['full'] ?? '') : (string) $agentData;
+    $tipoUsuAgent = is_array($agentData) ? (int) ($agentData['tipoUsu'] ?? 0) : 0;
+    if ($tipoUsuAgent > 0 && $tipoUsuAgent !== USUARIO_ROL_VENDEDOR && function_exists('usuarioRolLabel')) {
+        $rolLabel = usuarioRolLabel($tipoUsuAgent);
+        if ($rolLabel !== '' && $rolLabel !== 'Vendedor') {
+            $fullLabel = trim($fullLabel . ' (' . $rolLabel . ')');
+        }
+    }
+    $mlbAgentesJs[] = [
+        'id' => (int) $agentId,
+        'label' => $fullLabel,
+        'initial' => getVendedorInitial($nombreAgente),
+        'color' => getVendedorColor($nombreAgente),
     ];
 }
 
@@ -712,8 +1196,20 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         padding: 12px 20px 12px;
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
         border-bottom: 1px solid var(--border);
+    }
+
+    .leadboard-tabs-main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .leadboard-tabs-action {
+        margin-left: auto;
     }
 
     .leadboard-tab {
@@ -906,6 +1402,16 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
     .status-closed { background: rgba(197,160,40,0.15); color: var(--gold); }
 
     .td-name { font-weight: 600; color: var(--ink); font-size: 13px; }
+    .td-name-link {
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .td-name-link:hover {
+        color: var(--gold);
+        text-decoration: underline;
+    }
     .td-inline-muted { font-size: 11px; color: var(--muted); }
 
     .origin-badge {
@@ -936,6 +1442,18 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
     .origin-default {
         background: rgba(107, 114, 128, 0.12);
         color: #4b5563;
+    }
+
+    .badge-tipo-cliente {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .vendedor-badge {
@@ -975,6 +1493,25 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         font-weight: 500;
         color: #6b7280;
         white-space: nowrap;
+    }
+
+    .js-mlb-assign-vendedor {
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+    }
+
+    .js-mlb-assign-vendedor:hover {
+        opacity: 0.82;
+    }
+
+    .vendedor-assign-cell.js-mlb-assign-vendedor:hover .vendedor-name {
+        text-decoration: underline;
+        text-decoration-color: rgba(30, 41, 59, 0.35);
+    }
+
+    .vendedor-sin-badge.js-mlb-assign-vendedor:hover {
+        border-color: #c5cdd8;
+        color: #4b5563;
     }
 
     .actions-col {
@@ -1058,8 +1595,13 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
 
     <div class="table-wrap">
         <div class="leadboard-tabs">
-            <a href="<?php echo htmlspecialchars(buildLeadBoardUrl(['view' => 'active', 'segment' => 'all']), ENT_QUOTES, 'UTF-8'); ?>" class="leadboard-tab <?php echo $view === 'active' ? 'active' : ''; ?>">Activos <span class="leadboard-tab-count"><?php echo number_format($activeCount); ?></span></a>
-            <a href="<?php echo htmlspecialchars(buildLeadBoardUrl(['view' => 'dead', 'segment' => 'all']), ENT_QUOTES, 'UTF-8'); ?>" class="leadboard-tab <?php echo $view === 'dead' ? 'active' : ''; ?>">Muertos <span class="leadboard-tab-count"><?php echo number_format($deadCount); ?></span></a>
+            <div class="leadboard-tabs-main">
+                <a href="<?php echo htmlspecialchars(buildLeadBoardUrl(['view' => 'active', 'segment' => 'all']), ENT_QUOTES, 'UTF-8'); ?>" class="leadboard-tab <?php echo $view === 'active' ? 'active' : ''; ?>">Activos <span class="leadboard-tab-count"><?php echo number_format($activeCount); ?></span></a>
+                <a href="<?php echo htmlspecialchars(buildLeadBoardUrl(['view' => 'dead', 'segment' => 'all']), ENT_QUOTES, 'UTF-8'); ?>" class="leadboard-tab <?php echo $view === 'dead' ? 'active' : ''; ?>">Muertos <span class="leadboard-tab-count"><?php echo number_format($deadCount); ?></span></a>
+            </div>
+            <div class="leadboard-tabs-action">
+                <a href="my_lead_board_leads.php" class="efege-btn efege-btn-primary">Gestión de leads</a>
+            </div>
         </div>
 
         <div class="leadboard-thin-divider"></div>
@@ -1118,25 +1660,55 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
             <table class="efege-table table table-hover">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Nombre del lead</th>
                         <th>Fecha de registro</th>
                         <th>Ultimo contacto</th>
+                        <th>Tipo de cliente</th>
                         <th>Origen</th>
                         <th>Vendedor/a</th>
                         <th>Engagement del cliente</th>
                         <th>Estatus</th>
+                        <th>Actualización estatus</th>
                         <th class="actions-col">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($displayRows)): ?>
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No hay leads para mostrar</td>
+                            <td colspan="11" class="text-center py-4 text-muted">No hay leads para mostrar</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($displayRows as $row): ?>
-                            <tr>
-                                <td><div class="td-name"><?php echo htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8'); ?></div></td>
+                            <?php
+                                $leadInteractionUrl = 'lead_interaction.php?tabla_origen=' . urlencode((string) $row['tabla_origen']) . '&id=' . intval($row['id']);
+                                $rowLeadId = (int) ($row['id'] ?? 0);
+                                $rowCfId = (int) ($row['cf_id'] ?? 0);
+                                $rowCalendarioId = (int) ($row['calendario_id'] ?? 0);
+                                $rowVendedorId = (int) ($row['vendedor_id'] ?? 0);
+                                $rowTablaOrigen = (string) ($row['tabla_origen'] ?? '');
+                            ?>
+                            <tr
+                                data-lead-id="<?php echo $rowLeadId; ?>"
+                                data-tabla-origen="<?php echo htmlspecialchars($rowTablaOrigen, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-cf-id="<?php echo $rowCfId; ?>"
+                                data-calendario-id="<?php echo $rowCalendarioId; ?>"
+                                data-vendedor-id="<?php echo $rowVendedorId; ?>"
+                                data-lead-name="<?php echo htmlspecialchars((string) ($row['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                            >
+                                <td>
+                                    <?php
+                                        $cfIdDisplay = (int) ($row['cf_id'] ?? 0);
+                                        echo $cfIdDisplay > 0
+                                            ? htmlspecialchars((string) $cfIdDisplay, ENT_QUOTES, 'UTF-8')
+                                            : '<span class="td-inline-muted" style="opacity:.45;">—</span>';
+                                    ?>
+                                </td>
+                                <td>
+                                    <a class="td-name-link" href="<?php echo htmlspecialchars($leadInteractionUrl, ENT_QUOTES, 'UTF-8'); ?>" title="Ver interacciones del lead">
+                                        <?php echo htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
+                                </td>
                                 <td><span class="td-inline-muted"><?php echo htmlspecialchars($row['created_date'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                                 <td>
                                     <?php
@@ -1157,13 +1729,29 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
                                         <span class="<?php echo $dotClass; ?>"></span><?php echo htmlspecialchars($lc, ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 </td>
+                                <td><?php echo renderTipoClienteBadge($row['tipo_cliente'] ?? '—'); ?></td>
                                 <td>
                                     <span class="<?php echo htmlspecialchars(originBadgeClass($row['origin']), ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars($row['origin'], ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 </td>
-                                <td>
-                                    <?php if ($row['vendedor_name'] !== ''): ?>
+                                <td data-column="vendedor">
+                                    <?php if ($canAssignVendor): ?>
+                                        <?php if ($row['vendedor_name'] !== ''): ?>
+                                            <?php
+                                            $vendedorInitial = getVendedorInitial($row['vendedor_nombre'] ?? '');
+                                            $vendedorColor = getVendedorColor($row['vendedor_nombre'] ?? '');
+                                            ?>
+                                            <div class="vendedor-badge vendedor-assign-cell js-mlb-assign-vendedor" title="Clic para cambiar vendedora" role="button" tabindex="0">
+                                                <div class="vendedor-circle" style="background-color: <?php echo htmlspecialchars($vendedorColor, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php echo htmlspecialchars($vendedorInitial, ENT_QUOTES, 'UTF-8'); ?>
+                                                </div>
+                                                <span class="vendedor-name"><?php echo htmlspecialchars($row['vendedor_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="vendedor-sin-badge js-mlb-assign-vendedor" title="Clic para asignar vendedora" role="button" tabindex="0">Sin vendedor</span>
+                                        <?php endif; ?>
+                                    <?php elseif ($row['vendedor_name'] !== ''): ?>
                                         <?php
                                         $vendedorInitial = getVendedorInitial($row['vendedor_nombre'] ?? '');
                                         $vendedorColor = getVendedorColor($row['vendedor_nombre'] ?? '');
@@ -1197,6 +1785,12 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
                                         <?php echo htmlspecialchars(statusLabel($row['status']), ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <span
+                                        class="td-inline-muted"
+                                        title="<?php echo htmlspecialchars((string) ($row['status_updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                    ><?php echo htmlspecialchars((string) ($row['status_updated_display'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                </td>
                                 <td class="actions-col">
                                     <?php
                                         $traceParams = [];
@@ -1214,9 +1808,6 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
                                     ?>
                                     <div class="actions-group">
                                         <a class="action-btn" title="Chat" href="<?php echo htmlspecialchars($traceUrl, ENT_QUOTES, 'UTF-8'); ?>">
-                                            <i class="fas fa-message"></i>
-                                        </a>
-                                        <a class="action-btn" title="Registrar interacción" href="lead_interaction.php?tabla_origen=<?php echo urlencode((string) $row['tabla_origen']); ?>&id=<?php echo intval($row['id']); ?>">
                                             <i class="fas fa-comments"></i>
                                         </a>
                                     </div>
@@ -1229,6 +1820,155 @@ $viewLabel = $view === 'dead' ? 'Leads muertos' : 'Leads activos';
         </div>
     </div>
 </div>
+
+<?php if ($canAssignVendor): ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+(function () {
+    const mlbAgentes = <?php echo json_encode($mlbAgentesJs, JSON_UNESCAPED_UNICODE); ?>;
+
+    function escapeHtmlMlb(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function findAgentMatch(vendorId) {
+        return (mlbAgentes || []).find(function (agent) {
+            return parseInt(agent.id, 10) === vendorId;
+        }) || null;
+    }
+
+    function renderVendedorCellHtml(vendorId, nombre, apepat) {
+        const fullName = (String(nombre || '') + ' ' + String(apepat || '')).trim();
+        if (vendorId > 0 && fullName) {
+            const agentMatch = findAgentMatch(vendorId);
+            const initial = agentMatch && agentMatch.initial ? agentMatch.initial : (fullName.charAt(0).toUpperCase() || 'S');
+            const color = agentMatch && agentMatch.color ? agentMatch.color : '#64748B';
+            return '<div class="vendedor-badge vendedor-assign-cell js-mlb-assign-vendedor" title="Clic para cambiar vendedora" role="button" tabindex="0">' +
+                '<div class="vendedor-circle" style="background-color:' + color + '">' + escapeHtmlMlb(initial) + '</div>' +
+                '<span class="vendedor-name">' + escapeHtmlMlb(fullName) + '</span></div>';
+        }
+        return '<span class="vendedor-sin-badge js-mlb-assign-vendedor" title="Clic para asignar vendedora" role="button" tabindex="0">Sin vendedor</span>';
+    }
+
+    function openAssignVendedorPicker(row) {
+        const leadId = parseInt(row.getAttribute('data-lead-id'), 10) || 0;
+        const tablaOrigen = row.getAttribute('data-tabla-origen') || '';
+        const cfId = parseInt(row.getAttribute('data-cf-id'), 10) || 0;
+        const calendarioId = parseInt(row.getAttribute('data-calendario-id'), 10) || 0;
+        const currentId = parseInt(row.getAttribute('data-vendedor-id'), 10) || 0;
+        const leadName = row.getAttribute('data-lead-name') || '';
+
+        if (!leadId || !tablaOrigen) {
+            Swal.fire({ icon: 'info', title: 'Sin datos', text: 'No se pudo identificar el lead.' });
+            return;
+        }
+
+        let optionsHtml = '<option value="0">Sin vendedor</option>';
+        (mlbAgentes || []).forEach(function (agente) {
+            const agentId = parseInt(agente.id, 10) || 0;
+            if (!agentId) {
+                return;
+            }
+            const selected = agentId === currentId ? ' selected' : '';
+            const label = agente.label || ('Usuario #' + agentId);
+            optionsHtml += '<option value="' + agentId + '"' + selected + '>' + escapeHtmlMlb(label) + '</option>';
+        });
+
+        Swal.fire({
+            title: 'Asignar vendedora',
+            html: '<p style="margin:0 0 12px;color:#64748b;font-size:0.9rem;">' + escapeHtmlMlb(leadName) + '</p>' +
+                '<select id="swalMlbVendedorSelect" class="form-select" style="width:100%;">' + optionsHtml + '</select>',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            focusConfirm: false,
+            preConfirm: function () {
+                const selectEl = document.getElementById('swalMlbVendedorSelect');
+                return selectEl ? parseInt(selectEl.value, 10) || 0 : 0;
+            }
+        }).then(function (result) {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            let newVendorId = parseInt(result.value, 10);
+            if (isNaN(newVendorId)) {
+                newVendorId = 0;
+            }
+
+            const body = new URLSearchParams();
+            body.append('tabla_origen', tablaOrigen);
+            body.append('lead_id', String(leadId));
+            body.append('cf_id', String(cfId));
+            body.append('calendario_id', String(calendarioId));
+            body.append('id_vendedor_asignado', String(newVendorId));
+
+            fetch('asignar_vendedor_lead_board.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            })
+                .then(function (response) { return response.json(); })
+                .then(function (resp) {
+                    if (resp && resp.success) {
+                        const savedVendorId = parseInt(resp.id_vendedor_asignado, 10) || 0;
+                        row.setAttribute('data-vendedor-id', String(savedVendorId));
+                        const vendorCell = row.querySelector('td[data-column="vendedor"]');
+                        if (vendorCell) {
+                            vendorCell.innerHTML = renderVendedorCellHtml(
+                                savedVendorId,
+                                resp.vendedor_nombre || '',
+                                resp.vendedor_apepat || ''
+                            );
+                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Listo',
+                            text: resp.message || 'Vendedora actualizada',
+                            timer: 1600,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('Error', (resp && resp.message) ? resp.message : 'No se pudo asignar', 'error');
+                    }
+                })
+                .catch(function () {
+                    Swal.fire('Error', 'Error al conectar con el servidor', 'error');
+                });
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('.js-mlb-assign-vendedor');
+        if (!trigger) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const row = trigger.closest('tr');
+        if (row) {
+            openAssignVendedorPicker(row);
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        const trigger = event.target.closest('.js-mlb-assign-vendedor');
+        if (!trigger || (event.key !== 'Enter' && event.key !== ' ')) {
+            return;
+        }
+        event.preventDefault();
+        const row = trigger.closest('tr');
+        if (row) {
+            openAssignVendedorPicker(row);
+        }
+    });
+})();
+</script>
+<?php endif; ?>
 
 </div>
 </body>

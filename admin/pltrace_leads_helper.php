@@ -390,12 +390,16 @@ if (!function_exists('pltraceResolveLeadVendedorId')) {
 }
 
 if (!function_exists('pltraceResolveLeadVendedora')) {
-    function pltraceResolveLeadVendedora($vendedorId, array $vendorMap)
+    function pltraceResolveLeadVendedora($vendedorId, array $vendorMap, $conn = null)
     {
         $vendedorId = (int) $vendedorId;
         if ($vendedorId <= 0) {
             return '';
         }
+        if ($conn && function_exists('dashComercialResolveUsuarioDisplayNameById')) {
+            return dashComercialResolveUsuarioDisplayNameById($conn, $vendedorId, $vendorMap);
+        }
+
         return $vendorMap[$vendedorId] ?? ('Vendedora #' . $vendedorId);
     }
 }

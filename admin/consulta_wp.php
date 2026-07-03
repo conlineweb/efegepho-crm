@@ -9,11 +9,13 @@ include 'conn.php'; // Incluye el archivo de conexión a la base de datos
 
 $_cwpTipoUsu = intval($_SESSION['tus'] ?? -1);
 $_cwpUserId  = intval($_SESSION['uid'] ?? 0);
-// Usuarios que administran consulta_wp: ven todos los planners aunque sean vendedoras (tipoUsu = 1).
-const CWP_WP_VIEW_ADMIN_USER_IDS = [20];
-$_cwpWpViewAsAdmin = in_array($_cwpUserId, CWP_WP_VIEW_ADMIN_USER_IDS, true);
-$_cwpRestrictByVendedor = ($_cwpTipoUsu === 1 && $_cwpUserId > 0 && !$_cwpWpViewAsAdmin);
-$_cwpCanDeleteWp = (usuarioTipoEsAdminLike($_cwpTipoUsu) || $_cwpUserId === 1);
+$_cwpWpViewAsAdmin = usuarioEsAdminVistaConsultaWp($_cwpUserId);
+// Vendedor (1) y gestor de galería (2) ven todos los planners; sin filtro por asignación propia.
+$_cwpRestrictByVendedor = $_cwpUserId > 0
+    && $_cwpTipoUsu === USUARIO_ROL_VENDEDOR
+    && !usuarioTipoVeTodoEnVistasComerciales($_cwpTipoUsu)
+    && !$_cwpWpViewAsAdmin;
+$_cwpCanDeleteWp = usuarioPuedeOcultarWeddingPlanner($_cwpTipoUsu, $_cwpUserId);
 
 function ensureColumnExists($conn, $table, $columnName, $columnDef)
 {
@@ -264,77 +266,15 @@ function cwpIsValidWpPlannerId($wpId, array $validWpPlannerIds)
     return isset($validWpPlannerIds[$wpId]);
 }
 
-function cwpResolveWpIdByEmailFromLead(array $lead, array $wpProfileIdByEmail, array $wpProfileEmailCount, array $validWpPlannerIds)
-{
-    $leadEmailKey = mb_strtolower(trim((string) ($lead['email'] ?? '')), 'UTF-8');
-    if (
-        $leadEmailKey === '' ||
-        !isset($wpProfileIdByEmail[$leadEmailKey]) ||
-        intval($wpProfileEmailCount[$leadEmailKey] ?? 0) !== 1
-    ) {
-        return 0;
-    }
-
-    $candidateId = intval($wpProfileIdByEmail[$leadEmailKey]);
-    return cwpIsValidWpPlannerId($candidateId, $validWpPlannerIds) ? $candidateId : 0;
-}
-
-function cwpResolveWpIdByPhoneFromLead(array $lead, array $wpProfileIdByPhone, array $wpProfilePhoneCount, array $validWpPlannerIds)
-{
-    $leadPhoneDigits = preg_replace('/\D+/', '', (string) ($lead['phone'] ?? ''));
-    if ($leadPhoneDigits === '') {
-        return 0;
-    }
-
-    $candidates = [$leadPhoneDigits];
-    if (strlen($leadPhoneDigits) > 10) {
-        $candidates[] = substr($leadPhoneDigits, -10);
-    }
-
-    foreach ($candidates as $phoneKey) {
-        if (
-            $phoneKey === '' ||
-            !isset($wpProfileIdByPhone[$phoneKey]) ||
-            intval($wpProfilePhoneCount[$phoneKey] ?? 0) !== 1
-        ) {
-            continue;
-        }
-
-        $candidateId = intval($wpProfileIdByPhone[$phoneKey]);
-        if (cwpIsValidWpPlannerId($candidateId, $validWpPlannerIds)) {
-            return $candidateId;
-        }
-    }
-
-    return 0;
-}
-
 function resolveWpEntityIdFromLead(array $lead, array $wpProfileIdByEmail, array $wpProfileEmailCount, array $wpProfileIdByPhone, array $wpProfilePhoneCount, array $validWpPlannerIds = [])
 {
     $leadTable = trim((string) ($lead['tabla_origen'] ?? ''));
-    $isWeddingPlannerRow = strcasecmp($leadTable, 'wedding_planners') === 0;
-    $isWpCitasRow = strcasecmp($leadTable, 'wp_citas_leads') === 0;
-
-    if ($isWeddingPlannerRow) {
-        $candidateId = intval($lead['id'] ?? 0);
-        return cwpIsValidWpPlannerId($candidateId, $validWpPlannerIds) ? $candidateId : 0;
-    }
-
-    if (!$isWpCitasRow) {
+    if (strcasecmp($leadTable, 'wedding_planners') !== 0) {
         return 0;
     }
 
-    $linkedId = intval($lead['id_wedding_planner'] ?? 0);
-    if (cwpIsValidWpPlannerId($linkedId, $validWpPlannerIds)) {
-        return $linkedId;
-    }
-
-    $emailMatchId = cwpResolveWpIdByEmailFromLead($lead, $wpProfileIdByEmail, $wpProfileEmailCount, $validWpPlannerIds);
-    if ($emailMatchId > 0) {
-        return $emailMatchId;
-    }
-
-    return cwpResolveWpIdByPhoneFromLead($lead, $wpProfileIdByPhone, $wpProfilePhoneCount, $validWpPlannerIds);
+    $candidateId = intval($lead['id'] ?? 0);
+    return cwpIsValidWpPlannerId($candidateId, $validWpPlannerIds) ? $candidateId : 0;
 }
 
 function getAfianzadoBadgeClass($value)
@@ -382,6 +322,10 @@ $filterPlataforma = 'wedding_planners';
 $startDate = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
 $endDate = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 $searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
+$filterEventos = isset($_GET['filter_eventos']) ? trim((string) $_GET['filter_eventos']) : '';
+if (!in_array($filterEventos, ['', 'con_evento'], true)) {
+    $filterEventos = '';
+}
 $showAll = isset($_GET['show_all']);
 
 if ($showAll) {
@@ -396,7 +340,7 @@ $platformLabel = 'Wedding Planner';
 
 
 $tablas = [];
-$sqlTablas = "SELECT nombre FROM tablas_leads WHERE tipo = 2 OR nombre = 'wp_citas_leads' ORDER BY nombre";
+$sqlTablas = "SELECT nombre FROM tablas_leads WHERE tipo = 2 ORDER BY nombre";
 $resultTablas = $conn->query($sqlTablas);
 if ($resultTablas && $resultTablas->num_rows > 0) {
     while ($row = $resultTablas->fetch_assoc()) {
@@ -411,6 +355,10 @@ $b1b2Values = [
 ];
 
 foreach ($tablas as $tableName) {
+    if ($tableName === 'wp_citas_leads') {
+        continue;
+    }
+
     $checkTable = $conn->query("SHOW TABLES LIKE '$tableName'");
     if ($checkTable && $checkTable->num_rows > 0) {
         $columns = [];
@@ -476,60 +424,6 @@ foreach ($tablas as $tableName) {
     }
 }
 
-// Evita duplicados visuales: cuando existe el planner base en wedding_planners,
-// ocultamos su fila espejo proveniente de wp_citas_leads.
-$weddingPlannerIdsPresent = [];
-foreach ($allLeads as $leadRow) {
-    if (strcasecmp((string) ($leadRow['tabla_origen'] ?? ''), 'wedding_planners') === 0) {
-        $baseWpId = intval($leadRow['id'] ?? 0);
-        if ($baseWpId > 0) {
-            $weddingPlannerIdsPresent[$baseWpId] = true;
-        }
-    }
-}
-
-if (!empty($weddingPlannerIdsPresent)) {
-    $allLeads = array_values(array_filter($allLeads, function ($leadRow) use ($weddingPlannerIdsPresent) {
-        $origin = (string) ($leadRow['tabla_origen'] ?? '');
-        if (strcasecmp($origin, 'wp_citas_leads') !== 0) {
-            return true;
-        }
-
-        $mappedWpId = intval($leadRow['id_wedding_planner'] ?? 0);
-        if ($mappedWpId <= 0) {
-            return true;
-        }
-
-        return !isset($weddingPlannerIdsPresent[$mappedWpId]);
-    }));
-}
-
-$deletedWpIds = [];
-$resDeletedWp = $conn->query('SELECT id FROM wedding_planners WHERE eliminado = 1');
-if ($resDeletedWp && $resDeletedWp->num_rows > 0) {
-    while ($rowDeleted = $resDeletedWp->fetch_assoc()) {
-        $deletedId = intval($rowDeleted['id'] ?? 0);
-        if ($deletedId > 0) {
-            $deletedWpIds[$deletedId] = true;
-        }
-    }
-}
-
-if (!empty($deletedWpIds)) {
-    $allLeads = array_values(array_filter($allLeads, function ($leadRow) use ($deletedWpIds) {
-        if (strcasecmp((string) ($leadRow['tabla_origen'] ?? ''), 'wp_citas_leads') !== 0) {
-            return true;
-        }
-
-        $mappedWpId = intval($leadRow['id_wedding_planner'] ?? 0);
-        if ($mappedWpId <= 0) {
-            return true;
-        }
-
-        return !isset($deletedWpIds[$mappedWpId]);
-    }));
-}
-
 // Calcular conteo de leads del día actual basado en `created_time`
 $todayCount = 0;
 $today = date('Y-m-d');
@@ -552,13 +446,44 @@ if ($startDate !== '' || $endDate !== '') {
 }
 
 // En consulta WP se muestran todos los registros de tablas tipo WP (tipo = 2).
-// Si es vendedora (tipoUsu = 1) solo se muestran sus leads asignados (salvo administradores de esta vista).
+// Filtrar por vendedor asignado solo cuando aplica restricción (ya no para tipoUsu 1 ni 2).
 if ($_cwpRestrictByVendedor) {
     $allLeads = array_values(array_filter($allLeads, function ($lead) use ($_cwpUserId) {
         return intval($lead['id_vendedor_asignado'] ?? 0) === $_cwpUserId;
     }));
 }
+
+// Eventos "atendidos": registrados en contact_form (pasar a evento desde cita o evento sin cita).
+$eventosCountByWp = [];
+$resEventosWp = $conn->query(
+    "SELECT ev.wedding_planner_id, COUNT(DISTINCT ev.id) AS cnt
+     FROM eventos_wp ev
+     INNER JOIN contact_form cf ON cf.original_lead_id = ev.id
+       AND LOWER(TRIM(COALESCE(cf.tabla_origen, ''))) = 'eventos_wp'
+     WHERE ev.wedding_planner_id > 0
+     GROUP BY ev.wedding_planner_id"
+);
+if ($resEventosWp) {
+    while ($rowEv = $resEventosWp->fetch_assoc()) {
+        $wpIdKey = intval($rowEv['wedding_planner_id'] ?? 0);
+        if ($wpIdKey > 0) {
+            $eventosCountByWp[$wpIdKey] = intval($rowEv['cnt'] ?? 0);
+        }
+    }
+}
+
 $filteredLeads = $allLeads;
+if ($filterEventos === 'con_evento') {
+    $filteredLeads = array_values(array_filter($filteredLeads, function ($lead) use ($eventosCountByWp) {
+        if (strcasecmp(trim((string) ($lead['tabla_origen'] ?? '')), 'wedding_planners') !== 0) {
+            return false;
+        }
+
+        $wpId = intval($lead['id'] ?? 0);
+
+        return $wpId > 0 && intval($eventosCountByWp[$wpId] ?? 0) > 0;
+    }));
+}
 
 // Ordenar por fecha de registro descendente (más reciente primero)
 usort($filteredLeads, function ($a, $b) {
@@ -886,7 +811,7 @@ if (is_dir($sessionsDir)) {
 // Obtener agentes (necesarios para registro manual de Wedding Planner y asignación en tabla)
 $agentes = [];
 $vendedorById = [];
-$resA = $conn->query("SELECT id, nombre, apepat FROM usuarios WHERE tipoUsu = 1 ORDER BY nombre, apepat");
+$resA = $conn->query('SELECT id, nombre, apepat FROM usuarios WHERE tipoUsu IN (' . usuarioSqlInTiposAsesorEventoWp() . ') ORDER BY nombre, apepat');
 if ($resA && $resA->num_rows > 0) {
     while ($ra = $resA->fetch_assoc()) {
         $agentes[] = $ra;
@@ -894,6 +819,20 @@ if ($resA && $resA->num_rows > 0) {
         if ($aid > 0) {
             $vendedorById[$aid] = $ra;
         }
+    }
+}
+if ($_cwpWpViewAsAdmin && $_cwpUserId > 0 && !isset($vendedorById[$_cwpUserId])) {
+    $stmtSelfVendor = $conn->prepare('SELECT id, nombre, apepat FROM usuarios WHERE id = ? LIMIT 1');
+    if ($stmtSelfVendor) {
+        $stmtSelfVendor->bind_param('i', $_cwpUserId);
+        $stmtSelfVendor->execute();
+        $resSelfVendor = $stmtSelfVendor->get_result();
+        if ($resSelfVendor && $resSelfVendor->num_rows > 0) {
+            $selfVendor = $resSelfVendor->fetch_assoc();
+            $agentes[] = $selfVendor;
+            $vendedorById[$_cwpUserId] = $selfVendor;
+        }
+        $stmtSelfVendor->close();
     }
 }
 
@@ -1661,11 +1600,6 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
 
         .js-assign-vendedor:hover {
             opacity: 0.82;
-        }
-
-        .planner-name.js-assign-vendedor:hover {
-            text-decoration: underline;
-            text-underline-offset: 2px;
         }
 
         .vendedor-assign-cell .origin-badge.js-assign-vendedor:hover {
@@ -2921,6 +2855,22 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
             overflow-x: auto;
         }
 
+        .wp-accounts-table-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 16px;
+            border-top: 1px solid #e2e5ea;
+            background: #fafafa;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .wp-accounts-table-footer strong {
+            color: #374151;
+            font-weight: 600;
+        }
+
         .wp-accounts-table {
             width: 100%;
             border-collapse: collapse;
@@ -2972,6 +2922,18 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
             font-weight: 600;
             font-size: 14px;
             color: #1a1d23;
+        }
+
+        .planner-name-link {
+            text-decoration: none;
+            color: inherit;
+            display: inline-block;
+        }
+
+        .planner-name-link:hover {
+            color: #111827;
+            text-decoration: underline;
+            text-underline-offset: 2px;
         }
 
         .planner-date {
@@ -3270,6 +3232,10 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                         <option value="7d">Últimos 7 días</option>
                         <option value="mas10d">Más de 10 días</option>
                     </select>
+                    <select name="filter_eventos" class="wp-accounts-input" onchange="this.form.submit()">
+                        <option value=""<?php echo $filterEventos === '' ? ' selected' : ''; ?>>Todos los planners</option>
+                        <option value="con_evento"<?php echo $filterEventos === 'con_evento' ? ' selected' : ''; ?>>Solo con evento atendido</option>
+                    </select>
                     <div class="wp-accounts-search-wrap">
                         <i class="search-icon fas fa-search"></i>
                         <input type="text" id="leadsSearchInput" name="search" form="filterForm" class="wp-accounts-search"
@@ -3312,13 +3278,12 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                                         $leadTable = trim((string) ($lead['tabla_origen'] ?? ''));
                                         $isWeddingPlannerRow = strcasecmp($leadTable, 'wedding_planners') === 0;
                                         $wpEntityId = resolveWpEntityIdFromLead($lead, $wpProfileIdByEmail, $wpProfileEmailCount, $wpProfileIdByPhone, $wpProfilePhoneCount, $wpVendedorIdByPlanner);
-                                        $wpCitasLeadId = strcasecmp($leadTable, 'wp_citas_leads') === 0 ? intval($lead['id'] ?? 0) : 0;
-                                        $hasInvalidWpLink = $wpCitasLeadId > 0 && intval($lead['id_wedding_planner'] ?? 0) > 0 && $wpEntityId <= 0;
 
                                         $rowKey = ($lead['tabla_origen'] ?? '') . '|' . intval($lead['id'] ?? 0);
                                         $activityDate = $leadLastInteractionByKey[$rowKey] ?? ($lead['created_time'] ?? '');
                                         $activityMeta = getPlannerActivityMeta($activityDate);
                                         $activeWeddingsForRow = intval($activeWeddingsByWp[$wpEntityId] ?? 0);
+                                        $eventosCountForRow = intval($eventosCountByWp[$wpEntityId] ?? 0);
                                         $showDealBadge = !empty($dealBadgeByLeadKey[$rowKey]);
 
                                         $coordinatorsCount = intval($coordinatorCounts[$wpEntityId] ?? 0);
@@ -3353,6 +3318,8 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                                             data-wp-id="<?php echo intval($wpEntityId); ?>"
                                             data-vendedor-id="<?php echo intval($assignedVendorId); ?>"
                                             data-afianzado="<?php echo intval($afianzadoValue); ?>"
+                                            data-eventos-count="<?php echo intval($eventosCountForRow); ?>"
+                                            data-has-eventos="<?php echo $eventosCountForRow > 0 ? 1 : 0; ?>"
                                             data-wp-name="<?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>"
                                             data-tabla="<?php echo htmlspecialchars($lead['tabla_origen'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                             data-full-name="<?php echo htmlspecialchars(mb_strtolower($displayName, 'UTF-8')); ?>"
@@ -3362,10 +3329,17 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                                             data-when-married="<?php echo htmlspecialchars($lead['when_are_you_getting_married_'] ?? ''); ?>">
                                             <td class="td-id" data-column="id"><?php echo htmlspecialchars($lead['id'] ?? ''); ?></td>
                                             <td data-column="nombre">
-                                                <div class="planner-name<?php echo $canAssignVendor ? ' js-assign-vendedor' : ''; ?>"
-                                                    <?php if ($canAssignVendor): ?>title="Clic para asignar vendedora"<?php endif; ?>>
-                                                    <?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>
-                                                </div>
+                                                <?php if ($wpEntityId > 0): ?>
+                                                    <a class="planner-name planner-name-link"
+                                                        href="planner_profile.php?id=<?php echo intval($wpEntityId); ?>"
+                                                        title="Ver perfil del planner">
+                                                        <?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <div class="planner-name">
+                                                        <?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                                 <?php if ($showDealBadge): ?>
                                                     <div><span class="relation-badge" style="background: rgba(16, 185, 129, 0.18); color: #065f46;">Deal</span></div>
                                                 <?php endif; ?>
@@ -3423,8 +3397,6 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                                                     <?php if ($wpEntityId > 0): ?>
                                                         <a class="wp-accounts-view-btn" title="Ver perfil"
                                                             href="planner_profile.php?id=<?php echo intval($wpEntityId); ?>">Ver perfil</a>
-                                                    <?php elseif ($hasInvalidWpLink): ?>
-                                                        <span class="origin-badge" title="El ID vinculado en wp_citas_leads no existe en wedding_planners">Perfil no vinculado</span>
                                                     <?php else: ?>
                                                         <span class="origin-badge">Sin perfil</span>
                                                     <?php endif; ?>
@@ -3440,6 +3412,12 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="wp-accounts-table-footer">
+                            <span id="wp-table-count-label">
+                                <strong><?php echo number_format($totalCount); ?></strong>
+                                <?php echo $totalCount === 1 ? ' registro' : ' registros'; ?>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -5146,10 +5124,25 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
     (function () {
         var debounceTimer = null;
 
+        function updateTableCountLabel(visible, total) {
+            var footerEl = document.getElementById('wp-table-count-label');
+            if (!footerEl) {
+                return;
+            }
+
+            if (visible === total) {
+                footerEl.innerHTML = '<strong>' + visible.toLocaleString() + '</strong> ' + (visible === 1 ? 'registro' : 'registros');
+                return;
+            }
+
+            footerEl.innerHTML = 'Mostrando <strong>' + visible.toLocaleString() + '</strong> de <strong>' + total.toLocaleString() + '</strong> registros';
+        }
+
         function filterTable(query) {
             var q = query.trim().toLowerCase();
             var rows = document.querySelectorAll('#leadsTable tbody tr');
             var visible = 0;
+            var total = rows.length;
 
             for (var i = 0; i < rows.length; i++) {
                 var row = rows[i];
@@ -5172,6 +5165,8 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
                 }
             }
 
+            updateTableCountLabel(visible, total);
+
             var countEl = document.getElementById('leadsSearchCount');
             if (countEl) {
                 countEl.textContent = q ? (visible + ' resultado' + (visible !== 1 ? 's' : '')) : '';
@@ -5187,6 +5182,9 @@ $cwpExportExcelUrl = 'consulta_wp.php?' . ($cwpExportBaseQuery !== '' ? $cwpExpo
             var input = document.getElementById('leadsSearchInput');
             var clearBtn = document.getElementById('leadsSearchClear');
             if (!input) return;
+
+            var initialRows = document.querySelectorAll('#leadsTable tbody tr');
+            updateTableCountLabel(initialRows.length, initialRows.length);
 
             // Apply filter on page load if there is a pre-filled search value
             if (input.value.trim()) {

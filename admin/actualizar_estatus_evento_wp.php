@@ -1,5 +1,7 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
+require_once __DIR__ . '/evento_wp_post_helper.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as MailException;
@@ -447,11 +449,14 @@ function ensureContactFormColumnsForAfianzados($conn)
     ensureColumnExists($conn, 'contact_form', 'desde_publicidad', "`desde_publicidad` TINYINT(1) DEFAULT 0");
     ensureColumnExists($conn, 'contact_form', 'id_vendedor_asignado', "`id_vendedor_asignado` INT DEFAULT NULL");
     ensureColumnExists($conn, 'contact_form', 'how_did_you_meet', "`how_did_you_meet` VARCHAR(50) DEFAULT NULL");
+    ensureColumnExists($conn, 'contact_form', 'tipo_cliente', "`tipo_cliente` TINYINT(1) NULL DEFAULT NULL COMMENT '1=Wedding Planner, 0=Cliente Final'");
     ensureColumnExists($conn, 'contact_form', 'engagement', "`engagement` INT DEFAULT 0");
     ensureColumnExists($conn, 'contact_form', 'paquete', "`paquete` VARCHAR(100) DEFAULT NULL");
     ensureColumnExists($conn, 'contact_form', 'paquete_cotizado', "`paquete_cotizado` VARCHAR(100) DEFAULT NULL");
     ensureColumnExists($conn, 'contact_form', 'date_appointment', "`date_appointment` DATE DEFAULT NULL");
     ensureColumnExists($conn, 'contact_form', 'time_appointment', "`time_appointment` TIME DEFAULT NULL");
+    ensureColumnExists($conn, 'contact_form', 'evento_wp_id', "`evento_wp_id` INT DEFAULT NULL COMMENT 'ID del evento en eventos_wp'");
+    ensureColumnExists($conn, 'contact_form', 'wp_id', "`wp_id` INT DEFAULT NULL COMMENT 'ID del wedding planner en wedding_planners'");
 }
 
 function upsertEventoClientContactForm($conn, $eventId)
@@ -479,6 +484,7 @@ function upsertEventoClientContactForm($conn, $eventId)
                 wp.when_are_you_getting_married_,
                 wp.where_is_your_marriage_taking_place_,
                 wp.id_vendedor_asignado,
+                wp.first_contact_channel AS wp_first_contact_channel,
                 coord.nombre AS coordinador_nombre,
                 coord.telefono AS coordinador_telefono,
                 coord.correo AS coordinador_correo,
@@ -515,9 +521,12 @@ function upsertEventoClientContactForm($conn, $eventId)
     $email = trim((string) ($source['coordinador_correo'] ?? ''));
     $weddingDate = !empty($source['fecha']) ? date('Y-m-d', strtotime($source['fecha'])) : (!empty($source['when_are_you_getting_married_']) ? date('Y-m-d', strtotime($source['when_are_you_getting_married_'])) : null);
     $weddingLocation = first_non_empty_value($source['lugar'] ?? '', $source['where_is_your_marriage_taking_place_'] ?? '');
-    $campaignName = first_non_empty_value($source['coordinador_campaign_name'] ?? '', $source['wp_campaign_name'] ?? '', $source['empresa_wp'] ?? '', 'Evento WP');
+    $firstContactChannel = first_non_empty_value(
+        $source['coordinador_first_contact_channel'] ?? '',
+        $source['wp_first_contact_channel'] ?? ''
+    );
+    $campaignName = $firstContactChannel;
     $howLongKnownUs = trim((string) ($source['coordinador_how_long_known_us'] ?? ''));
-    $firstContactChannel = trim((string) ($source['coordinador_first_contact_channel'] ?? ''));
     $cliente = 1;
     $fechaCambioCliente = date('Y-m-d');
     $idVendedorAsignado = intval($source['id_asesor'] ?? 0) > 0 ? intval($source['id_asesor']) : intval($source['id_vendedor_asignado'] ?? 0);
@@ -527,6 +536,9 @@ function upsertEventoClientContactForm($conn, $eventId)
     $manual = 1;
     $desdePublicidad = 1;
     $howDidYouMeet = '1';
+    $tipoCliente = 1;
+    $eventoWpId = $eventId;
+    $wpId = intval($source['wedding_planner_id'] ?? 0);
     $submissionDate = !empty($source['created_time']) ? $source['created_time'] : date('Y-m-d H:i:s');
     $createdTime = $submissionDate;
     $dateAppointment = !empty($source['fecha']) ? date('Y-m-d', strtotime($source['fecha'])) : null;
@@ -544,11 +556,11 @@ function upsertEventoClientContactForm($conn, $eventId)
 
     if ($cfRow) {
         $contactFormId = intval($cfRow['id']);
-        $stmt = $conn->prepare('UPDATE contact_form SET names = ?, telephone = ?, country_code = ?, email_address = ?, wedding_date = ?, wedding_location = ?, campaign_name = ?, form_name = ?, how_long_known_us = ?, first_contact_channel = ?, cliente = ?, fecha_cambio_cliente = ?, id_vendedor_asignado = ?, engagement = ?, paquete = ?, paquete_cotizado = ?, manual = ?, desde_publicidad = ?, how_did_you_meet = ?, submission_date = ?, created_time = ?, date_appointment = ?, time_appointment = ? WHERE id = ? LIMIT 1');
+        $stmt = $conn->prepare('UPDATE contact_form SET names = ?, telephone = ?, country_code = ?, email_address = ?, wedding_date = ?, wedding_location = ?, campaign_name = ?, form_name = ?, how_long_known_us = ?, first_contact_channel = ?, cliente = ?, fecha_cambio_cliente = ?, id_vendedor_asignado = ?, engagement = ?, paquete = ?, paquete_cotizado = ?, manual = ?, desde_publicidad = ?, how_did_you_meet = ?, tipo_cliente = ?, evento_wp_id = ?, wp_id = ?, submission_date = ?, created_time = ?, date_appointment = ?, time_appointment = ? WHERE id = ? LIMIT 1');
         if (!$stmt) {
             throw new Exception('No se pudo preparar la actualización del cliente: ' . $conn->error);
         }
-        $stmt->bind_param('ssssssssssisiissiisssssi', $fullName, $telephone, $countryCode, $email, $weddingDate, $weddingLocation, $campaignName, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idVendedorAsignado, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $submissionDate, $createdTime, $dateAppointment, $timeAppointment, $contactFormId);
+        $stmt->bind_param('ssssssssssisiissiisiissssii', $fullName, $telephone, $countryCode, $email, $weddingDate, $weddingLocation, $campaignName, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idVendedorAsignado, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $tipoCliente, $eventoWpId, $wpId, $submissionDate, $createdTime, $dateAppointment, $timeAppointment, $contactFormId);
         if (!$stmt->execute()) {
             throw new Exception('No se pudo actualizar contact_form del cliente: ' . $stmt->error);
         }
@@ -556,11 +568,11 @@ function upsertEventoClientContactForm($conn, $eventId)
         return;
     }
 
-    $stmt = $conn->prepare('INSERT INTO contact_form (names, telephone, country_code, email_address, wedding_date, wedding_location, campaign_name, original_lead_id, tabla_origen, form_name, how_long_known_us, first_contact_channel, cliente, fecha_cambio_cliente, id_vendedor_asignado, engagement, paquete, paquete_cotizado, manual, desde_publicidad, how_did_you_meet, submission_date, created_time, date_appointment, time_appointment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $conn->prepare('INSERT INTO contact_form (names, telephone, country_code, email_address, wedding_date, wedding_location, campaign_name, original_lead_id, tabla_origen, form_name, how_long_known_us, first_contact_channel, cliente, fecha_cambio_cliente, id_vendedor_asignado, engagement, paquete, paquete_cotizado, manual, desde_publicidad, how_did_you_meet, tipo_cliente, evento_wp_id, wp_id, submission_date, created_time, date_appointment, time_appointment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     if (!$stmt) {
         throw new Exception('No se pudo preparar la inserción del cliente: ' . $conn->error);
     }
-    $stmt->bind_param('sssssssissssisiisssssssss', $fullName, $telephone, $countryCode, $email, $weddingDate, $weddingLocation, $campaignName, $eventId, $tablaOrigen, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idVendedorAsignado, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $submissionDate, $createdTime, $dateAppointment, $timeAppointment);
+    $stmt->bind_param('sssssssissssisissiiisssss', $fullName, $telephone, $countryCode, $email, $weddingDate, $weddingLocation, $campaignName, $eventId, $tablaOrigen, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idVendedorAsignado, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $tipoCliente, $eventoWpId, $wpId, $submissionDate, $createdTime, $dateAppointment, $timeAppointment);
     if (!$stmt->execute()) {
         throw new Exception('No se pudo insertar contact_form del cliente: ' . $stmt->error);
     }
@@ -573,7 +585,7 @@ function markAfianzadoEventAsClient($conn, $eventId)
 
     $tablaOrigen = 'wp_eventos_afianzados';
     $fechaCambioCliente = date('Y-m-d');
-    $stmt = $conn->prepare("UPDATE contact_form cf INNER JOIN wp_eventos_afianzados wpa ON wpa.id = cf.original_lead_id SET cf.cliente = 1, cf.fecha_cambio_cliente = ?, cf.first_contact_channel = COALESCE(NULLIF(TRIM(wpa.first_contact_channel), ''), cf.first_contact_channel) WHERE cf.tabla_origen = ? AND wpa.id_evento = ?");
+    $stmt = $conn->prepare("UPDATE contact_form cf INNER JOIN wp_eventos_afianzados wpa ON wpa.id = cf.original_lead_id INNER JOIN eventos_wp ev ON ev.id = wpa.id_evento SET cf.cliente = 1, cf.fecha_cambio_cliente = ?, cf.tipo_cliente = 1, cf.how_did_you_meet = '1', cf.evento_wp_id = ev.id, cf.wp_id = ev.wedding_planner_id, cf.first_contact_channel = COALESCE(NULLIF(TRIM(wpa.first_contact_channel), ''), cf.first_contact_channel), cf.campaign_name = COALESCE(NULLIF(TRIM(wpa.first_contact_channel), ''), cf.campaign_name) WHERE cf.tabla_origen = ? AND wpa.id_evento = ?");
     if (!$stmt) {
         throw new Exception('No se pudo preparar la actualización a cliente del afianzado: ' . $conn->error);
     }
@@ -612,6 +624,7 @@ function ensureAfianzadoCalendarSynced($conn, $eventId, $eventStatus, $calendarS
                 wp.when_are_you_getting_married_,
                 wp.where_is_your_marriage_taking_place_,
                 wp.id_vendedor_asignado,
+                wp.first_contact_channel AS wp_first_contact_channel,
                 coord.nombre AS coordinador_nombre,
                 coord.telefono AS coordinador_telefono,
                 coord.correo AS coordinador_correo,
@@ -642,7 +655,11 @@ function ensureAfianzadoCalendarSynced($conn, $eventId, $eventStatus, $calendarS
     }
 
     $createdTime = first_non_empty_value($source['created_time'] ?? '', date('Y-m-d H:i:s'));
-    $campaignName = first_non_empty_value($source['coordinador_campaign_name'] ?? '', $source['wp_campaign_name'] ?? '', $source['empresa_wp'] ?? '', 'Wedding Planner Afianzado');
+    $firstContactChannel = first_non_empty_value(
+        $source['coordinador_first_contact_channel'] ?? '',
+        $source['wp_first_contact_channel'] ?? ''
+    );
+    $campaignName = $firstContactChannel;
     $platform = first_non_empty_value($source['coordinador_platform'] ?? '', $source['wp_platform'] ?? '', 'Wedding Planner');
     $fullName = first_non_empty_value($source['coordinador_nombre'] ?? '', $source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $source['novios'] ?? '', 'Evento afianzado');
     $weddingLocation = first_non_empty_value($source['lugar'] ?? '', $source['where_is_your_marriage_taking_place_'] ?? '');
@@ -653,12 +670,11 @@ function ensureAfianzadoCalendarSynced($conn, $eventId, $eventStatus, $calendarS
     $phone = trim((string) ($source['coordinador_telefono'] ?? ''));
     $email = trim((string) ($source['coordinador_correo'] ?? ''));
     $howLongKnownUs = trim((string) ($source['coordinador_how_long_known_us'] ?? ''));
-    $firstContactChannel = trim((string) ($source['coordinador_first_contact_channel'] ?? ''));
     $engagement = intval($source['coordinador_engagement'] ?? 0);
     $eventoFecha = !empty($source['fecha']) ? date('Y-m-d H:i:s', strtotime($source['fecha'])) : null;
     $fechaRegistroEvento = !empty($source['fecha_registro']) ? date('Y-m-d H:i:s', strtotime($source['fecha_registro'])) : null;
     $coordinadorNombre = trim((string) ($source['coordinador_nombre'] ?? ''));
-    $empresaWp = first_non_empty_value($source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $campaignName);
+    $empresaWp = first_non_empty_value($source['empresa_wp'] ?? '', $source['wp_full_name'] ?? '', $source['wp_campaign_name'] ?? '');
 
     $stmt = $conn->prepare('SELECT id FROM wp_eventos_afianzados WHERE id_evento = ? LIMIT 1');
     if (!$stmt) {
@@ -788,11 +804,13 @@ function ensureAfianzadoCalendarSynced($conn, $eventId, $eventStatus, $calendarS
         }
         $stmt->close();
     } else {
-        $stmt = $conn->prepare('INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
+        ensureCalendarioFechaRegistroColumn($conn);
+        $fechaRegistroCal = calendarioBookingTimestamp();
+        $stmt = $conn->prepare('INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, fecha_registro, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
         if (!$stmt) {
             throw new Exception('No se pudo preparar la inserción en calendario: ' . $conn->error);
         }
-        $stmt->bind_param('issssssii', $assignedAdvisorId, $dateAppointment, $dateAppointment, $timeAppointment, $timeAppointment, $calendarTitle, $calendarNote, $contactFormId, $calendarStatus);
+        $stmt->bind_param('isssssssii', $assignedAdvisorId, $dateAppointment, $dateAppointment, $timeAppointment, $timeAppointment, $fechaRegistroCal, $calendarTitle, $calendarNote, $contactFormId, $calendarStatus);
         if (!$stmt->execute()) {
             throw new Exception('No se pudo insertar calendario: ' . $stmt->error);
         }
@@ -828,6 +846,7 @@ if ($estatus === 'cliente' && $comentarioACliente === '') {
 ensureColumnExists($conn, 'eventos_wp', 'estatus', "`estatus` VARCHAR(20) DEFAULT NULL AFTER `created_time`");
 ensureColumnExists($conn, 'eventos_wp', 'comentario_a_cliente', "`comentario_a_cliente` TEXT DEFAULT NULL AFTER `comentario`");
 ensureColumnExists($conn, 'eventos_wp', 'fecha_actualizacion_estatus', "`fecha_actualizacion_estatus` DATETIME DEFAULT NULL AFTER `estatus`");
+wpEventEnsureFechaAtendidoColumn($conn);
 
 try {
     $eventStatus = $estatus === 'atendido' ? '1' : ($estatus === 'cliente' ? '2' : '3');
@@ -881,6 +900,10 @@ try {
     }
 
     $stmt->close();
+
+    if ($estatus === 'atendido') {
+        wpEventStampFechaAtendidoIfEmpty($conn, $id);
+    }
 
     $isAfianzado = intval($eventRow['afianzado'] ?? 0) === 1;
     if ($isAfianzado && $estatus === 'atendido') {

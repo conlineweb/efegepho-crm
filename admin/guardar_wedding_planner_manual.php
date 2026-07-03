@@ -1,5 +1,6 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/calendario_estatus_historial_helper.php';
 header('Content-Type: application/json');
 ini_set('display_errors', 1); error_reporting(E_ALL);
 
@@ -169,8 +170,10 @@ $stmt->bind_param('ssssssisi', $campaign, $campaign, $where_is, $when_are, $full
         $titulo = $tituloPrefix . substr($full_name,0,120);
         // include fecha_cliente and hora_cliente for schemas that require them
         $use_idusu = ($idusu > 0) ? $idusu : 0;
-        $stmt = $conn->prepare("INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('issssssiii', $use_idusu, $date_appointment, $date_appointment, $time_appointment, $time_appointment, $titulo, $nota, $cf_id, $estatusCalendario, $eliminado);
+        ensureCalendarioFechaRegistroColumn($conn);
+        $fecha_registro_cal = calendarioBookingTimestamp();
+        $stmt = $conn->prepare("INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, fecha_registro, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('isssssssiii', $use_idusu, $date_appointment, $date_appointment, $time_appointment, $time_appointment, $fecha_registro_cal, $titulo, $nota, $cf_id, $estatusCalendario, $eliminado);
         if (!$stmt->execute()) throw new Exception('Error al insertar en calendario: ' . $stmt->error);
         $cal_id = $stmt->insert_id;
         $stmt->close();
@@ -181,8 +184,10 @@ $stmt->bind_param('ssssssisi', $campaign, $campaign, $where_is, $when_are, $full
         $titulo = 'Cita pendiente - sin datos: ' . substr($full_name,0,80);
         $placeholder_idusu = 0;
  // estatus 'agendado' para que aparezca como cita programada, aunque no tenga fecha/hora real
-        $stmt = $conn->prepare("INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('issssssiii', $placeholder_idusu, $fecha_default, $fecha_default, $hora_default, $hora_default, $titulo, $nota, $cf_id, $estatusCalendario, $eliminado);
+        ensureCalendarioFechaRegistroColumn($conn);
+        $fecha_registro_cal = calendarioBookingTimestamp();
+        $stmt = $conn->prepare("INSERT INTO calendario (idusu, fecha, fecha_cliente, hora, hora_cliente, fecha_registro, titulo, nota, idclie, estatus, eliminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('isssssssiii', $placeholder_idusu, $fecha_default, $fecha_default, $hora_default, $hora_default, $fecha_registro_cal, $titulo, $nota, $cf_id, $estatusCalendario, $eliminado);
         if (!$stmt->execute()) throw new Exception('Error al insertar calendario placeholder: ' . $stmt->error);
         $cal_id = $stmt->insert_id;
         $stmt->close();

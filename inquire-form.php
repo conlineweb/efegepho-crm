@@ -764,9 +764,14 @@ if ($resultBloqueoDiasEventos) {
                 <div class="col-12 col-md-6">
                     <label class="form-label">How long have you known us?</label>
                     <select name="how_long_known_us" required>
-                        <option value="" disabled <?php echo (($pref_how_long_known_us ?? '') === '') ? 'selected' : ''; ?>>Select...</option>
-                        <option value="Less than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
-                        <option value="More than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
+                        <?php
+                        $pref_how_long_raw = !empty($lead_data) ? ($lead_data['how_long_known_us'] ?? '') : '';
+                        $pref_how_long_is_not_asked = in_array($pref_how_long_raw, ['Not asked', 'Sin dato', 'Todavía no sabemos'], true);
+                        ?>
+                        <option value="" disabled <?php echo ($pref_how_long_raw === '') ? 'selected' : ''; ?>>Select...</option>
+                        <option value="Less than 6 months" <?php echo ($pref_how_long_raw === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
+                        <option value="More than 6 months" <?php echo ($pref_how_long_raw === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
+                        <option value="Not asked" <?php echo $pref_how_long_is_not_asked ? 'selected' : ''; ?>>We still don't know</option>
                     </select>
                 </div>
             </div>
@@ -833,6 +838,7 @@ if ($resultBloqueoDiasEventos) {
 <script src="admin/assets/extensions/jquery-ui/jquery-ui.min.js"></script>
 
 <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/moment-timezone@0.5.45/builds/moment-timezone-with-data-1970-2030.min.js"></script>
 <script>
     let lead_data = <?php echo json_encode($lead_data); ?>;
 
@@ -861,6 +867,188 @@ if ($resultBloqueoDiasEventos) {
     console.log('Vendedor UTC offset:', vendorUTCOffset);
     console.log('Diferencia de zona horaria (cliente - vendedor):', timezone);
     console.log('Nombre de zona horaria:', timezoneName);
+
+    const SELLER_TIMEZONE = 'Etc/GMT+6';
+    const SELLER_UTC_OFFSET_MINUTES = -360;
+
+    function isValidIanaTimeZone(tzName) {
+        if (!tzName || typeof tzName !== 'string') {
+            return false;
+        }
+        try {
+            Intl.DateTimeFormat('en-US', { timeZone: tzName }).format();
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function detectClientTimezone() {
+        let resolvedName = '';
+        try {
+            resolvedName = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+                ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                : '';
+        } catch (error) {
+            resolvedName = '';
+        }
+
+        if (!isValidIanaTimeZone(resolvedName)) {
+            resolvedName = isValidIanaTimeZone(timezoneName) ? timezoneName : '';
+        }
+
+        return {
+            timezone_name: resolvedName,
+            timezone_offset_min: timezoneOffsetMinutes,
+            timezone_offset_hours: clientUTCOffset
+        };
+    }
+
+    function normalizeSlotTime(timeText) {
+        const raw = String(timeText || '').trim();
+        if (raw === '') {
+            return '';
+        }
+
+        const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+        if (match) {
+            return match[1].padStart(2, '0') + ':' + match[2].padStart(2, '0');
+        }
+
+        if (/^\d{1,2}$/.test(raw)) {
+            return raw.padStart(2, '0') + ':00';
+        }
+
+        return '';
+    }
+
+    function parseVendorHorarios(raw) {
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+        if (typeof raw !== 'string' || raw.trim() === '') {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function isSlotOccupied(slotHorario, occupiedTimes) {
+        const slotNormalized = normalizeSlotTime(slotHorario);
+        if (!slotNormalized || !Array.isArray(occupiedTimes) || occupiedTimes.length === 0) {
+            return false;
+        }
+
+        return occupiedTimes.some(function (entry) {
+            return normalizeSlotTime(entry.hora) === slotNormalized;
+        });
+    }
+
+    function collectAvailableSlots(vendorHorarios, occupiedTimes) {
+        const hrs = [];
+
+        vendorHorarios.forEach(function (horario) {
+            const slotTime = normalizeSlotTime(horario);
+            if (!slotTime || isSlotOccupied(horario, occupiedTimes) || hrs.includes(slotTime)) {
+                return;
+            }
+            hrs.push(slotTime);
+        });
+
+        hrs.sort(function (a, b) {
+            const partsA = a.split(':');
+            const partsB = b.split(':');
+            return (parseInt(partsA[0], 10) * 60 + parseInt(partsA[1], 10)) - (parseInt(partsB[0], 10) * 60 + parseInt(partsB[1], 10));
+        });
+
+        return hrs;
+    }
+
+    function getUtcDateFromSellerSlot(dateText, timeText) {
+        const normalizedTime = normalizeSlotTime(timeText);
+        const dateMatch = String(dateText || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        const timeMatch = normalizedTime.match(/^(\d{2}):(\d{2})$/);
+        if (!dateMatch || !timeMatch) {
+            return null;
+        }
+
+        const year = parseInt(dateMatch[1], 10);
+        const month = parseInt(dateMatch[2], 10);
+        const day = parseInt(dateMatch[3], 10);
+        const hour = parseInt(timeMatch[1], 10);
+        const minute = parseInt(timeMatch[2], 10);
+
+        const localAsUtcMillis = Date.UTC(year, month - 1, day, hour, minute, 0);
+        const utcMillis = localAsUtcMillis - (SELLER_UTC_OFFSET_MINUTES * 60 * 1000);
+        return new Date(utcMillis);
+    }
+
+    function getDatePartsForTimezone(dateObj, tzName) {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: tzName,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(dateObj).reduce(function (acc, part) {
+            if (part.type !== 'literal') {
+                acc[part.type] = part.value;
+            }
+            return acc;
+        }, {});
+
+        return {
+            date: parts.year + '-' + parts.month + '-' + parts.day,
+            time: parts.hour + ':' + parts.minute
+        };
+    }
+
+    function convertSellerSlotToClientLocal(dateText, timeText, clientTzInfo) {
+        const normalizedSellerTime = normalizeSlotTime(timeText);
+        const utcDate = getUtcDateFromSellerSlot(dateText, normalizedSellerTime);
+        if (!utcDate) {
+            return {
+                clientDate: dateText,
+                clientTime: normalizedSellerTime || String(timeText || ''),
+                isSameAsSeller: true
+            };
+        }
+
+        if (window.moment && typeof window.moment.tz === 'function' && isValidIanaTimeZone(clientTzInfo.timezone_name)) {
+            const sellerMoment = window.moment.tz(dateText + ' ' + normalizedSellerTime, 'YYYY-MM-DD HH:mm', SELLER_TIMEZONE);
+            const clientMoment = sellerMoment.clone().tz(clientTzInfo.timezone_name);
+            return {
+                clientDate: clientMoment.format('YYYY-MM-DD'),
+                clientTime: clientMoment.format('HH:mm'),
+                isSameAsSeller: clientMoment.format('YYYY-MM-DD HH:mm') === sellerMoment.format('YYYY-MM-DD HH:mm')
+            };
+        }
+
+        if (isValidIanaTimeZone(clientTzInfo.timezone_name)) {
+            const localParts = getDatePartsForTimezone(utcDate, clientTzInfo.timezone_name);
+            return {
+                clientDate: localParts.date,
+                clientTime: localParts.time,
+                isSameAsSeller: localParts.date === dateText && localParts.time === normalizedSellerTime
+            };
+        }
+
+        const fallbackDate = new Date(utcDate.getTime() - (clientTzInfo.timezone_offset_min * 60 * 1000));
+        const fallbackDateText = fallbackDate.getUTCFullYear() + '-' + String(fallbackDate.getUTCMonth() + 1).padStart(2, '0') + '-' + String(fallbackDate.getUTCDate()).padStart(2, '0');
+        const fallbackTimeText = String(fallbackDate.getUTCHours()).padStart(2, '0') + ':' + String(fallbackDate.getUTCMinutes()).padStart(2, '0');
+        return {
+            clientDate: fallbackDateText,
+            clientTime: fallbackTimeText,
+            isSameAsSeller: fallbackDateText === dateText && fallbackTimeText === normalizedSellerTime
+        };
+    }
 
     document.addEventListener("DOMContentLoaded", function () {
         // Real-time validation for email confirmation
@@ -1102,20 +1290,19 @@ if ($resultBloqueoDiasEventos) {
                 $scheduleList.empty();
 
                 if (schedule && schedule.length > 0) {
-                    // timezone ya representa la diferencia: cliente - vendedor
-                    // Si timezone = 0, misma zona, no ajustar
-                    // Si timezone = 2, cliente está 2 horas adelante
-                    const dif = timezone;
-                    
-                    schedule.forEach(time => {
-                        let custTime = time;
-                        let displayTime = time + " (US Central Time)";
-                        if (timezone != 0) {
-                            tz = time.split(":");
-                            custTime = (parseInt(tz[0]) + dif) + ":" + tz[1];
-                            displayTime = custTime + " (Local Time)";
+                    const clientTzInfo = detectClientTimezone();
+                    schedule.forEach(function (time) {
+                        const sellerTime = normalizeSlotTime(time);
+                        if (!sellerTime) {
+                            return;
                         }
-                        const $listItem = $(`<li data-hour="${time}" data-hourcust="${custTime}">`).text(displayTime);
+                        const convertedSlot = convertSellerSlotToClientLocal(selecteddate, sellerTime, clientTzInfo);
+                        const displayTime = convertedSlot.clientTime + ' (Local Time)';
+                        const $listItem = $('<li>')
+                            .attr('data-hour', sellerTime)
+                            .attr('data-hourcust', convertedSlot.clientTime)
+                            .attr('data-datecust', convertedSlot.clientDate)
+                            .text(displayTime);
                         $scheduleList.append($listItem);
 
                         $listItem.click(function () {
@@ -1181,52 +1368,28 @@ if ($resultBloqueoDiasEventos) {
                                 contentType: false,  // No establezcas un content-type, ya que se manejará automáticamente
                                 success: function (times) {
                                     let hrs = [];
-                                    let horarios = JSON.parse(horariosJson)
-                                    horarios.forEach((vendor) => {
-                                        let vendor_horarios = JSON.parse(vendor.horarios);
-                                        console.log("vendor_horarios ", vendor_horarios)
+                                    let horarios = typeof horariosJson === 'string' ? JSON.parse(horariosJson) : horariosJson;
+                                    horarios.forEach(function (vendor) {
+                                        const vendorHorarios = parseVendorHorarios(vendor.horarios);
+                                        const vendorOccupied = Array.isArray(times)
+                                            ? times.filter(function (time) {
+                                                return String(time.idusu) === String(vendor.idusu);
+                                            })
+                                            : [];
 
-                                        vendor_horarios.forEach((horario) => {
-
-                                            if (times.length > 0) {
-                                                let hr = horario
-
-                                                times.forEach((time) => {
-                                                    if (time.hora == `${horario}:00` && time.idusu == vendor.idusu) {
-                                                        console.log(time.hora + " es igual a " + `${horario}:00`)
-                                                        hr = 0;
-                                                    }
-                                                });
-                                                // console.log("hr ",hr)
-                                                // console.log("hrs ",hrs)
-
-                                                if (hr != 0 && !hrs.includes(horario)) {
-                                                    hrs.push(horario);
-                                                }
-
-                                            } else {
-                                                if (!hrs.includes(horario)) {
-                                                    hrs.push(horario);
-                                                }
+                                        collectAvailableSlots(vendorHorarios, vendorOccupied).forEach(function (slotTime) {
+                                            if (!hrs.includes(slotTime)) {
+                                                hrs.push(slotTime);
                                             }
-                                        })
-
+                                        });
                                     });
 
-                                    // Ordenamos las horas
-                                    // Función para convertir la hora en formato "HH:MM" a minutos totales
-                                    function convertToMinutes(timeStr) {
-                                        let [hrs, mins] = timeStr.split(":");
-                                        return parseInt(hrs) * 60 + parseInt(mins);
-                                    }
-
-                                    // Ordena el array de horas
                                     hrs.sort(function (a, b) {
-                                        return convertToMinutes(a) - convertToMinutes(b);
+                                        const partsA = a.split(':');
+                                        const partsB = b.split(':');
+                                        return (parseInt(partsA[0], 10) * 60 + parseInt(partsA[1], 10)) - (parseInt(partsB[0], 10) * 60 + parseInt(partsB[1], 10));
                                     });
 
-
-                                    // Creamos el HTML para las tarjetas
                                     for (let i = 0; i < hrs.length; i++) {
                                         horas.push(hrs[i]);
                                     }
@@ -1403,10 +1566,37 @@ if ($resultBloqueoDiasEventos) {
                 console.log('dif (horas):', dif);
                 console.log('dateCustFormatted:', dateCustFormatted);
 
+                const selectedSlot = $('li.selected');
+                if (!selectedSlot.length) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Por favor selecciona un horario',
+                        customClass: {
+                            popup: 'swal2-popup-center'
+                        }
+                    });
+                    return;
+                }
+
+                const selectedHourVendor = normalizeSlotTime(selectedSlot.data('hour'));
+                const selectedHourClient = normalizeSlotTime(selectedSlot.data('hourcust')) || selectedHourVendor;
+                const dateCustFromSlot = String(selectedSlot.data('datecust') || '');
+
+                if (!selectedHourVendor) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'El horario seleccionado no es válido',
+                        customClass: {
+                            popup: 'swal2-popup-center'
+                        }
+                    });
+                    return;
+                }
+
                 formData.append('date_appointment', selecteddate);
-                formData.append('time_appointment', $('li.selected').data('hour'));
-                formData.append('time_appointment_cust', $('li.selected').data('hourcust'));
-                formData.append('date_appointment_cust', dateCustFormatted);
+                formData.append('time_appointment', selectedHourVendor);
+                formData.append('time_appointment_cust', selectedHourClient);
+                formData.append('date_appointment_cust', dateCustFromSlot || dateCustFormatted);
                 formData.append('desde_publicidad', 0);
                 formData.append('zona_horaria', timezone);
                 formData.append('timezone_offset_min', timezoneOffsetMinutes); // Enviar offset en minutos para cálculo UTC

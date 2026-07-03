@@ -288,17 +288,65 @@ function idxDashboardFetchInteractionAssignees($conn, array $rows) {
     return $map;
 }
 function idxDashboardApplyAssignee(array $item, array $assigneeMap) {
+    $storedName = trim((string) ($item['lead_name'] ?? ''));
     $origen = trim((string) ($item['tabla_origen'] ?? ''));
     $leadId = intval($item['lead_id'] ?? 0);
     if ($origen !== '' && $leadId > 0) {
         $assignee = $assigneeMap[idxDashboardAssigneeKey($origen, $leadId)] ?? null;
         if (is_array($assignee)) {
             $item['assignee_kind']  = $assignee['kind'] ?? 'lead';
-            $item['assignee_label'] = trim((string) ($assignee['label'] ?? ''));
+            $item['assignee_label'] = $storedName !== '' ? $storedName : trim((string) ($assignee['label'] ?? ''));
             $item['assignee_url']   = trim((string) ($assignee['url'] ?? ''));
+        } elseif ($storedName !== '') {
+            $item['assignee_kind']  = idxDashboardIsWpOrigen($origen) ? 'wp' : 'lead';
+            $item['assignee_label'] = $storedName;
+            $item['assignee_url']   = idxDashboardIsWpOrigen($origen)
+                ? 'planner_profile.php?id=' . $leadId
+                : 'lead_interaction.php?tabla_origen=' . urlencode($origen) . '&id=' . $leadId;
         }
+    } elseif ($storedName !== '') {
+        $item['assignee_label'] = $storedName;
     }
     return $item;
+}
+function idxDashboardActionSearchText(array $evt) {
+    $parts = [
+        trim((string) ($evt['lead_name'] ?? '')),
+        trim((string) ($evt['assignee_label'] ?? '')),
+        trim((string) ($evt['title'] ?? '')),
+        trim((string) ($evt['vendedor_label'] ?? '')),
+        trim((string) ($evt['interaction_type'] ?? '')),
+        trim((string) ($evt['outcome'] ?? '')),
+        trim((string) ($evt['owner'] ?? '')),
+        trim((string) ($evt['subtitle'] ?? '')),
+    ];
+    return mb_strtolower(implode(' ', array_filter($parts)), 'UTF-8');
+}
+function idxDashboardActionFilterAttrs(array $evt, $status) {
+    $source = trim((string) ($evt['source'] ?? 'calendario'));
+    $attrs = [
+        'class'           => 'appointment-item idx-filterable-item',
+        'data-source'     => $source,
+        'data-date'       => trim((string) ($evt['date_only'] ?? '')),
+        'data-vendedor'   => trim((string) ($evt['vendedor_label'] ?? '')),
+        'data-type'       => trim((string) ($evt['interaction_type'] ?? '')),
+        'data-status'     => trim((string) $status),
+        'data-search'     => idxDashboardActionSearchText($evt),
+    ];
+    if ($source === 'interaccion') {
+        $evtId = intval($evt['id'] ?? 0);
+        if ($evtId > 0) {
+            $attrs['data-interaction-id'] = (string) $evtId;
+        }
+    }
+    $html = '';
+    foreach ($attrs as $key => $value) {
+        if ($key === 'class') {
+            continue;
+        }
+        $html .= ' ' . $key . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"';
+    }
+    return ['class' => $attrs['class'], 'attrs' => $html];
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -1154,6 +1202,10 @@ foreach ($dashboardEventsNormalized as $evt) {
     }
 }
 
+// Ensure lead_interactions columns exist before querying them
+require_once __DIR__ . '/lead_interactions_helper.php';
+leadInteractionsEnsureTable($conn);
+
 // Ensure next_action_completed column exists before querying it
 $liColCheck = $conn->query("SHOW COLUMNS FROM `lead_interactions` LIKE 'next_action_completed'");
 if ($liColCheck && $liColCheck->num_rows === 0) {
@@ -1161,7 +1213,7 @@ if ($liColCheck && $liColCheck->num_rows === 0) {
 }
 
 // Fetch scheduled actions from lead_interactions (next_action_date upcoming)
-$liSql = "SELECT li.id, li.next_action, li.next_action_date, li.next_action_completed, li.interaction_type, li.outcome, li.tabla_origen, li.lead_id, li.notes, li.created_by,
+$liSql = "SELECT li.id, li.next_action, li.next_action_date, li.next_action_completed, li.interaction_type, li.outcome, li.tabla_origen, li.lead_id, li.lead_name, li.notes, li.created_by,
     COALESCE(NULLIF(TRIM(CONCAT(u.nombre, ' ', u.apepat)), ''), NULLIF(TRIM(u.nombre), ''), '') AS vendedor_label
     FROM lead_interactions li
     LEFT JOIN usuarios u ON u.id = li.created_by
@@ -1172,7 +1224,7 @@ if (!$idxSeeAllPendingInteractions) {
     $liSafeUserId = intval($userid);
     $liSql .= " AND (li.created_by = $liSafeUserId OR li.created_by IS NULL)";
 }
-$liSql .= " ORDER BY li.next_action_date ASC LIMIT 50";
+$liSql .= " ORDER BY li.next_action_date ASC";
 $liResult = $conn->query($liSql);
 $dashboardVencidasActions = [];
 $liRowsBuffer = [];
@@ -1193,6 +1245,7 @@ foreach ($liRowsBuffer as $liRow) {
         'date_only'        => $liDate,
         'tabla_origen'     => trim((string) ($liRow['tabla_origen'] ?? '')),
         'lead_id'          => intval($liRow['lead_id'] ?? 0),
+        'lead_name'        => trim((string) ($liRow['lead_name'] ?? '')),
         'owner'            => trim((string) ($liRow['tabla_origen'] ?? '')) . ' #' . intval($liRow['lead_id'] ?? 0),
         'interaction_type' => trim((string) ($liRow['interaction_type'] ?? '')),
         'outcome'          => trim((string) ($liRow['outcome'] ?? '')),
@@ -1223,10 +1276,29 @@ $dashboardPendingActions = array_values(array_filter($dashboardPendingActions, f
     }
     return $e['timestamp'] >= $dashboardNowTs;
 }));
-$dashboardPendingActions = array_slice($dashboardPendingActions, 0, 5);
-
-// Sort vencidas by date descending (most overdue first)
+// Sort vencidas by date ascending (most overdue first)
 usort($dashboardVencidasActions, function ($a, $b) { return $a['timestamp'] <=> $b['timestamp']; });
+
+$dashboardActionFilterVendors = [];
+$dashboardActionFilterTypes = [];
+foreach (array_merge($dashboardPendingActions, $dashboardVencidasActions) as $actionItem) {
+    $vendorLabel = trim((string) ($actionItem['vendedor_label'] ?? ''));
+    if ($vendorLabel !== '') {
+        $dashboardActionFilterVendors[$vendorLabel] = $vendorLabel;
+    }
+    if (($actionItem['source'] ?? '') === 'interaccion') {
+        $typeLabel = trim((string) ($actionItem['interaction_type'] ?? ''));
+        if ($typeLabel !== '') {
+            $dashboardActionFilterTypes[$typeLabel] = $typeLabel;
+        }
+    }
+}
+natcasesort($dashboardActionFilterVendors);
+natcasesort($dashboardActionFilterTypes);
+$dashboardActionFilterVendors = array_values($dashboardActionFilterVendors);
+$dashboardActionFilterTypes = array_values($dashboardActionFilterTypes);
+$dashboardTotalPendingCount = count($dashboardPendingActions);
+$dashboardTotalVencidasCount = count($dashboardVencidasActions);
 
 // Rebuild upcoming deadlines (already mixed in above)
 usort($dashboardUpcomingDeadlines, function ($a, $b) { return $a['timestamp'] <=> $b['timestamp']; });
@@ -1680,6 +1752,85 @@ table td.disabled {
     font-weight: 700;
     margin: 0 0 14px;
     color: var(--ink);
+}
+.efege-postq .pending-section-title .pending-section-count {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.efege-postq .idx-actions-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px 10px;
+    margin-bottom: 10px;
+    align-items: end;
+}
+.efege-postq .idx-actions-filters label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.efege-postq .idx-actions-filters input,
+.efege-postq .idx-actions-filters select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 13px;
+    background: #fff;
+    color: var(--ink);
+}
+.efege-postq .idx-actions-filters .idx-filter-clear {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.efege-postq .idx-actions-filters .idx-filter-clear:hover {
+    background: #f8fafc;
+    color: var(--ink);
+}
+.efege-postq .idx-actions-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--muted);
+}
+.efege-postq .idx-actions-scroll {
+    max-height: 520px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+.efege-postq .idx-filterable-item.idx-filter-hidden {
+    display: none !important;
+}
+.efege-postq .idx-vencidas-section.idx-filter-section-hidden,
+.efege-postq .idx-filter-section-hidden.idx-actions-scroll {
+    display: none;
+}
+@media (max-width: 1100px) {
+    .efege-postq .idx-actions-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 640px) {
+    .efege-postq .idx-actions-filters {
+        grid-template-columns: 1fr;
+    }
 }
 
 .efege-postq .pending-actions-list,
@@ -2595,8 +2746,62 @@ table td.disabled {
 
     <section class="dashboard-main-grid">
         <aside class="dashboard-panel">
-            <h2 class="pending-section-title">Acciones pendientes</h2>
-            <div class="pending-actions-list">
+            <h2 class="pending-section-title">
+                Acciones pendientes
+                <span class="pending-section-count">(<?php echo number_format($dashboardTotalPendingCount + $dashboardTotalVencidasCount); ?>)</span>
+            </h2>
+
+            <div class="idx-actions-filters" id="idxActionsFilters">
+                <div>
+                    <label for="idxFilterSearch">Nombre / acción</label>
+                    <input type="search" id="idxFilterSearch" placeholder="Lead, planner, acción…" autocomplete="off">
+                </div>
+                <div>
+                    <label for="idxFilterDateFrom">Desde</label>
+                    <input type="date" id="idxFilterDateFrom">
+                </div>
+                <div>
+                    <label for="idxFilterDateTo">Hasta</label>
+                    <input type="date" id="idxFilterDateTo">
+                </div>
+                <div>
+                    <label for="idxFilterVendor">Vendedor</label>
+                    <select id="idxFilterVendor">
+                        <option value="">Todos</option>
+                        <?php foreach ($dashboardActionFilterVendors as $vendorOption): ?>
+                            <option value="<?php echo htmlspecialchars($vendorOption, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($vendorOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="idxFilterType">Tipo</label>
+                    <select id="idxFilterType">
+                        <option value="">Todos</option>
+                        <option value="interaccion">Solo interacciones</option>
+                        <option value="calendario">Solo citas</option>
+                        <?php foreach ($dashboardActionFilterTypes as $typeOption): ?>
+                            <option value="<?php echo htmlspecialchars($typeOption, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($typeOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="idxFilterStatus">Estatus</label>
+                    <select id="idxFilterStatus">
+                        <option value="">Todos</option>
+                        <option value="pending">Pendientes</option>
+                        <option value="overdue">Vencidas</option>
+                    </select>
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button type="button" class="idx-filter-clear" id="idxFilterClear">Limpiar</button>
+                </div>
+            </div>
+            <div class="idx-actions-meta">
+                <span id="idxActionsCount">Mostrando <?php echo number_format($dashboardTotalPendingCount + $dashboardTotalVencidasCount); ?> de <?php echo number_format($dashboardTotalPendingCount + $dashboardTotalVencidasCount); ?></span>
+            </div>
+
+            <div class="pending-actions-list idx-actions-scroll" id="idxPendingList">
                 <?php if (!empty($dashboardPendingActions)): ?>
                     <div class="appointment-list">
                     <?php foreach ($dashboardPendingActions as $evt): ?>
@@ -2606,8 +2811,9 @@ table td.disabled {
                             $evtSource  = $evt['source'] ?? 'calendario';
                             $evtDueLabel = htmlspecialchars(dashboardDueLabel($evt['timestamp'], $dashboardToday, $dashboardTomorrow), ENT_QUOTES, 'UTF-8');
                             $evtId      = intval($evt['id'] ?? 0);
+                            $evtFilter  = idxDashboardActionFilterAttrs($evt, 'pending');
                         ?>
-                        <div class="appointment-item" <?php echo ($evtSource === 'interaccion' && $evtId > 0) ? 'data-interaction-id="' . $evtId . '"' : ''; ?>>
+                        <div class="<?php echo htmlspecialchars($evtFilter['class'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $evtFilter['attrs']; ?>>
                             <?php if ($evtSource === 'interaccion'): ?>
                                 <div class="appointment-top">
                                     <?php if ($evtType !== ''): ?>
@@ -2689,18 +2895,19 @@ table td.disabled {
             </div>
 
             <?php if (!empty($dashboardVencidasActions)): ?>
-            <div class="deadlines-header" style="margin-top:18px;">
+            <div class="deadlines-header idx-vencidas-section" id="idxVencidasSection" style="margin-top:18px;">
                 <div class="deadlines-title" style="color:#b91c1c;">Acciones vencidas <span class="deadlines-sub" style="color:#ef4444;">(<?php echo count($dashboardVencidasActions); ?>)</span></div>
             </div>
-            <div class="pending-actions-list">
+            <div class="pending-actions-list idx-actions-scroll" id="idxVencidasList">
                 <div class="appointment-list">
                 <?php foreach ($dashboardVencidasActions as $evt): ?>
                     <?php
                         $evtType    = trim((string) ($evt['interaction_type'] ?? ''));
                         $evtOutcome = trim((string) ($evt['outcome'] ?? ''));
                         $evtId      = intval($evt['id'] ?? 0);
+                        $evtFilter  = idxDashboardActionFilterAttrs($evt, 'overdue');
                     ?>
-                    <div class="appointment-item" style="border-left:3px solid #ef4444;" <?php echo $evtId > 0 ? 'data-interaction-id="' . $evtId . '"' : ''; ?>>
+                    <div class="<?php echo htmlspecialchars($evtFilter['class'], ENT_QUOTES, 'UTF-8'); ?>" style="border-left:3px solid #ef4444;"<?php echo $evtFilter['attrs']; ?>>
                         <div class="appointment-top">
                             <?php if ($evtType !== ''): ?>
                                 <span class="interaction-type-badge <?php echo idxTypeClass($evtType); ?>">
@@ -3602,6 +3809,121 @@ $(document).ready(function () {
         series: [{ name: 'Desde cuándo nos conoce', colorByPoint: true, data: postQKnownUsSeries }]
     }));
 });
+</script>
+
+<script>
+(function () {
+    function idxNormalizeSearch(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    var filterEls = {
+        search: document.getElementById('idxFilterSearch'),
+        dateFrom: document.getElementById('idxFilterDateFrom'),
+        dateTo: document.getElementById('idxFilterDateTo'),
+        vendor: document.getElementById('idxFilterVendor'),
+        type: document.getElementById('idxFilterType'),
+        status: document.getElementById('idxFilterStatus'),
+        clear: document.getElementById('idxFilterClear'),
+        count: document.getElementById('idxActionsCount'),
+        vencidasSection: document.getElementById('idxVencidasSection'),
+        vencidasList: document.getElementById('idxVencidasList')
+    };
+    var items = Array.prototype.slice.call(document.querySelectorAll('.idx-filterable-item'));
+    if (!items.length || !filterEls.search) {
+        return;
+    }
+
+    function applyIdxActionFilters() {
+        var search = idxNormalizeSearch(filterEls.search.value.trim());
+        var dateFrom = filterEls.dateFrom.value;
+        var dateTo = filterEls.dateTo.value;
+        var vendor = filterEls.vendor.value;
+        var type = filterEls.type.value;
+        var status = filterEls.status.value;
+        var visible = 0;
+
+        items.forEach(function (item) {
+            var show = true;
+            var itemSearch = idxNormalizeSearch(item.dataset.search || '');
+            var itemDate = item.dataset.date || '';
+            var itemVendor = item.dataset.vendedor || '';
+            var itemSource = item.dataset.source || '';
+            var itemType = item.dataset.type || '';
+            var itemStatus = item.dataset.status || '';
+
+            if (search && itemSearch.indexOf(search) === -1) {
+                show = false;
+            }
+            if (show && dateFrom && itemDate && itemDate < dateFrom) {
+                show = false;
+            }
+            if (show && dateTo && itemDate && itemDate > dateTo) {
+                show = false;
+            }
+            if (show && vendor && itemVendor !== vendor) {
+                show = false;
+            }
+            if (show && type) {
+                if (type === 'interaccion' || type === 'calendario') {
+                    if (itemSource !== type) {
+                        show = false;
+                    }
+                } else if (itemType !== type) {
+                    show = false;
+                }
+            }
+            if (show && status && itemStatus !== status) {
+                show = false;
+            }
+
+            item.classList.toggle('idx-filter-hidden', !show);
+            if (show) {
+                visible++;
+            }
+        });
+
+        if (filterEls.count) {
+            filterEls.count.textContent = 'Mostrando ' + visible + ' de ' + items.length;
+        }
+
+        if (filterEls.vencidasSection) {
+            var overdueVisible = items.some(function (item) {
+                return item.dataset.status === 'overdue' && !item.classList.contains('idx-filter-hidden');
+            });
+            filterEls.vencidasSection.classList.toggle('idx-filter-section-hidden', !overdueVisible);
+            if (filterEls.vencidasList) {
+                filterEls.vencidasList.classList.toggle('idx-filter-section-hidden', !overdueVisible);
+            }
+        }
+    }
+
+    ['input', 'change'].forEach(function (evtName) {
+        filterEls.search.addEventListener(evtName, applyIdxActionFilters);
+        filterEls.dateFrom.addEventListener(evtName, applyIdxActionFilters);
+        filterEls.dateTo.addEventListener(evtName, applyIdxActionFilters);
+        filterEls.vendor.addEventListener(evtName, applyIdxActionFilters);
+        filterEls.type.addEventListener(evtName, applyIdxActionFilters);
+        filterEls.status.addEventListener(evtName, applyIdxActionFilters);
+    });
+
+    if (filterEls.clear) {
+        filterEls.clear.addEventListener('click', function () {
+            filterEls.search.value = '';
+            filterEls.dateFrom.value = '';
+            filterEls.dateTo.value = '';
+            filterEls.vendor.value = '';
+            filterEls.type.value = '';
+            filterEls.status.value = '';
+            applyIdxActionFilters();
+        });
+    }
+
+    applyIdxActionFilters();
+})();
 </script>
 
 <script>

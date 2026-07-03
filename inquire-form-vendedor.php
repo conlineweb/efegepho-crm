@@ -80,9 +80,9 @@ if ($resultBloqueoDiasEventos) {
 
 }
 
-// Vendedoras disponibles para asignación (solo tipoUsu = 1)
+// Vendedoras disponibles para asignación (tipoUsu = 1, más usuario id 21)
 $vendedoras = [];
-$resVendedoras = $conn->query("SELECT id, nombre, apepat, enlace_meet FROM usuarios WHERE tipoUsu = 1 ORDER BY nombre, apepat");
+$resVendedoras = $conn->query("SELECT id, nombre, apepat, enlace_meet FROM usuarios WHERE tipoUsu = 1 OR id = 21 ORDER BY nombre, apepat");
 if ($resVendedoras && $resVendedoras->num_rows > 0) {
     while ($rowV = $resVendedoras->fetch_assoc()) {
         $vendedoras[] = $rowV;
@@ -1055,9 +1055,14 @@ foreach ($vendedoras as $v) {
                 <div class="col-12 col-md-6">
                     <label class="form-label">How long have you known us?</label>
                     <select name="how_long_known_us" required>
-                        <option value="" disabled <?php echo (($pref_how_long_known_us ?? '') === '') ? 'selected' : ''; ?>>Select...</option>
-                        <option value="Less than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
-                        <option value="More than 6 months" <?php echo (($pref_how_long_known_us ?? '') === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
+                        <?php
+                        $pref_how_long_raw = !empty($lead_data) ? ($lead_data['how_long_known_us'] ?? '') : '';
+                        $pref_how_long_is_not_asked = in_array($pref_how_long_raw, ['Not asked', 'Sin dato', 'Todavía no sabemos'], true);
+                        ?>
+                        <option value="" disabled <?php echo ($pref_how_long_raw === '') ? 'selected' : ''; ?>>Select...</option>
+                        <option value="Less than 6 months" <?php echo ($pref_how_long_raw === 'Less than 6 months') ? 'selected' : ''; ?>>Less than 6 months</option>
+                        <option value="More than 6 months" <?php echo ($pref_how_long_raw === 'More than 6 months') ? 'selected' : ''; ?>>More than 6 months</option>
+                        <option value="Not asked" <?php echo $pref_how_long_is_not_asked ? 'selected' : ''; ?>>We still don't know</option>
                     </select>
                 </div>
             </div>
@@ -1173,13 +1178,196 @@ foreach ($vendedoras as $v) {
 <script src="admin/assets/extensions/jquery-ui/jquery-ui.min.js"></script>
 
 <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/moment-timezone@0.5.45/builds/moment-timezone-with-data-1970-2030.min.js"></script>
 <script>
     let lead_data = <?php echo json_encode($lead_data); ?>;
     const vendedorasById = <?php echo json_encode($vendedoras_js, JSON_UNESCAPED_UNICODE); ?>;
 
     console.log("lead_data desde php", lead_data);
 
+    const SELLER_TIMEZONE = 'Etc/GMT+6';
+    const SELLER_UTC_OFFSET_MINUTES = -360;
 
+    function isValidIanaTimeZone(timezoneName) {
+        if (!timezoneName || typeof timezoneName !== 'string') {
+            return false;
+        }
+        try {
+            Intl.DateTimeFormat('en-US', { timeZone: timezoneName }).format();
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function detectClientTimezone() {
+        const timezoneOffsetMinutes = new Date().getTimezoneOffset();
+        const timezoneOffsetHours = -(timezoneOffsetMinutes / 60);
+        let timezoneName = '';
+        try {
+            timezoneName = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+                ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                : '';
+        } catch (error) {
+            timezoneName = '';
+        }
+
+        if (!isValidIanaTimeZone(timezoneName)) {
+            timezoneName = '';
+        }
+
+        return {
+            timezone_name: timezoneName,
+            timezone_offset_min: timezoneOffsetMinutes,
+            timezone_offset_hours: timezoneOffsetHours
+        };
+    }
+
+    function normalizeSlotTime(timeText) {
+        const raw = String(timeText || '').trim();
+        if (raw === '') {
+            return '';
+        }
+
+        const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+        if (match) {
+            return match[1].padStart(2, '0') + ':' + match[2].padStart(2, '0');
+        }
+
+        if (/^\d{1,2}$/.test(raw)) {
+            return raw.padStart(2, '0') + ':00';
+        }
+
+        return '';
+    }
+
+    function parseVendorHorarios(raw) {
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+        if (typeof raw !== 'string' || raw.trim() === '') {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function isSlotOccupied(slotHorario, occupiedTimes) {
+        const slotNormalized = normalizeSlotTime(slotHorario);
+        if (!slotNormalized || !Array.isArray(occupiedTimes) || occupiedTimes.length === 0) {
+            return false;
+        }
+
+        return occupiedTimes.some(function (entry) {
+            return normalizeSlotTime(entry.hora) === slotNormalized;
+        });
+    }
+
+    function getUtcDateFromSellerSlot(dateText, timeText) {
+        const normalizedTime = normalizeSlotTime(timeText);
+        const dateMatch = String(dateText || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        const timeMatch = normalizedTime.match(/^(\d{2}):(\d{2})$/);
+        if (!dateMatch || !timeMatch) {
+            return null;
+        }
+
+        const year = parseInt(dateMatch[1], 10);
+        const month = parseInt(dateMatch[2], 10);
+        const day = parseInt(dateMatch[3], 10);
+        const hour = parseInt(timeMatch[1], 10);
+        const minute = parseInt(timeMatch[2], 10);
+
+        const localAsUtcMillis = Date.UTC(year, month - 1, day, hour, minute, 0);
+        const utcMillis = localAsUtcMillis - (SELLER_UTC_OFFSET_MINUTES * 60 * 1000);
+        return new Date(utcMillis);
+    }
+
+    function getDatePartsForTimezone(dateObj, timezoneName) {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: timezoneName,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(dateObj).reduce(function (acc, part) {
+            if (part.type !== 'literal') {
+                acc[part.type] = part.value;
+            }
+            return acc;
+        }, {});
+
+        return {
+            date: parts.year + '-' + parts.month + '-' + parts.day,
+            time: parts.hour + ':' + parts.minute
+        };
+    }
+
+    function convertSellerSlotToClientLocal(dateText, timeText, clientTzInfo) {
+        const normalizedSellerTime = normalizeSlotTime(timeText);
+        const utcDate = getUtcDateFromSellerSlot(dateText, normalizedSellerTime);
+        if (!utcDate) {
+            return {
+                clientDate: dateText,
+                clientTime: normalizedSellerTime || String(timeText || ''),
+                isSameAsSeller: true
+            };
+        }
+
+        if (window.moment && typeof window.moment.tz === 'function' && isValidIanaTimeZone(clientTzInfo.timezone_name)) {
+            const sellerMoment = window.moment.tz(dateText + ' ' + normalizedSellerTime, 'YYYY-MM-DD HH:mm', SELLER_TIMEZONE);
+            const clientMoment = sellerMoment.clone().tz(clientTzInfo.timezone_name);
+            return {
+                clientDate: clientMoment.format('YYYY-MM-DD'),
+                clientTime: clientMoment.format('HH:mm'),
+                isSameAsSeller: clientMoment.format('YYYY-MM-DD HH:mm') === sellerMoment.format('YYYY-MM-DD HH:mm')
+            };
+        }
+
+        if (isValidIanaTimeZone(clientTzInfo.timezone_name)) {
+            const localParts = getDatePartsForTimezone(utcDate, clientTzInfo.timezone_name);
+            return {
+                clientDate: localParts.date,
+                clientTime: localParts.time,
+                isSameAsSeller: localParts.date === dateText && localParts.time === normalizedSellerTime
+            };
+        }
+
+        const fallbackDate = new Date(utcDate.getTime() - (clientTzInfo.timezone_offset_min * 60 * 1000));
+        const fallbackDateText = fallbackDate.getUTCFullYear() + '-' + String(fallbackDate.getUTCMonth() + 1).padStart(2, '0') + '-' + String(fallbackDate.getUTCDate()).padStart(2, '0');
+        const fallbackTimeText = String(fallbackDate.getUTCHours()).padStart(2, '0') + ':' + String(fallbackDate.getUTCMinutes()).padStart(2, '0');
+        return {
+            clientDate: fallbackDateText,
+            clientTime: fallbackTimeText,
+            isSameAsSeller: fallbackDateText === dateText && fallbackTimeText === normalizedSellerTime
+        };
+    }
+
+    function collectAvailableSlots(vendorHorarios, occupiedTimes) {
+        const hrs = [];
+
+        vendorHorarios.forEach(function (horario) {
+            const slotTime = normalizeSlotTime(horario);
+            if (!slotTime || isSlotOccupied(horario, occupiedTimes) || hrs.includes(slotTime)) {
+                return;
+            }
+            hrs.push(slotTime);
+        });
+
+        hrs.sort(function (a, b) {
+            const partsA = a.split(':');
+            const partsB = b.split(':');
+            return (parseInt(partsA[0], 10) * 60 + parseInt(partsA[1], 10)) - (parseInt(partsB[0], 10) * 60 + parseInt(partsB[1], 10));
+        });
+
+        return hrs;
+    }
 
 
 
@@ -1589,20 +1777,10 @@ foreach ($vendedoras as $v) {
                     const occupiedResponse = await fetch('chkDisponible.php', { method: 'POST', body: occupiedForm });
                     const occupiedTimes = await occupiedResponse.json();
 
-                    const vendorHorarios = JSON.parse(horariosJson[0].horarios);
-                    for (let i = 0; i < vendorHorarios.length; i++) {
-                        const horario = vendorHorarios[i];
-                        let isOccupied = false;
-                        if (Array.isArray(occupiedTimes)) {
-                            occupiedTimes.forEach(function (time) {
-                                if (time.hora === horario + ':00') {
-                                    isOccupied = true;
-                                }
-                            });
-                        }
-                        if (!isOccupied) {
-                            return true;
-                        }
+                    const vendorHorarios = parseVendorHorarios(horariosJson[0].horarios);
+                    const availableSlots = collectAvailableSlots(vendorHorarios, occupiedTimes);
+                    if (availableSlots.length > 0) {
+                        return true;
                     }
                 } catch (error) {
                     console.error('Error checking vendor availability for', dateStr, error);
@@ -1733,20 +1911,19 @@ foreach ($vendedoras as $v) {
                 $scheduleList.empty();
 
                 if (schedule && schedule.length > 0) {
-                    let dif = 0;
-                    const local = 6;
-                    if (timezone != -6) {
-                        dif = local + timezone;
-                    }
+                    const clientTzInfo = detectClientTimezone();
                     schedule.forEach(function (time) {
-                        let custTime = time;
-                        let displayTime = time + ' (US Central Time)';
-                        if (timezone != -6) {
-                            const tz = time.split(':');
-                            custTime = (parseInt(tz[0], 10) + dif) + ':' + tz[1];
-                            displayTime = custTime + ' (Local Time)';
+                        const sellerTime = normalizeSlotTime(time);
+                        if (!sellerTime) {
+                            return;
                         }
-                        const $listItem = $(`<li data-hour="${time}" data-hourcust="${custTime}">`).text(displayTime);
+                        const convertedSlot = convertSellerSlotToClientLocal(selecteddate, sellerTime, clientTzInfo);
+                        const displayTime = convertedSlot.clientTime + ' (Local Time)';
+                        const $listItem = $('<li>')
+                            .attr('data-hour', sellerTime)
+                            .attr('data-hourcust', convertedSlot.clientTime)
+                            .attr('data-datecust', convertedSlot.clientDate)
+                            .text(displayTime);
                         $scheduleList.append($listItem);
 
                         $listItem.click(function () {
@@ -1791,34 +1968,9 @@ foreach ($vendedoras as $v) {
                     const times = await occupiedResponse.json();
 
                     if (Array.isArray(horariosJson) && horariosJson.length > 0 && horariosJson[0].horarios) {
-                        const vendorHorarios = JSON.parse(horariosJson[0].horarios);
-                        const hrs = [];
-
-                        vendorHorarios.forEach(function (horario) {
-                            let hr = horario;
-                            if (Array.isArray(times) && times.length > 0) {
-                                times.forEach(function (time) {
-                                    if (time.hora === `${horario}:00`) {
-                                        hr = 0;
-                                    }
-                                });
-                            }
-                            if (hr !== 0 && !hrs.includes(horario)) {
-                                hrs.push(horario);
-                            }
-                        });
-
-                        function convertToMinutes(timeStr) {
-                            const parts = timeStr.split(':');
-                            return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                        }
-
-                        hrs.sort(function (a, b) {
-                            return convertToMinutes(a) - convertToMinutes(b);
-                        });
-
-                        hrs.forEach(function (h) {
-                            horas.push(h);
+                        const vendorHorarios = parseVendorHorarios(horariosJson[0].horarios);
+                        collectAvailableSlots(vendorHorarios, times).forEach(function (slotTime) {
+                            horas.push(slotTime);
                         });
                     }
                 } catch (error) {
@@ -1964,7 +2116,7 @@ foreach ($vendedoras as $v) {
                     return;
                 }
 
-                var horaScheduleSelected = $('li.selected').data('hour') || '';
+                var horaScheduleSelected = normalizeSlotTime($('li.selected').data('hour') || '');
                 if (!horaScheduleSelected) {
                     Swal.fire({
                         icon: 'warning',
@@ -2062,29 +2214,42 @@ foreach ($vendedoras as $v) {
                 var horaVendedorManual = $('#hora_cliente_manual').val().trim();
                 var horaVendedorValida = /^([01]?\d|2[0-3]):[0-5]\d$/.test(horaVendedorManual);
                 
-                var horaSchedule = $('li.selected').data('hour') || '';
-                
+                var selectedSlot = $('li.selected');
+                var horaSchedule = normalizeSlotTime(selectedSlot.data('hour') || '');
+                var horaScheduleCust = normalizeSlotTime(selectedSlot.data('hourcust') || '') || horaSchedule;
+                var dateScheduleCust = String(selectedSlot.data('datecust') || selecteddate);
+
+                if (!horaSchedule) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Horario inválido',
+                        text: 'El horario seleccionado no es válido. Por favor elige otro.',
+                        customClass: { popup: 'swal2-popup-center' }
+                    });
+                    return;
+                }
+
                 if (horaVendedorManual !== '' && horaVendedorValida) {
                     // Hay hora manual del vendedor: usarla como time_appointment (vendedor)
                     // Y la del schedule como time_appointment_cust (cliente)
                     var partes = horaVendedorManual.split(':');
                     var hh = String(parseInt(partes[0], 10)).padStart(2, '0');
                     var mm = String(parseInt(partes[1], 10)).padStart(2, '0');
-                    formData.append('time_appointment_cust', horaSchedule); // CLIENTE = schedule
+                    formData.append('time_appointment_cust', horaScheduleCust); // CLIENTE = schedule
                     formData.append('time_appointment', hh + ':' + mm); // VENDEDOR = manual
                     formData.append('zona_horaria_manual', '1');
                     formData.append('timezone_name', '');
                     formData.append('timezone_offset_min', '0');
                 } else {
                     // Sin hora manual: ambos usan la misma hora del schedule
-                    formData.append('time_appointment_cust', horaSchedule); // CLIENTE = schedule
-                    formData.append('time_appointment', horaSchedule); // VENDEDOR = schedule (misma)
+                    formData.append('time_appointment_cust', horaScheduleCust); // CLIENTE = schedule
+                    formData.append('time_appointment', horaSchedule); // VENDEDOR = schedule
                     formData.append('zona_horaria_manual', '1');
                     formData.append('timezone_name', '');
                     formData.append('timezone_offset_min', '0');
                 }
                 // --- FIN LÓGICA HORA VENDEDOR/CLIENTE ---
-                formData.append('date_appointment_cust', dateCustFormatted);
+                formData.append('date_appointment_cust', dateScheduleCust || dateCustFormatted);
                 formData.append('desde_publicidad', 0);
                 formData.append('zona_horaria', timezone);
                 formData.append('idusu', selectedVendorId);

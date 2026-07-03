@@ -2,6 +2,7 @@
 ob_start();
 include 'conn.php';
 require_once __DIR__ . '/usuario_roles_helper.php';
+require_once __DIR__ . '/evento_wp_post_helper.php';
 
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
@@ -125,7 +126,7 @@ try {
     $advisorRow = $advisorRes ? $advisorRes->fetch_assoc() : null;
     $stmt->close();
 
-    if (!$advisorRow || !usuarioTipoPuedeAsignarSesionWp($advisorRow['tipoUsu'] ?? -1)) {
+    if (!$advisorRow || !usuarioTipoEsAsesorEventoWp($advisorRow['tipoUsu'] ?? -1)) {
         plannerEditEventJsonResponse(400, ['success' => false, 'message' => 'Asesor inválido.']);
     }
 
@@ -230,6 +231,8 @@ try {
         throw new Exception('No se pudo sincronizar contact_form: ' . $stmt->error);
     }
     $stmt->close();
+
+    wpPlannerAutoMarkCotizadoIfEligible($conn, $eventId);
 
     $conn->commit();
 

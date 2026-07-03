@@ -65,9 +65,6 @@ $montoVentaRaw = isset($_POST['monto_venta']) ? trim((string) $_POST['monto_vent
 if ($weddingPlannerId <= 0) {
     wpEventNoAppointmentJsonResponse(400, ['success' => false, 'message' => 'Wedding planner inválido.']);
 }
-if ($idAsesor <= 0) {
-    wpEventNoAppointmentJsonResponse(400, ['success' => false, 'message' => 'Asesor inválido.']);
-}
 if ($novios === '') {
     wpEventNoAppointmentJsonResponse(400, ['success' => false, 'message' => 'Ingresa el nombre de los novios.']);
 }
@@ -104,7 +101,7 @@ try {
         throw new Exception('El paquete seleccionado no existe.');
     }
 
-    $stmt = $conn->prepare('SELECT id, empresa_wp, full_name, campaign_name, phone, email, city, how_long_known_us, first_contact_channel FROM wedding_planners WHERE id = ? LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, empresa_wp, full_name, campaign_name, phone, email, city, how_long_known_us, first_contact_channel, id_vendedor_asignado FROM wedding_planners WHERE id = ? LIMIT 1');
     if (!$stmt) {
         throw new Exception('No se pudo validar el wedding planner: ' . $conn->error);
     }
@@ -118,6 +115,13 @@ try {
         throw new Exception('Wedding planner no encontrado.');
     }
 
+    if ($idAsesor <= 0) {
+        $idAsesor = (int) ($plannerRow['id_vendedor_asignado'] ?? 0);
+    }
+    if ($idAsesor <= 0) {
+        throw new Exception('No hay asesor asignado en el wedding planner.');
+    }
+
     $stmt = $conn->prepare('SELECT id, tipoUsu FROM usuarios WHERE id = ? LIMIT 1');
     if (!$stmt) {
         throw new Exception('No se pudo validar el asesor: ' . $conn->error);
@@ -128,7 +132,7 @@ try {
     $advisorRow = $advisorResult ? $advisorResult->fetch_assoc() : null;
     $stmt->close();
 
-    if (!$advisorRow || !usuarioTipoPuedeAsignarSesionWp($advisorRow['tipoUsu'] ?? -1)) {
+    if (!$advisorRow || !usuarioTipoEsAsesorEventoWp($advisorRow['tipoUsu'] ?? -1)) {
         throw new Exception('Asesor inválido.');
     }
 
@@ -156,12 +160,12 @@ try {
 
     $conn->begin_transaction();
 
-    $stmt = $conn->prepare('INSERT INTO eventos_wp (wedding_planner_id, id_coordinador, ciudad_novios, lugar, fecha, fecha_registro, novios, id_asesor, modo, tipo_paquete, id_paquete, paquete_personalizado, created_time, estatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)');
+    $stmt = $conn->prepare('INSERT INTO eventos_wp (wedding_planner_id, id_coordinador, ciudad_novios, lugar, fecha, fecha_registro, novios, id_asesor, modo, tipo_paquete, id_paquete, paquete_personalizado, created_time, estatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     if (!$stmt) {
         throw new Exception('No se pudo preparar la inserción del evento: ' . $conn->error);
     }
     $eventStatus = '2';
-    $stmt->bind_param('iisssssississ', $weddingPlannerId, $idCoordinador, $city, $lugar, $fechaDb, $fechaRegistroDb, $novios, $idAsesor, $modo, $tipoPaquete, $idPaquete, $paquetePersonalizado, $eventStatus);
+    $stmt->bind_param('iisssssississs', $weddingPlannerId, $idCoordinador, $city, $lugar, $fechaDb, $fechaRegistroDb, $novios, $idAsesor, $modo, $tipoPaquete, $idPaquete, $paquetePersonalizado, $fechaRegistroDb, $eventStatus);
     if (!$stmt->execute()) {
         throw new Exception('No se pudo crear el evento: ' . $stmt->error);
     }
@@ -181,37 +185,51 @@ try {
         $touchStatusDateStmt->close();
     }
 
+    wpPlannerStampEventStatusMilestones($conn, $eventId, 2);
+
+    wpEventEnsureContactFormColumns($conn);
+
     $plannerName = wpEventFirstNonEmptyValue($plannerRow['empresa_wp'] ?? '', $plannerRow['full_name'] ?? '', $plannerRow['campaign_name'] ?? '', 'Evento sin cita');
     $plannerPhone = trim((string) ($plannerRow['phone'] ?? ''));
     $plannerEmail = trim((string) ($plannerRow['email'] ?? ''));
     $plannerCity = wpEventFirstNonEmptyValue($city, $plannerRow['city'] ?? '');
     $weddingDate = !empty($fechaDb) ? date('Y-m-d', strtotime($fechaDb)) : null;
     $weddingLocation = wpEventFirstNonEmptyValue($lugar, 'Sin lugar');
-    $campaignName = wpEventFirstNonEmptyValue($plannerRow['campaign_name'] ?? '', $plannerRow['empresa_wp'] ?? '', 'Evento sin cita');
-    $howLongKnownUs = trim((string) ($plannerRow['how_long_known_us'] ?? ''));
     $firstContactChannel = trim((string) ($plannerRow['first_contact_channel'] ?? ''));
+    $campaignName = $firstContactChannel;
+    $howLongKnownUs = trim((string) ($plannerRow['how_long_known_us'] ?? ''));
     $cliente = 2;
-    $fechaCambioCliente = date('Y-m-d');
+    $fechaCambioCliente = date('Y-m-d', strtotime($fechaRegistroDb));
     $engagement = 0;
     $paquete = (string) intval($idPaquete);
     $paqueteCotizado = trim((string) ($packageRow['nombre'] ?? ''));
     $manual = 1;
     $desdePublicidad = 1;
     $howDidYouMeet = '1';
-    $submissionDate = date('Y-m-d H:i:s');
-    $createdTime = $submissionDate;
+    $tipoCliente = 1;
+    $submissionDate = $fechaRegistroDb;
+    $createdTime = $fechaRegistroDb;
     $dateAppointment = $weddingDate;
     $timeAppointment = !empty($fechaDb) ? date('H:i:s', strtotime($fechaDb)) : null;
     $tablaOrigen = 'eventos_wp';
     $formName = 'eventos_wp';
 
-    $stmt = $conn->prepare('INSERT INTO contact_form (names, telephone, country_code, email_address, wedding_date, wedding_location, city, campaign_name, original_lead_id, tabla_origen, form_name, how_long_known_us, first_contact_channel, cliente, fecha_cambio_cliente, id_vendedor_asignado, engagement, paquete, paquete_cotizado, manual, desde_publicidad, how_did_you_meet, submission_date, created_time, date_appointment, time_appointment, monto_venta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $conn->prepare('INSERT INTO contact_form (names, telephone, country_code, email_address, wedding_date, wedding_location, city, campaign_name, original_lead_id, tabla_origen, form_name, how_long_known_us, first_contact_channel, cliente, fecha_cambio_cliente, id_vendedor_asignado, engagement, paquete, paquete_cotizado, manual, desde_publicidad, how_did_you_meet, tipo_cliente, evento_wp_id, wp_id, submission_date, created_time, date_appointment, time_appointment, monto_venta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     if (!$stmt) {
         throw new Exception('No se pudo preparar la inserción en contact_form: ' . $conn->error);
     }
 
     $countryCode = '';
-    $stmt->bind_param('ssssssssissssisiissiisssssd', $plannerName, $plannerPhone, $countryCode, $plannerEmail, $weddingDate, $weddingLocation, $plannerCity, $campaignName, $eventId, $tablaOrigen, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idAsesor, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $submissionDate, $createdTime, $dateAppointment, $timeAppointment, $montoVenta);
+    $contactFormInsertTypes = 'ssssssss' // names .. campaign_name
+        . 'i'                             // original_lead_id
+        . 'ssss'                          // tabla_origen, form_name, how_long_known_us, first_contact_channel
+        . 'isiiss'                        // cliente, fecha_cambio, vendedor, engagement, paquete, cotizado
+        . 'ii'                            // manual, desde_publicidad
+        . 's'                             // how_did_you_meet
+        . 'iii'                           // tipo_cliente, evento_wp_id, wp_id
+        . 'ssss'                          // submission_date, created_time, date/time appointment
+        . 'd';                            // monto_venta
+    $stmt->bind_param($contactFormInsertTypes, $plannerName, $plannerPhone, $countryCode, $plannerEmail, $weddingDate, $weddingLocation, $plannerCity, $campaignName, $eventId, $tablaOrigen, $formName, $howLongKnownUs, $firstContactChannel, $cliente, $fechaCambioCliente, $idAsesor, $engagement, $paquete, $paqueteCotizado, $manual, $desdePublicidad, $howDidYouMeet, $tipoCliente, $eventId, $weddingPlannerId, $submissionDate, $createdTime, $dateAppointment, $timeAppointment, $montoVenta);
     if (!$stmt->execute()) {
         throw new Exception('No se pudo crear el registro en contact_form: ' . $stmt->error);
     }

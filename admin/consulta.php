@@ -334,8 +334,9 @@ $conn->close();
         font-size: 0.85rem; font-weight: 600; color: #444; transition: all 0.15s;
     }
     .sfm-tipo-cliente-btn .sfm-cat-icon { font-size: 1.5rem; display: block; margin-bottom: 6px; }
-    .sfm-tipo-cliente-btn:hover { border-color: #464646; }
+    .sfm-tipo-cliente-btn:hover:not(:disabled) { border-color: #464646; }
     .sfm-tipo-cliente-btn.active { border-color: #464646; background: #464646; color: #eee8dc; }
+    .sfm-tipo-cliente-btn:disabled { opacity: 0.45; cursor: not-allowed; background: #f5f5f5; }
     .sfm-subcategory-select {
         width: 100%;
         border: 1.5px solid #ddd;
@@ -1240,11 +1241,11 @@ $conn->close();
                         <p>¿El cliente es un Wedding Planner o un Cliente Final?</p>
                     </div>
                 </div>
-                <input type="hidden" id="sfm-tipo-cliente">
+                <input type="hidden" id="sfm-tipo-cliente" value="0">
                 <input type="hidden" id="sfm-how-did-you-meet">
                 <div class="sfm-category-btns">
-                    <button type="button" class="sfm-tipo-cliente-btn" data-tipo="1"><span class="sfm-cat-icon">💼</span>Wedding Planner</button>
-                    <button type="button" class="sfm-tipo-cliente-btn" data-tipo="0"><span class="sfm-cat-icon">👤</span>Cliente Final</button>
+                    <button type="button" class="sfm-tipo-cliente-btn" data-tipo="1" disabled><span class="sfm-cat-icon">💼</span>Wedding Planner</button>
+                    <button type="button" class="sfm-tipo-cliente-btn active" data-tipo="0"><span class="sfm-cat-icon">👤</span>Cliente Final</button>
                 </div>
             </div>
 
@@ -3396,11 +3397,10 @@ $conn->close();
                             $('#sfm-how-long-known-us').val($firstKnownBtn.data('val'));
                         }
 
-                        // Pre-seleccionar tipo de cliente si ya está guardado
-                        if (clienteTipoCliente !== '') {
-                            $('.sfm-tipo-cliente-btn[data-tipo="' + clienteTipoCliente + '"]').addClass('active');
-                            $('#sfm-tipo-cliente').val(clienteTipoCliente);
-                        }
+                        // Pre-seleccionar tipo de cliente; por defecto Cliente Final
+                        var tipoClienteVal = clienteTipoCliente !== '' ? clienteTipoCliente : '0';
+                        $('.sfm-tipo-cliente-btn[data-tipo="' + tipoClienteVal + '"]').addClass('active');
+                        $('#sfm-tipo-cliente').val(tipoClienteVal);
 
                         // Auto-derivar origen según tipo_cliente + how_long_known_us
                         updateSfmAutoOrigin();
@@ -3657,6 +3657,9 @@ $conn->close();
 
         // Tipo de cliente button toggle
         $(document).on('click', '.sfm-tipo-cliente-btn', function() {
+            if ($(this).prop('disabled')) {
+                return;
+            }
             $('.sfm-tipo-cliente-btn').removeClass('active');
             $(this).addClass('active');
             $('#sfm-tipo-cliente').val(String($(this).data('tipo')));

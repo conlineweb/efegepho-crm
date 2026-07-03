@@ -8,7 +8,7 @@
 
     $tipoUsu = intval($_SESSION['tus'] ?? -1);
     $userId = intval($_SESSION['uid'] ?? 0);
-    $canDelete = (usuarioTipoEsAdminLike($tipoUsu) || $userId === 1);
+    $canDelete = usuarioPuedeOcultarWeddingPlanner($tipoUsu, $userId);
 
     if (!$canDelete) {
         http_response_code(403);
