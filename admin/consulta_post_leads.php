@@ -3130,7 +3130,7 @@ $conn->close();
                                 }
 
                                 $isOriginKnown = in_array(trim((string)($lead['how_did_you_meet'] ?? '')), ['1', '2', '3'], true) ? 1 : 0;
-                                // Todos los displayLeads ya pasaron filtro de calendario_estatus_historial (estatus 1)
+                                // displayLeads: historial con estatus actual 1/3 y paso previo por estatus 1, o cliente
                                 $isOfficialCall = 1;
                                 $isClosed = ($statusLower === 'cliente' || intval($lead['cliente'] ?? 0) === 1) ? 1 : 0;
                                 $isWpAfianzado = (

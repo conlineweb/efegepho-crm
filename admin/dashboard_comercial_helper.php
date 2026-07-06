@@ -764,7 +764,9 @@ if (!function_exists('dashComercialBatchLoadHistorialEstatusFlagsByContactFormId
 
 if (!function_exists('dashComercialLoadAtendidoHistorialClientIds')) {
     /**
-     * IDs de contact_form que alguna vez alcanzaron estatus 1 (atendido) o 4 (cliente) en calendario_estatus_historial.
+     * IDs de contact_form con cita realmente atendida (leads normales, no WP):
+     * estatus actual de la cita en (1=atendido, 3=muerto) y el historial incluye estatus 1.
+     * Los clientes (contact_form.cliente=1) se incluyen aparte en la cohorte post-Q.
      *
      * @param int[]|null $clientIds null = todos; array = restringir a esos idclie
      * @return array<int, true>
@@ -775,9 +777,17 @@ if (!function_exists('dashComercialLoadAtendidoHistorialClientIds')) {
 
         $ids = [];
         $sql = 'SELECT DISTINCT c.idclie AS idclie
-                FROM calendario_estatus_historial h
-                INNER JOIN calendario c ON c.id = h.id_calendario
-                WHERE h.estatus IN (1, 4)';
+                FROM (
+                    SELECT
+                        ch.id_calendario,
+                        MAX(ch.estatus) AS estatus,
+                        GROUP_CONCAT(ch.estatus ORDER BY ch.fecha_cambio) AS stat
+                    FROM calendario_estatus_historial ch
+                    GROUP BY ch.id_calendario
+                ) calendar
+                INNER JOIN calendario c ON c.id = calendar.id_calendario
+                WHERE calendar.estatus IN (1, 3)
+                  AND FIND_IN_SET(\'1\', calendar.stat) > 0';
 
         if ($clientIds !== null) {
             $clientIds = array_values(array_filter(array_map('intval', $clientIds), function ($id) {
@@ -1464,7 +1474,7 @@ if (!function_exists('dashComercialHydrateEventosWpLeadRow')) {
 if (!function_exists('dashComercialBuildPostLeadsCohort')) {
     /**
      * Cohorte post-calificada (réplica de consulta_post_leads.php):
-     * historial con estatus 1 (atendido) o 4 (cliente) en calendario_estatus_historial,
+     * historial con estatus actual 1/3 y transición previa a 1 (atendido),
      * cierre cliente en contact_form, o eventos_wp atendido/cliente/muerto (muerto solo si hubo atendido).
      *
      * @return array<int, array{cf: array, appt: array|null, estatus: string, created_time: string}>
